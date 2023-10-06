@@ -219,7 +219,7 @@ fi
 # EXP_CNFG  = Root directory containing sub-directories for namelists
 #             vtables, geogrid data, GSI fix files, etc.
 # CYC_HME   = Cycle YYYYMMDDHH named directory for cycling data containing
-#             bkg, wpsprd, realprd, wrfprd, wrfdaprd, gsiprd, enkfprd
+#             bkg, ungrib, metgrid, real, wrf, wrfda, gsi, enkf
 # DATA_ROOT = Directory for all forcing data files, including grib files,
 #             obs files, etc.
 #
@@ -271,7 +271,7 @@ fi
 #
 ##################################################################################
 
-work_root=${CYC_HME}/wpsprd/ens_${memid}
+work_root=${CYC_HME}/ungrib/ens_${memid}
 mkdir -p ${work_root}
 cmd="cd ${work_root}"
 printf "${cmd}\n"; eval "${cmd}"

@@ -54,8 +54,6 @@ fi
 # EXP_VRF    = Verfication time for calculating forecast hours, IF_DYN_LEN=Yes
 # BKG_INT    = Interval of input data in HH
 # BKG_DATA   = String case variable for supported inputs: GFS, GEFS currently
-# PIO_NUM    = Number of tasks to perform file I/O
-# PIO_STRIDE = Stride between file I/O tasks
 #
 ##################################################################################
 
@@ -128,26 +126,6 @@ if [[ ${BKG_DATA} != GFS && ${BKG_DATA} != GEFS ]]; then
   exit 1
 fi
 
-if [ ! ${PIO_NUM} ]; then
-  printf "ERROR: \${PIO_NUM} is not defined.\n"
-  exit 1
-elif [ ${PIO_NUM} -lt 0 ]; then
-  msg="ERROR: \${PIO_NUM} must be >= 0 for the number of IO tasks, with equal to"
-  msg+=" 0 corresponding to all tasks performing IO.\n"
-  printf ${msg}
-  exit 1
-elif [ ${PIO_NUM} -gt ${N_PROC}]; then
-  msg="ERROR: \${PIO_NUM} must be <= \${NUM_PROC}, ${NUM_PROC}, the number of"
-  msg+=" MPI processes.\n"
-  printf ${msg}
-  exit 1
-fi
-
-if [ ! ${PIO_STRIDE} ]; then
-  printf "ERROR: \${PIO_STRIDE} is not defined.\n"
-  exit 1
-fi
-
 ##################################################################################
 # Define metgrid workflow dependencies
 ##################################################################################
@@ -160,6 +138,8 @@ fi
 #              bkg, init_atmos_prd, mpasprd 
 # MPIRUN     = MPI multiprocessing evaluation call, machine specific
 # N_PROC     = The total number of processes to run metgrid.exe with MPI
+# PIO_NUM    = Number of tasks to perform file I/O
+# PIO_STRIDE = Stride between file I/O tasks
 #
 ##################################################################################
 
@@ -202,8 +182,28 @@ elif [ ${N_PROC} -le 0 ]; then
   exit 1
 fi
 
+if [ ! ${PIO_NUM} ]; then
+  printf "ERROR: \${PIO_NUM} is not defined.\n"
+  exit 1
+elif [ ${PIO_NUM} -lt 0 ]; then
+  msg="ERROR: \${PIO_NUM} must be >= 0 for the number of IO tasks, with equal to"
+  msg+=" 0 corresponding to all tasks performing IO.\n"
+  printf ${msg}
+  exit 1
+elif [ ${PIO_NUM} -gt ${N_PROC}]; then
+  msg="ERROR: \${PIO_NUM} must be <= \${NUM_PROC}, ${NUM_PROC}, the number of"
+  msg+=" MPI processes.\n"
+  printf ${msg}
+  exit 1
+fi
+
+if [ ! ${PIO_STRIDE} ]; then
+  printf "ERROR: \${PIO_STRIDE} is not defined.\n"
+  exit 1
+fi
+
 ##################################################################################
-# Begin pre-metgrid setup
+# Begin pre-init_atmosphere setup
 ##################################################################################
 # The following paths are relative to workflow root paths
 #

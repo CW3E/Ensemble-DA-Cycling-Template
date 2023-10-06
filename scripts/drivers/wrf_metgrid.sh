@@ -188,7 +188,7 @@ dmns=`seq -f "%02g" 1 ${MAX_DOM}`
 # EXP_CNFG  = Root directory containing sub-directories for namelists
 #             vtables, geogrid data, GSI fix files, etc.
 # CYC_HME   = Cycle YYYYMMDDHH named directory for cycling data containing
-#             bkg, wpsprd, realprd, wrfprd, wrfdaprd, gsiprd, enkfprd
+#             bkg, ungrib, metgrid, real, wrf, wrfda, gsi, enkf
 # MPIRUN    = MPI multiprocessing evaluation call, machine specific
 # N_PROC    = The total number of processes to run metgrid.exe with MPI
 #
@@ -245,7 +245,7 @@ fi
 #
 ##################################################################################
 
-work_root=${CYC_HME}/wpsprd/ens_${memid}
+work_root=${CYC_HME}/metgrid/ens_${memid}
 if [ ! -d ${work_root} ]; then
   printf "ERROR: \${work_root} directory\n ${work_root}\n does not exist.\n"
   exit 1
