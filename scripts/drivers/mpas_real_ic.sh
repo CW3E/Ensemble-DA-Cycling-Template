@@ -53,7 +53,9 @@ fi
 # FCST_HRS   = Total length of WRF forecast simulation in HH, IF_DYN_LEN=No
 # EXP_VRF    = Verfication time for calculating forecast hours, IF_DYN_LEN=Yes
 # BKG_INT    = Interval of input data in HH
-# BKG_DATA    = String case variable for supported inputs: GFS, GEFS currently
+# BKG_DATA   = String case variable for supported inputs: GFS, GEFS currently
+# PIO_NUM    = Number of tasks to perform file I/O
+# PIO_STRIDE = Stride between file I/O tasks
 #
 ##################################################################################
 
@@ -123,6 +125,26 @@ if [[ ${BKG_DATA} != GFS && ${BKG_DATA} != GEFS ]]; then
   msg="ERROR: \${BKG_DATA} must equal 'GFS' or 'GEFS'"
   msg+=" as currently supported inputs.\n"
   printf "${msg}"
+  exit 1
+fi
+
+if [ ! ${PIO_NUM} ]; then
+  printf "ERROR: \${PIO_NUM} is not defined.\n"
+  exit 1
+elif [ ${PIO_NUM} -lt 0 ]; then
+  msg="ERROR: \${PIO_NUM} must be >= 0 for the number of IO tasks, with equal to"
+  msg+=" 0 corresponding to all tasks performing IO.\n"
+  printf ${msg}
+  exit 1
+elif [ ${PIO_NUM} -gt ${N_PROC}]; then
+  msg="ERROR: \${PIO_NUM} must be <= \${NUM_PROC}, ${NUM_PROC}, the number of"
+  msg+=" MPI processes.\n"
+  printf ${msg}
+  exit 1
+fi
+
+if [ ! ${PIO_STRIDE} ]; then
+  printf "ERROR: \${PIO_STRIDE} is not defined.\n"
   exit 1
 fi
 
@@ -282,21 +304,99 @@ cat namelist.init_atmosphere \
   > namelist.init_atmosphere.tmp
 mv namelist.init_atmosphere.tmp namelist.init_atmosphere
 
-# Update interval in namelist
+# Update the met data prefix to the background data
+in_met_prfx="\(config_met_prefix\)${EQUAL}CONFIG_MET_PREFIX"
+out_met_prfx="\1 = '${BKG_DATA}"
+cat namelist.init_atmosphere \
+  | sed "s/${in_met_prfx}/${out_met_prfx}/" \
+  > namelist.init_atmosphere.tmp
+mv namelist.init_atmosphere.tmp namelist.init_atmosphere
+
+# Update background data interval in namelist
 (( data_interval_sec = BKG_INT * 3600 ))
-in_int="\(INTERVAL_SECONDS\)${EQUAL}INTERVAL_SECONDS"
+in_int="\(config_fg_interval\)${EQUAL}CONFIG_FG_INTERVAL"
 out_int="\1 = ${data_interval_sec}"
 cat namelist.init_atmosphere \
   | sed "s/${in_int}/${out_int}/" \
   > namelist.init_atmosphere.tmp
 mv namelist.init_atmosphere.tmp namelist.init_atmosphere
 
-# Remove pre-existing metgrid files
-cmd="rm -f met_em.d0*.*.nc"
-printf "${cmd}\n"; eval "${cmd}"
+# update static data interpolation setting
+in_static_interp="\(config_static_interp\)${EQUAL}CONFIG_STATIC_INTERP"
+out_static_interp="\1 = false"
+cat namelist.init_atmosphere \
+  | sed "s/${in_static_interp}/${out_static_interp}/" \
+  > namelist.init_atmosphere.tmp
+mv namelist.init_atmosphere.tmp namelist.init_atmosphere
+
+# update subgridscale statistics setting
+in_gwd_static="\(config_native_gwd_static\)${EQUAL}CONFIG_NATIVE_GWD_STATIC"
+out_gwd_static="\1 = false"
+cat namelist.init_atmosphere \
+  | sed "s/${in_gwd_static}/${out_gwd_static}/" \
+  > namelist.init_atmosphere.tmp
+mv namelist.init_atmosphere.tmp namelist.init_atmosphere
+
+# update generate vertical grid or no
+in_vertical_grid="\(config_vertical_grid\)${EQUAL}CONFIG_VERTICAL_GRID"
+out_vertical_grid="\1 = true"
+cat namelist.init_atmosphere \
+  | sed "s/${in_vertical_grid}/${out_vertical_grid}/" \
+  > namelist.init_atmosphere.tmp
+mv namelist.init_atmosphere.tmp namelist.init_atmosphere
+
+# update whether to interpolate background to intermediate file
+in_met_interp="\(config_met_interp\)${EQUAL}CONFIG_MET_INTERP"
+out_met_interp="\1 = true"
+cat namelist.init_atmosphere \
+  | sed "s/${in_met_interp}/${out_met_interp}/" \
+  > namelist.init_atmosphere.tmp
+mv namelist.init_atmosphere.tmp namelist.init_atmosphere
+
+# update whether to compute SST update
+in_input_sst="\(config_input_sst\)${EQUAL}CONFIG_INPUT_SST"
+out_input_sst="\1 = false"
+cat namelist.init_atmosphere \
+  | sed "s/${in_input_sst}/${out_input_sst}/" \
+  > namelist.init_atmosphere.tmp
+mv namelist.init_atmosphere.tmp namelist.init_atmosphere
+
+# update whether to switch sea ice fraction threshold
+in_frac_seaice="\(config_frac_seaice\)${EQUAL}CONFIG_FRAC_SEAICE"
+out_frac_seaice="\1 = true"
+cat namelist.init_atmosphere \
+  | sed "s/${in_frac_seaice}/${out_frac_seaice}/" \
+  > namelist.init_atmosphere.tmp
+mv namelist.init_atmosphere.tmp namelist.init_atmosphere
+
+
+# update whether to switch sea ice fraction threshold
+in_pio_num="\(config_pio_num_iotasks\)${EQUAL}CONFIG_PIO_NUM_IOTASKS"
+out_pio_num="\1 = ${PIO_NUM}"
+cat namelist.init_atmosphere \
+  | sed "s/${in_pio_num}/${out_pio_num}/" \
+  > namelist.init_atmosphere.tmp
+mv namelist.init_atmosphere.tmp namelist.init_atmosphere
+
+# update whether to switch sea ice fraction threshold
+in_pio_stride="\(config_pio_stride\)${EQUAL}CONFIG_PIO_STRIDE"
+out_pio_stride="\1 = ${PIO_STRIDE}"
+cat namelist.init_atmosphere \
+  | sed "s/${in_pio_stride}/${out_pio_stride}/" \
+  > namelist.init_atmosphere.tmp
+mv namelist.init_atmosphere.tmp namelist.init_atmosphere
+
+ = 
+# update the prefix for the block decomposition to the domain name
+in_blk_prfx="\(config_block_decomp_file_prefix\)${EQUAL}CONFIG_BLOCK_DECOMP_FILE_PREFIX"
+out_blk_prfx="\1 = ${DMN_NME}"
+cat namelist.init_atmosphere \
+  | sed "s/${in_blk_prfx}/${out_blk_prfx}/" \
+  > namelist.init_atmosphere.tmp
+mv namelist.init_atmosphere.tmp namelist.init_atmosphere
 
 ##################################################################################
-# Run metgrid 
+# Run init_atmosphere
 ##################################################################################
 # Print run parameters
 printf "\n"
