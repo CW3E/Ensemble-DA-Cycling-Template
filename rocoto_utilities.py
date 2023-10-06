@@ -38,7 +38,7 @@ from datetime import datetime as dt
 # SET GLOBAL PARAMETERS
 ##################################################################################
 # directory path for root of git clone of GSI-WRF-Cycling-Template
-USR_HME = '/expanse/lustre/projects/ddp181/cgrudzien/JEDI-MPAS-Common-Case/GSI-WRF-Cycling-Template'
+USR_HME = '/expanse/lustre/projects/ddp181/cgrudzien/JEDI-MPAS-Common-Case/Ensemble-DA-Cycling-Template'
 
 # directory for rocoto install
 RCT_HME = '/expanse/lustre/projects/ddp181/cgrudzien/SOFT_ROOT/rocoto'
@@ -50,7 +50,7 @@ CSES = [
 
 # name of .xml workflows to execute and monitor WITHOUT the extension of file
 CTR_FLWS = [
-            '2022122800_valid_date_ensemble',
+            '2022122800_valid_date_mpas_ensemble',
            ]
 
 END = dt(2024, 1, 1, 0)

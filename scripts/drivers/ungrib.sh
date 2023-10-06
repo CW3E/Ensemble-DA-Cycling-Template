@@ -346,9 +346,9 @@ strt_iso=`date +%Y-%m-%d_%H_%M_%S -d "${strt_dt}"`
 end_iso=`date +%Y-%m-%d_%H_%M_%S -d "${end_dt}"`
 
 in_sd="\(START_DATE\)${EQUAL}START_DATE"
-out_sd="\1 = '${strt_iso}','${strt_iso}','${strt_iso}'"
+out_sd="\1 = '${strt_iso}',"
 in_ed="\(END_DATE\)${EQUAL}END_DATE"
-out_ed="\1 = '${end_iso}','${end_iso}','${end_iso}'"
+out_ed="\1 = '${end_iso}',"
 
 # Update the start and end date in namelist (propagates settings to three domains)
 cat namelist.wps \
@@ -371,6 +371,18 @@ in_dom="\(MAX_DOM\)${EQUAL}MAX_DOM"
 out_dom="\1 = 01"
 cat namelist.wps \
   | sed "s/${in_dom}/${out_dom}/" \
+  > namelist.wps.tmp
+mv namelist.wps.tmp namelist.wps
+
+# Update fg_name to name of background data
+in_fg_name="\(FG_NAME\)${EQUAL}FG_NAME"
+if [ ${IF_ECMWF_ML} = ${YES} ]; then
+  out_fg_name="\1 = '${BKG_DATA}', 'PRES'"
+else
+  out_fg_name="\1 = '${BKG_DATA}',"
+fi
+cat namelist.wps \
+  | sed "s/${in_fg_name}/${out_fg_name}/" \
   > namelist.wps.tmp
 mv namelist.wps.tmp namelist.wps
 
@@ -415,7 +427,7 @@ fi
 
 # verify all file outputs
 for fcst in ${fcst_seq[@]}; do
-  filename="FILE:`date +%Y-%m-%d_%H -d "${strt_dt} ${fcst} hours"`"
+  filename="${BKG_DATA}:`date +%Y-%m-%d_%H -d "${strt_dt} ${fcst} hours"`"
   if [ ! -s ${filename} ]; then
     printf "ERROR: ${filename} is missing.\n"
     exit 1
