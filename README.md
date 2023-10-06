@@ -1,10 +1,13 @@
-# GSI-WRF-Cycling-Template
+# Ensemble-DA-Cycling-Template
 
 ## Description
-This is a template for running GSI-WRF in an offline cycling experiment.
-This workflow is based on the work of Christopher Harrop, Daniel Steinhoff, Matthew Simpson,
-Caroline Papadopoulos, Patrick Mulrooney, Minghua Zheng, Ivette Hernandez Ba&ntilde;os and
-others. Scripts in this repository were forked and re-written from examples from the CW3E
+This is a template for running WRF-GSI-based / MPAS-JEDI-based ensemble DA twin experiments
+in an offline experiment. This repository is based on the work of Colin Grudizen,
+Christopher Harrop, Daniel Steinhoff, Matthew Simpson, Caroline Papadopoulos,
+Patrick Mulrooney, Minghua Zheng, Ivette Hernandez Ba&ntilde;os and others.
+Twin experiment workflows are currenlty in-development, with further integrations of
+templates from NCAR's [MPAS Workflow](https://github.com/NCAR/MPAS-Workflow) planned.
+Scripts in this repository were forked and re-written from examples from the CW3E
 WRF NRT ensemble forecast system. Variable conventions have been changed in order to
 integrate a full end-to-end re-forecast system with forecast skill evaluated with
 [MET-tools](https://github.com/CW3E/MET-tools) workflows.
