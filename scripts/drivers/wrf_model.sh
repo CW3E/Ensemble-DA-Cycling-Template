@@ -114,9 +114,9 @@ fi
 # WRFOUT_INT   = Interval of wrfout in HH
 # CYC_INT      = Interval in HH on which DA is cycled in a cycling control flow
 # WRF_IC       = Defines where to source WRF initial and boundary conditions from
-#                  WRF_IC = REALEXE : ICs / BCs from CYC_HME/realprd
+#                  WRF_IC = REALEXE : ICs / BCs from CYC_HME/real
 #                  WRF_IC = CYCLING : ICs / BCs from GSI / WRFDA analysis
-#                  WRF_IC = RESTART : ICs from restart file in CYC_HME/wrfprd
+#                  WRF_IC = RESTART : ICs from restart file in CYC_HME/wrf
 # IF_SST_UPDTE = Yes / No: whether WRF uses dynamic SST values 
 # IF_FEEBACK   = Yes / No: whether WRF domains use 1- or 2-way nesting
 #
@@ -275,7 +275,7 @@ fi
 # EXP_CONFIG = Root directory containing sub-directories for namelists
 #              vtables, geogrid data, GSI fix files, etc.
 # CYC_HME    = Start time named directory for cycling data containing
-#              bkg, wpsprd, realprd, wrfprd, wrfdaprd, gsiprd, enkfprd
+#              bkg, ungrib, metgrid, real, wrf, wrfda_bc, gsi, enkf
 # MPIRUN     = MPI Command to execute WRF
 # N_PROC     = The total number of processes to run wrf.exe with MPI
 # NIO_GROUPS = Number of Quilting groups -- only used for NIO_TPG > 0
@@ -335,7 +335,7 @@ fi
 #
 ##################################################################################
 
-work_root=${CYC_HME}/wrfprd/ens_${memid}
+work_root=${CYC_HME}/wrf/ens_${memid}
 mkdir -p ${work_root}
 cmd="cd ${work_root}"
 printf "${cmd}\n"; eval "${cmd}"
@@ -370,7 +370,7 @@ for dmn in ${dmns[@]}; do
   if [[ ${WRF_IC} = ${CYCLING} && ${dmn} -lt ${DOWN_DOM} ]]; then
     if [[ ${dmn} = 01 ]]; then
       # obtain the boundary files from the lateral boundary update by WRFDA 
-      wrfanlroot=${CYC_HME}/wrfdaprd/lateral_bdy_update/ens_${memid}
+      wrfanlroot=${CYC_HME}/wrfda_bc/lateral_bdy_update/ens_${memid}
       wrfbdy=${wrfanlroot}/wrfbdy_d01
       cmd="ln -sfr ${wrfbdy} wrfbdy_d01"
       printf "${cmd}\n"; eval "${cmd}"
@@ -383,10 +383,10 @@ for dmn in ${dmns[@]}; do
       # Nested domains have boundary conditions defined by parent
       if [ ${memid} -eq 00 ]; then
         # control solution is indexed 00, analyzed with GSI
-        wrfanl_root=${CYC_HME}/gsiprd/d${dmn}
+        wrfanl_root=${CYC_HME}/gsi/d${dmn}
       else
         # ensemble perturbations are updated with EnKF step
-        wrfanl_root=${CYC_HME}/enkfprd/d${dmn}
+        wrfanl_root=${CYC_HME}/enkf/d${dmn}
       fi
     fi
 
@@ -411,7 +411,7 @@ for dmn in ${dmns[@]}; do
     if [[ ${dmn} = 01 ]]; then
       # obtain the boundary files from the lateral boundary update by WRFDA step
       # included for possible re-generation of BCs for longer extended forecast
-      wrfanlroot=${CYC_HME}/wrfdaprd/lateral_bdy_update/ens_${memid}
+      wrfanlroot=${CYC_HME}/wrfda_bc/lateral_bdy_update/ens_${memid}
       wrfbdy=${wrfanlroot}/wrfbdy_d01
       cmd="ln -sfr ${wrfbdy} wrfbdy_d01"
       printf "${cmd}\n"; eval "${cmd}"
@@ -423,7 +423,7 @@ for dmn in ${dmns[@]}; do
 
   else
     # else get initial and boundary conditions from real for downscaled domains
-    realroot=${CYC_HME}/realprd/ens_${memid}
+    realroot=${CYC_HME}/real/ens_${memid}
     if [ ${dmn} = 01 ]; then
       # Link the wrfbdy_d01 file from real
       wrfbdy=${realroot}/wrfbdy_d01
@@ -448,7 +448,7 @@ for dmn in ${dmns[@]}; do
   # NOTE: THIS LINKS SST UPDATE FILES FROM REAL OUTPUTS REGARDLESS OF GSI CYCLING
   if [[ ${IF_SST_UPDTE} = ${YES} ]]; then
     wrflowinp=wrflowinp_d${dmn}
-    realname=${CYC_HME}/realprd/ens_${memid}/${wrflowinp}
+    realname=${CYC_HME}/real/ens_${memid}/${wrflowinp}
     cmd="ln -sfr ${realname} ."
     printf "${cmd}\n"; eval "${cmd}"
     if [ ! -r ${wrflowinp} ]; then
@@ -509,104 +509,53 @@ e_S=`date +%S -d "${end_dt}"`
 strt_iso=`date +%Y-%m-%d_%H_%M_%S -d "${strt_dt}"`
 end_iso=`date +%Y-%m-%d_%H_%M_%S -d "${end_dt}"`
 
-# Update the max_dom in namelist
-in_dom="\(MAX_DOM\)${EQUAL}MAX_DOM"
-out_dom="\1 = ${MAX_DOM}"
-cat namelist.input \
-  | sed "s/${in_dom}/${out_dom}/" \
-  > namelist.input.tmp
-mv namelist.input.tmp namelist.input
+# Update interval in namelist
+(( data_interval_sec = BKG_INT * 3600 ))
 
-# Update the history interval in wrf namelist (minutes, propagates settings to three domains)
+# update auxinput4 interval
+(( auxinput4_minutes = BKG_INT * 60 ))
+aux_out="${auxinput4_minutes}, ${auxinput4_minutes}, ${auxinput4_minutes}"
+
+# update history interval and aux2hist interval
 (( hist_int = ${WRFOUT_INT} * 60 ))
-in_hist="\(HISTORY_INTERVAL\)${EQUAL}HISTORY_INTERVAL"
-out_hist="\1 = ${hist_int}, ${hist_int}, ${hist_int}"
-cat namelist.input \
-  | sed "s/${in_hist}/${out_hist}/" \
-  > namelist.input.tmp
-mv namelist.input.tmp namelist.input
-
-in_hist="\(AUXHIST2_INTERVAL\)${EQUAL}AUXHIST2_INTERVAL"
-cat namelist.input \
-  | sed "s/${in_hist}/${out_hist}/" \
-  > namelist.input.tmp
-mv namelist.input.tmp namelist.input
+out_hist="${hist_int}, ${hist_int}, ${hist_int}"
 
 # Update the restart setting in wrf namelist depending on switch
 if [[ ${WRF_IC} = ${RESTART} ]]; then
-  cat namelist.input \
-    | sed "s/\(RESTART\)${EQUAL}RESTART/\1 = .true./" \
-    > namelist.input.tmp
-  mv namelist.input.tmp namelist.input
+  wrf_restart=".true."
 else
-  cat namelist.input \
-    | sed "s/\(RESTART\)${EQUAL}RESTART/\1 = .false./" \
-    > namelist.input.tmp
-  mv namelist.input.tmp namelist.input
+  wrf_restart=".false."
 fi
 
 # Update the restart interval in wrf namelist to the end of the fcst_len
 fcst_hrs=`printf $(( 10#${fcst_len} ))`
 run_mins=$(( ${fcst_hrs} * 60 ))
-cat namelist.input \
-  | sed "s/\(RESTART_INTERVAL\)${EQUAL}RESTART_INTERVAL/\1 = ${run_mins}/" \
-  > namelist.input.tmp
-mv namelist.input.tmp namelist.input
 
-# Update the start time in wrf namelist (propagates settings to three domains)
+# Update the wrf namelist (propagates settings to three domains)
 cat namelist.input \
-  | sed "s/\(START_YEAR\)${EQUAL}START_YEAR/\1 = ${s_Y}, ${s_Y}, ${s_Y}/" \
-  | sed "s/\(START_MONTH\)${EQUAL}START_MONTH/\1 = ${s_m}, ${s_m}, ${s_m}/" \
-  | sed "s/\(START_DAY\)${EQUAL}START_DAY/\1 = ${s_d}, ${s_d}, ${s_d}/" \
-  | sed "s/\(START_HOUR\)${EQUAL}START_HOUR/\1 = ${s_H}, ${s_H}, ${s_H}/" \
-  | sed "s/\(START_MINUTE\)${EQUAL}START_MINUTE/\1 = ${s_M}, ${s_M}, ${s_M}/" \
-  | sed "s/\(START_SECOND\)${EQUAL}START_SECOND/\1 = ${s_S}, ${s_S}, ${s_S}/" \
-  > namelist.input.tmp
-mv namelist.input.tmp namelist.input
-
-# Update end time in namelist (propagates settings to three domains)
-cat namelist.input \
-  | sed "s/\(END_YEAR\)${EQUAL}END_YEAR/\1 = ${e_Y}, ${e_Y}, ${e_Y}/" \
-  | sed "s/\(END_MONTH\)${EQUAL}END_MONTH/\1 = ${e_m}, ${e_m}, ${e_m}/" \
-  | sed "s/\(END_DAY\)${EQUAL}END_DAY/\1 = ${e_d}, ${e_d}, ${e_d}/" \
-  | sed "s/\(END_HOUR\)${EQUAL}END_HOUR/\1 = ${e_H}, ${e_H}, ${e_H}/" \
-  | sed "s/\(END_MINUTE\)${EQUAL}END_MINUTE/\1 = ${e_M}, ${e_M}, ${e_M}/" \
-  | sed "s/\(END_SECOND\)${EQUAL}END_SECOND/\1 = ${e_S}, ${e_S}, ${e_S}/" \
-  > namelist.input.tmp
-mv namelist.input.tmp namelist.input
-
-# Update interval in namelist
-(( data_interval_sec = BKG_INT * 3600 ))
-cat namelist.input \
-  | sed "s/\(INTERVAL_SECONDS\)${EQUAL}INTERVAL_SECONDS/\1 = ${data_interval_sec}/" \
-  > namelist.input.tmp
-mv namelist.input.tmp namelist.input
-
-# Update sst_update settings
-cat namelist.input \
-  | sed "s/\(SST_UPDATE\)${EQUAL}SST_UPDATE/\1 = ${sst_update}/"\
-  > namelist.input.tmp
-mv namelist.input.tmp namelist.input
-
-# update the auxinput4_interval to the BKG_INT
-(( auxinput4_minutes = BKG_INT * 60 ))
-aux_in="\(AUXINPUT4_INTERVAL\)${EQUAL}AUXINPUT4_INTERVAL"
-aux_out="\1 = ${auxinput4_minutes}, ${auxinput4_minutes}, ${auxinput4_minutes}"
-cat namelist.input \
-  | sed "s/${aux_in}/${aux_out}/" \
-  > namelist.input.tmp
-mv namelist.input.tmp namelist.input
-
-# Update feedback option for nested domains
-cat namelist.input \
-  | sed "s/\(FEEDBACK\)${EQUAL}FEEDBACK/\1 = ${feedback}/"\
-  > namelist.input.tmp
-mv namelist.input.tmp namelist.input
-
-# Update the quilting settings to the parameters set in the workflow
-cat namelist.input \
-  | sed "s/\(NIO_TASKS_PER_GROUP\)${EQUAL}NIO_TASKS_PER_GROUP/\1 = ${NIO_TPG}/" \
-  | sed "s/\(NIO_GROUPS\)${EQUAL}NIO_GROUPS/\1 = ${NIO_GROUPS}/" \
+  | sed "s/= START_YEAR/= ${s_Y}, ${s_Y}, ${s_Y}/" \
+  | sed "s/= START_MONTH/= ${s_m}, ${s_m}, ${s_m}/" \
+  | sed "s/= START_DAY/= ${s_d}, ${s_d}, ${s_d}/" \
+  | sed "s/= START_HOUR/= ${s_H}, ${s_H}, ${s_H}/" \
+  | sed "s/= START_MINUTE/= ${s_M}, ${s_M}, ${s_M}/" \
+  | sed "s/= START_SECOND/= ${s_S}, ${s_S}, ${s_S}/" \
+  | sed "s/= END_YEAR/= ${e_Y}, ${e_Y}, ${e_Y}/" \
+  | sed "s/= END_MONTH/= ${e_m}, ${e_m}, ${e_m}/" \
+  | sed "s/= END_DAY/= ${e_d}, ${e_d}, ${e_d}/" \
+  | sed "s/= END_HOUR/= ${e_H}, ${e_H}, ${e_H}/" \
+  | sed "s/= END_MINUTE/= ${e_M}, ${e_M}, ${e_M}/" \
+  | sed "s/= END_SECOND/= ${e_S}, ${e_S}, ${e_S}/" \
+  | sed "s/= MAX_DOM/= ${MAX_DOM}/" \
+  | sed "s/= INTERVAL_SECONDS/= ${data_interval_sec}/" \
+  | sed "s/= SST_UPDATE/= ${sst_update}/"\
+  | sed "s/= AUXINPUT4_INTERVAL/= ${aux_out}/" \
+  | sed "s/= AUXHIST2_INTERVAL/= ${out_hist}/" \
+  | sed "s/= HISTORY_INTERVAL/= ${out_hist}/" \
+  | sed "s/= RESTART/= ${wrf_restart}/" \
+  | sed "s/= RESTART_INTERVAL/= ${run_mins}/" \
+  | sed "s/= FEEDBACK/= ${feedback}/"\
+  | sed "s/= NIO_TASKS_PER_GROUP/= ${NIO_TPG}/" \
+  | sed "s/= NIO_GROUPS/= ${NIO_GROUPS}/" \
   > namelist.input.tmp
 mv namelist.input.tmp namelist.input
 

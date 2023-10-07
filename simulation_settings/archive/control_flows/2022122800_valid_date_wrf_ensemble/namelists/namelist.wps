@@ -29,7 +29,7 @@
 
 &ungrib
  out_format        = 'WPS',
- prefix            = 'FILE',
+ prefix            = PREFIX,
 /
 
 &metgrid

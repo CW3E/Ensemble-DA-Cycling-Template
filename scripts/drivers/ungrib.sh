@@ -18,7 +18,7 @@
 ##################################################################################
 # License Statement:
 ##################################################################################
-# Copyright 2023 Colin Grudzien, cgrudzien@ucsd.edu
+# Copyright 2023 CW3E, Contact Colin Grudzien cgrudzien@ucsd.edu
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -345,44 +345,28 @@ fi
 strt_iso=`date +%Y-%m-%d_%H_%M_%S -d "${strt_dt}"`
 end_iso=`date +%Y-%m-%d_%H_%M_%S -d "${end_dt}"`
 
-in_sd="\(START_DATE\)${EQUAL}START_DATE"
-out_sd="\1 = '${strt_iso}',"
-in_ed="\(END_DATE\)${EQUAL}END_DATE"
-out_ed="\1 = '${end_iso}',"
-
-# Update the start and end date in namelist (propagates settings to three domains)
-cat namelist.wps \
-  | sed "s/${in_sd}/${out_sd}/" \
-  | sed "s/${in_ed}/${out_ed}/" \
-  > namelist.wps.tmp
-mv namelist.wps.tmp namelist.wps
-
 # Update interval in namelist
 (( data_interval_sec = BKG_INT * 3600 ))
-in_int="\(INTERVAL_SECONDS\)${EQUAL}INTERVAL_SECONDS"
-out_int="\1 = ${data_interval_sec}"
-cat namelist.wps \
-  | sed "s/${in_int}/${out_int}/" \
-  > namelist.wps.tmp
-mv namelist.wps.tmp namelist.wps
 
-# Update max_dom in namelist to dummy value (domains not needed for ungrib)
-in_dom="\(MAX_DOM\)${EQUAL}MAX_DOM"
-out_dom="\1 = 01"
-cat namelist.wps \
-  | sed "s/${in_dom}/${out_dom}/" \
-  > namelist.wps.tmp
-mv namelist.wps.tmp namelist.wps
+# Update max_dom in namelist to dummy value
+# domains not needed for ungrib but throws error
+MAX_DOM="01"
 
 # Update fg_name to name of background data
-in_fg_name="\(FG_NAME\)${EQUAL}FG_NAME"
 if [ ${IF_ECMWF_ML} = ${YES} ]; then
-  out_fg_name="\1 = '${BKG_DATA}', 'PRES'"
+  out_fg_name="'${BKG_DATA}', 'PRES'"
 else
-  out_fg_name="\1 = '${BKG_DATA}',"
+  out_fg_name="'${BKG_DATA}',"
 fi
+
+# apply updates
 cat namelist.wps \
-  | sed "s/${in_fg_name}/${out_fg_name}/" \
+  | sed "s/= START_DATE/= ${strt_iso}/" \
+  | sed "s/= END_DATE/= ${end_iso}/" \
+  | sed "s/= INTERVAL_SECONDS/= ${data_interval_sec}/" \
+  | sed "s/= MAX_DOM/= ${MAX_DOM}/" \
+  | sed "s/= PREFIX/= '${BKG_DATA}'/" \
+  | sed "s/= FG_NAME/= ${out_fg_name}/" \
   > namelist.wps.tmp
 mv namelist.wps.tmp namelist.wps
 
@@ -460,6 +444,10 @@ done
 
 # remove links to grib files
 cmd="rm -f GRIBFILE.*"
+printf "${cmd}\n"; eval "${cmd}"
+
+# remove link to vtable
+cmd="rm -f Vtable"
 printf "${cmd}\n"; eval "${cmd}"
 
 printf "ungrib.sh completed successfully at `date +%Y-%m-%d_%H_%M_%S`.\n"

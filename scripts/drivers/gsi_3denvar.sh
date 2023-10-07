@@ -78,7 +78,7 @@ fi
 #
 # ANL_DT      = Analysis time YYYYMMDDHH
 # CYC_HME     = Start time named directory for cycling data containing
-#               bkg, wpsprd, realprd, wrfprd, wrfdaprd, gsiprd, enkfprd
+#               bkg, ungrib, metgrid, real, wrf, wrfda_bc, gsi, enkf
 # IF_OBSERVER = Yes : Only used as observation operator for ensemble members
 #             = No  : Analyzes control solution
 # WRF_CTR_DOM = Analyze up to domain index format DD of control solution
@@ -124,7 +124,7 @@ if [[ ${IF_OBSERVER} = ${NO} ]]; then
     nummiter=2
     if_read_obs_save=".false."
     if_read_obs_skip=".false."
-    work_root=${CYC_HME}/gsiprd
+    work_root=${CYC_HME}/gsi
     max_dom=${WRF_CTR_DOM}
   fi
 elif [[ ${IF_OBSERVER} = ${YES} ]]; then
@@ -136,7 +136,7 @@ elif [[ ${IF_OBSERVER} = ${YES} ]]; then
   nummiter=0
   if_read_obs_save=".true."
   if_read_obs_skip=".false."
-  work_root=${CYC_HME}/enkfprd
+  work_root=${CYC_HME}/enkf
   max_dom=${WRF_ENS_DOM}
 else
   printf "ERROR: \${IF_OBSERVER} must equal 'Yes' or 'No' (case insensitive).\n"
@@ -693,7 +693,7 @@ for dmn in `seq -f "%02g" 1 ${max_dom}`; do
     # bkg_file = Path and name of background file
     #
     ##################################################################################
-    bkg_dir=${CYC_HME}/wrfdaprd/lower_bdy_update/ens_00
+    bkg_dir=${CYC_HME}/wrfda_bc/lower_bdy_update/ens_00
     bkg_file=${bkg_dir}/wrfout_d${dmn}_${anl_iso}
 
     if [ ! -r ${bkg_file} ]; then

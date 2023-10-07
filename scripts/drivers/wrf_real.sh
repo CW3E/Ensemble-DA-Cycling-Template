@@ -211,7 +211,7 @@ fi
 # EXP_CNFG = Root directory containing sub-directories for namelists
 #            vtables, geogrid data, GSI fix files, etc.
 # CYC_HME  = Start time named directory for cycling data containing
-#            bkg, wpsprd, realprd, wrfprd, wrfdaprd, gsiprd, enkfprd
+#            bkg, ungrib, metgrid, real, wrf, wrfda_bc, gsi, enkf
 # MPIRUN   = MPI multiprocessing evaluation call, machine specific
 # N_PROC   = The total number of processes to run real.exe with MPI
 #
@@ -269,7 +269,7 @@ fi
 #
 ##################################################################################
 
-work_root=${CYC_HME}/realprd/ens_${memid}
+work_root=${CYC_HME}/real/ens_${memid}
 mkdir -p ${work_root}
 cmd="cd ${work_root}"
 printf "${cmd}\n"; eval "${cmd}"
@@ -301,7 +301,7 @@ for dmn in ${dmns[@]}; do
   for fcst in ${fcst_seq[@]}; do
     dt_str=`date "+%Y-%m-%d_%H_%M_%S" -d "${strt_dt} ${fcst} hours"`
     realinput_name=met_em.d${dmn}.${dt_str}.nc
-    wps_dir=${CYC_HME}/wpsprd/ens_${memid}
+    wps_dir=${CYC_HME}/metgrid/ens_${memid}
     if [ ! -r "${wps_dir}/${realinput_name}" ]; then
       printf "ERROR: Input file\n ${CYC_HME}/${realinput_name}\n is missing.\n"
       exit 1
@@ -363,80 +363,36 @@ e_S=`date +%S -d "${end_dt}"`
 strt_iso=`date +%Y-%m-%d_%H_%M_%S -d "${strt_dt}"`
 end_iso=`date +%Y-%m-%d_%H_%M_%S -d "${end_dt}"`
 
-# Update max_dom in namelist
-in_dom="\(MAX_DOM\)${EQUAL}MAX_DOM"
-out_dom="\1 = ${MAX_DOM}"
-cat namelist.input \
-  | sed "s/${in_dom}/${out_dom}/" \
-  > namelist.input.tmp
-mv namelist.input.tmp namelist.input
-
-# Update the start time in wrf namelist (propagates settings to three domains)
-cat namelist.input \
-  | sed "s/\(START_YEAR\)${EQUAL}START_YEAR/\1 = ${s_Y}, ${s_Y}, ${s_Y}/" \
-  | sed "s/\(START_MONTH\)${EQUAL}START_MONTH/\1 = ${s_m}, ${s_m}, ${s_m}/" \
-  | sed "s/\(START_DAY\)${EQUAL}START_DAY/\1 = ${s_d}, ${s_d}, ${s_d}/" \
-  | sed "s/\(START_HOUR\)${EQUAL}START_HOUR/\1 = ${s_H}, ${s_H}, ${s_H}/" \
-  | sed "s/\(START_MINUTE\)${EQUAL}START_MINUTE/\1 = ${s_M}, ${s_M}, ${s_M}/" \
-  | sed "s/\(START_SECOND\)${EQUAL}START_SECOND/\1 = ${s_S}, ${s_S}, ${s_S}/" \
-  > namelist.input.tmp
-mv namelist.input.tmp namelist.input
-
-# Update end time in namelist (propagates settings to three domains)
-cat namelist.input \
-  | sed "s/\(END_YEAR\)${EQUAL}END_YEAR/\1 = ${e_Y}, ${e_Y}, ${e_Y}/" \
-  | sed "s/\(END_MONTH\)${EQUAL}END_MONTH/\1 = ${e_m}, ${e_m}, ${e_m}/" \
-  | sed "s/\(END_DAY\)${EQUAL}END_DAY/\1 = ${e_d}, ${e_d}, ${e_d}/" \
-  | sed "s/\(END_HOUR\)${EQUAL}END_HOUR/\1 = ${e_H}, ${e_H}, ${e_H}/" \
-  | sed "s/\(END_MINUTE\)${EQUAL}END_MINUTE/\1 = ${e_M}, ${e_M}, ${e_M}/" \
-  | sed "s/\(END_SECOND\)${EQUAL}END_SECOND/\1 = ${e_S}, ${e_S}, ${e_S}/" \
-  > namelist.input.tmp
-mv namelist.input.tmp namelist.input
-
 # Update interval in namelist
 (( data_interval_sec = BKG_INT * 3600 ))
-cat namelist.input \
-  | sed "s/\(INTERVAL_SECONDS\)${EQUAL}INTERVAL_SECONDS/\1 = ${data_interval_sec}/" \
-  > namelist.input.tmp
-mv namelist.input.tmp namelist.input
 
-# Update sst_update settings
-cat namelist.input \
-  | sed "s/\(SST_UPDATE\)${EQUAL}SST_UPDATE/\1 = ${sst_update}/"\
-  > namelist.input.tmp
-mv namelist.input.tmp namelist.input
-
-# update the auxinput4_interval to the BKG_INT
+# update auxinput4 interval
 (( auxinput4_minutes = BKG_INT * 60 ))
-aux_in="\(AUXINPUT4_INTERVAL\)${EQUAL}AUXINPUT4_INTERVAL"
-aux_out="\1 = ${auxinput4_minutes}, ${auxinput4_minutes}, ${auxinput4_minutes}"
-cat namelist.input \
-  | sed "s/${aux_in}/${aux_out}/" \
-  > namelist.input.tmp
-mv namelist.input.tmp namelist.input
+aux_out="${auxinput4_minutes}, ${auxinput4_minutes}, ${auxinput4_minutes}"
 
-# Put dummy filler values in the template for the following (not used in real)
-in_hist="\(HISTORY_INTERVAL\)${EQUAL}HISTORY_INTERVAL"
-out_hist="\1 = 0,"
+# Update the wrf namelist (propagates settings to three domains)
 cat namelist.input \
-  | sed "s/${in_hist}/${out_hist}/" \
-  > namelist.input.tmp
-mv namelist.input.tmp namelist.input
-in_hist="\(AUXHIST2_INTERVAL\)${EQUAL}AUXHIST2_INTERVAL"
-cat namelist.input \
-  | sed "s/${in_hist}/${out_hist}/" \
-  > namelist.input.tmp
-mv namelist.input.tmp namelist.input
-cat namelist.input \
-  | sed "s/\(RESTART\)${EQUAL}RESTART/\1 = .false./" \
-  > namelist.input.tmp
-mv namelist.input.tmp namelist.input
-cat namelist.input \
-  | sed "s/\(RESTART_INTERVAL\)${EQUAL}RESTART_INTERVAL/\1 = 0/" \
-  > namelist.input.tmp
-mv namelist.input.tmp namelist.input
-cat namelist.input \
-  | sed "s/\(FEEDBACK\)${EQUAL}FEEDBACK/\1 = 0/"\
+  | sed "s/= START_YEAR/= ${s_Y}, ${s_Y}, ${s_Y}/" \
+  | sed "s/= START_MONTH/= ${s_m}, ${s_m}, ${s_m}/" \
+  | sed "s/= START_DAY/= ${s_d}, ${s_d}, ${s_d}/" \
+  | sed "s/= START_HOUR/= ${s_H}, ${s_H}, ${s_H}/" \
+  | sed "s/= START_MINUTE/= ${s_M}, ${s_M}, ${s_M}/" \
+  | sed "s/= START_SECOND/= ${s_S}, ${s_S}, ${s_S}/" \
+  | sed "s/= END_YEAR/= ${e_Y}, ${e_Y}, ${e_Y}/" \
+  | sed "s/= END_MONTH/= ${e_m}, ${e_m}, ${e_m}/" \
+  | sed "s/= END_DAY/= ${e_d}, ${e_d}, ${e_d}/" \
+  | sed "s/= END_HOUR/= ${e_H}, ${e_H}, ${e_H}/" \
+  | sed "s/= END_MINUTE/= ${e_M}, ${e_M}, ${e_M}/" \
+  | sed "s/= END_SECOND/= ${e_S}, ${e_S}, ${e_S}/" \
+  | sed "s/= MAX_DOM/= ${MAX_DOM}/" \
+  | sed "s/= INTERVAL_SECONDS/= ${data_interval_sec}/" \
+  | sed "s/= SST_UPDATE/= ${sst_update}/"\
+  | sed "s/= AUXINPUT4_INTERVAL/= ${aux_out}/" \
+  | sed "s/= AUXHIST2_INTERVAL/= 0/" \
+  | sed "s/= HISTORY_INTERVAL/= 0/" \
+  | sed "s/= RESTART/= .false./" \
+  | sed "s/= RESTART_INTERVAL/= 0/" \
+  | sed "s/= FEEDBACK/= 0/"\
   > namelist.input.tmp
 mv namelist.input.tmp namelist.input
 

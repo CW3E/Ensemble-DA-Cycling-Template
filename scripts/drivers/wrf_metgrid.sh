@@ -245,13 +245,25 @@ fi
 #
 ##################################################################################
 
+ungrib_root=${CYC_HME}/ungrib/ens_${memid}
 work_root=${CYC_HME}/metgrid/ens_${memid}
-if [ ! -d ${work_root} ]; then
-  printf "ERROR: \${work_root} directory\n ${work_root}\n does not exist.\n"
+if [ ! -d ${ungrib_root} ]; then
+  printf "ERROR: \${ungrib_root} directory\n ${ungrib_root}\n does not exist.\n"
   exit 1
 else
-  cmd="cd ${work_root}"
+  cmd="mkdir -p ${work_root}; cd ${work_root}"
   printf "${cmd}\n"; eval "${cmd}"
+
+  for fcst in ${fcst_seq[@]}; do
+    filename="${ungrib_root}/${BKG_DATA}:`date +%Y-%m-%d_%H -d "${strt_dt} ${fcst} hours"`"
+    if [ ! -s ${filename} ]; then
+      printf "ERROR: ${filename} is missing.\n"
+      exit 1
+    else
+      cmd="ln -sfr ${filename} ."
+      printf "${cmd}\n"; eval "${cmd}"
+    fi
+  done
 fi
 
 wps_dat_files=(${WPS_ROOT}/*)
@@ -304,36 +316,33 @@ else
   printf "${cmd}\n"; eval "${cmd}"
 fi
 
-# Update max_dom in namelist
-in_dom="\(MAX_DOM\)${EQUAL}MAX_DOM"
-out_dom="\1 = ${MAX_DOM}"
-cat namelist.wps \
-  | sed "s/${in_dom}/${out_dom}/" \
-  > namelist.wps.tmp
-mv namelist.wps.tmp namelist.wps
 
 # define start / end time patterns for namelist.wps
 strt_iso=`date +%Y-%m-%d_%H_%M_%S -d "${strt_dt}"`
 end_iso=`date +%Y-%m-%d_%H_%M_%S -d "${end_dt}"`
 
-in_sd="\(START_DATE\)${EQUAL}START_DATE"
-out_sd="\1 = '${strt_iso}','${strt_iso}','${strt_iso}'"
-in_ed="\(END_DATE\)${EQUAL}END_DATE"
-out_ed="\1 = '${end_iso}','${end_iso}','${end_iso}'"
-
-# Update the start and end date in namelist (propagates settings to three domains)
-cat namelist.wps \
-  | sed "s/${in_sd}/${out_sd}/" \
-  | sed "s/${in_ed}/${out_ed}/" \
-  > namelist.wps.tmp
-mv namelist.wps.tmp namelist.wps
+# propagate settings to three domains
+out_sd="'${strt_iso}','${strt_iso}','${strt_iso}'"
+out_ed="'${end_iso}','${end_iso}','${end_iso}'"
 
 # Update interval in namelist
 (( data_interval_sec = BKG_INT * 3600 ))
-in_int="\(INTERVAL_SECONDS\)${EQUAL}INTERVAL_SECONDS"
-out_int="\1 = ${data_interval_sec}"
+
+# Update fg_name to name of background data
+if [ ${IF_ECMWF_ML} = ${YES} ]; then
+  out_fg_name="'${BKG_DATA}', 'PRES'"
+else
+  out_fg_name="'${BKG_DATA}',"
+fi
+
+# Update the start and end date in namelist (propagates settings to three domains)
 cat namelist.wps \
-  | sed "s/${in_int}/${out_int}/" \
+  | sed "s/= START_DATE/= ${out_sd}/" \
+  | sed "s/= END_DATE/= ${out_ed}/" \
+  | sed "s/= MAX_DOM/= ${MAX_DOM}/" \
+  | sed "s/= INTERVAL_SECONDS/= ${data_interval_sec}/" \
+  | sed "s/= PREFIX/= '${BKG_DATA}'/" \
+  | sed "s/= FG_NAME/= ${out_fg_name}/" \
   > namelist.wps.tmp
 mv namelist.wps.tmp namelist.wps
 

@@ -50,7 +50,7 @@ fi
 # MEMID      = Ensemble ID index, 00 for control, i > 0 for perturbation
 # STRT_DT    = Simulation start time in YYMMDDHH
 # IF_DYN_LEN = "Yes" or "No" switch to compute forecast length dynamically 
-# FCST_HRS   = Total length of WRF forecast simulation in HH, IF_DYN_LEN=No
+# FCST_HRS   = Total length of MPAS forecast simulation in HH, IF_DYN_LEN=No
 # EXP_VRF    = Verfication time for calculating forecast hours, IF_DYN_LEN=Yes
 # BKG_INT    = Interval of input data in HH
 # BKG_DATA   = String case variable for supported inputs: GFS, GEFS currently
@@ -135,9 +135,9 @@ fi
 # EXP_CNFG   = Root directory containing sub-directories for namelists
 #              vtables, static data, etc.
 # CYC_HME    = Cycle YYYYMMDDHH named directory for cycling data containing
-#              bkg, init_atmos_prd, mpasprd 
+#              bkg, init_atmosphere, mpas
 # MPIRUN     = MPI multiprocessing evaluation call, machine specific
-# N_PROC     = The total number of processes to run metgrid.exe with MPI
+# N_PROC     = The total number of processes to run init_atmosphere with MPI
 # PIO_NUM    = Number of tasks to perform file I/O
 # PIO_STRIDE = Stride between file I/O tasks
 #
@@ -190,7 +190,7 @@ elif [ ${PIO_NUM} -lt 0 ]; then
   msg+=" 0 corresponding to all tasks performing IO.\n"
   printf ${msg}
   exit 1
-elif [ ${PIO_NUM} -gt ${N_PROC}]; then
+elif [ ${PIO_NUM} -gt ${N_PROC} ]; then
   msg="ERROR: \${PIO_NUM} must be <= \${NUM_PROC}, ${NUM_PROC}, the number of"
   msg+=" MPI processes.\n"
   printf ${msg}
@@ -207,32 +207,44 @@ fi
 ##################################################################################
 # The following paths are relative to workflow root paths
 #
-# work_root     = Working directory where init_atmosphere_exe runs and outputs
-# init_atmosphere_dat_files = All file contents of clean WPS directory
-#                 namelists and input data will be linked from other sources
-# init_atmosphere_exe   = Path and name of working executable
+# work_root       = Working directory where init_atmosphere runs and outputs
+# init_dat_files  = All file contents of clean MPAS build directory
+#                   namelists and input data is linked from other sources
+# init_atmos_exe  = Path and name of working executable
 #
 ##################################################################################
 
-work_root=${CYC_HME}/init_atmos_prd/ens_${memid}
-if [ ! -d ${work_root} ]; then
-  printf "ERROR: \${work_root} directory\n ${work_root}\n does not exist.\n"
+ungrib_root=${CYC_HME}/ungrib/ens_${memid}
+work_root=${CYC_HME}/init_atmosphere/ens_${memid}
+if [ ! -d ${ungrib_root} ]; then
+  printf "ERROR: \${ungrib_root} directory\n ${ungrib_root}\n does not exist.\n"
   exit 1
 else
-  cmd="cd ${work_root}"
+  cmd="mkdir -p ${work_root}; cd ${work_root}"
   printf "${cmd}\n"; eval "${cmd}"
+
+  for fcst in ${fcst_seq[@]}; do
+    filename="${ungrib_root}/${BKG_DATA}:`date +%Y-%m-%d_%H -d "${strt_dt} ${fcst} hours"`"
+    if [ ! -s ${filename} ]; then
+      printf "ERROR: ${filename} is missing.\n"
+      exit 1
+    else
+      cmd="ln -sfr ${filename} ."
+      printf "${cmd}\n"; eval "${cmd}"
+    fi
+  done
 fi
 
-init_atmosphere_dat_files=(${MPAS_ROOT}/*)
-init_atmosphere_exe=${MPAS_ROOT}/init_atmosphere
+init_dat_files=(${MPAS_ROOT}/*)
+init_atmos_exe=${MPAS_ROOT}/init_atmosphere_model
 
-if [ ! -x ${init_atmosphere_exe} ]; then
-  printf "ERROR:\n ${init_atmosphere_exe}\n does not exist, or is not executable.\n"
+if [ ! -x ${init_atmos_exe} ]; then
+  printf "ERROR:\n ${init_atmos_exe}\n does not exist, or is not executable.\n"
   exit 1
 fi
 
 # Make links to the INIT_ATMOS DAT files
-for file in ${init_atmosphere_dat_files[@]}; do
+for file in ${init_dat_files[@]}; do
   cmd="ln -sf ${file} ."
   printf "${cmd}\n"; eval "${cmd}"
 done
@@ -265,12 +277,12 @@ fi
 ##################################################################################
 #  Build init_atmosphere namelist
 ##################################################################################
-# Remove any previous namelists
-cmd="rm -f namelist.init_atmosphere"
+# Remove any previous namelists and stream lists
+cmd="rm -f namelist.*; rm -f streams.*; rm -f stream_list.*"
 printf "${cmd}\n"; eval "${cmd}"
 
-# Copy the init_atmosphere namelist template,
-# NOTE: THIS WILL BE MODIFIED DO NOT LINK TO IT
+# Copy the init_atmosphere namelist / streams templates,
+# NOTE: THESE WILL BE MODIFIED DO NOT LINK TO THEM
 namelist_temp=${EXP_CNFG}/namelists/namelist.init_atmosphere.${BKG_DATA}
 if [ ! -r ${namelist_temp} ]; then 
   msg="init_atmosphere namelist template\n ${namelist_temp}\n is not readable or "
@@ -282,118 +294,51 @@ else
   printf "${cmd}\n"; eval "${cmd}"
 fi
 
-# Update the init_atmosphere config_init_case to 7 for real initial conditions
-cat namelist.init_atmosphere \
-  | sed "s/CONFIG_INIT_CASE/7/" \
-  > namelist.init_atmosphere.tmp
-mv namelist.init_atmosphere.tmp namelist.init_atmosphere
+streams_temp=${EXP_CNFG}/streamlists/streams.init_atmosphere
+if [ ! -r ${streams_temp} ]; then 
+  msg="init_atmosphere streams template\n ${streams_temp}\n is not readable or "
+  msg+="does not exist.\n"
+  printf "${msg}"
+  exit 1
+else
+  cmd="cp -L ${streams_temp} ./streams.init_atmosphere"
+  printf "${cmd}\n"; eval "${cmd}"
+fi
 
 # define start / end time patterns for namelist.init_atmosphere
 strt_iso=`date +%Y-%m-%d_%H_%M_%S -d "${strt_dt}"`
 end_iso=`date +%Y-%m-%d_%H_%M_%S -d "${end_dt}"`
 
-in_sd="\(config_start_time\)${EQUAL}CONFIG_START_TIME"
-out_sd="\1 = '${strt_iso}'"
-in_ed="\(config_stop_time\)${EQUAL}CONFIG_STOP_TIME"
-out_ed="\1 = '${end_iso}'"
-
-# Update the start and end date in namelist
-cat namelist.init_atmosphere \
-  | sed "s/${in_sd}/${out_sd}/" \
-  | sed "s/${in_ed}/${out_ed}/" \
-  > namelist.init_atmosphere.tmp
-mv namelist.init_atmosphere.tmp namelist.init_atmosphere
-
-# Update the met data prefix to the background data
-in_met_prfx="\(config_met_prefix\)${EQUAL}CONFIG_MET_PREFIX"
-out_met_prfx="\1 = '${BKG_DATA}"
-cat namelist.init_atmosphere \
-  | sed "s/${in_met_prfx}/${out_met_prfx}/" \
-  > namelist.init_atmosphere.tmp
-mv namelist.init_atmosphere.tmp namelist.init_atmosphere
-
 # Update background data interval in namelist
 (( data_interval_sec = BKG_INT * 3600 ))
-in_int="\(config_fg_interval\)${EQUAL}CONFIG_FG_INTERVAL"
-out_int="\1 = ${data_interval_sec}"
+
+# Update the init_atmosphere namelist / streams for real initial conditions
 cat namelist.init_atmosphere \
-  | sed "s/${in_int}/${out_int}/" \
+  | sed "s/= CONFIG_INIT_CASE/= 7/" \
+  | sed "s/= CONFIG_START_TIME/= '${strt_iso}'/" \
+  | sed "s/= CONFIG_STOP_TIME/= '${end_iso}'/" \
+  | sed "s/= CONFIG_MET_PREFIX/= '${BKG_DATA}'/" \
+  | sed "s/= CONFIG_FG_INTERVAL/= ${data_interval_sec}/" \
+  | sed "s/= CONFIG_STATIC_INTERP/= false/" \
+  | sed "s/= CONFIG_NATIVE_GWD_STATIC/= false/" \
+  | sed "s/= CONFIG_VERTICAL_GRID/= true/" \
+  | sed "s/= CONFIG_MET_INTERP/= true/" \
+  | sed "s/= CONFIG_INPUT_SST/= false/" \
+  | sed "s/= CONFIG_FRAC_SEAICE/= true/" \
+  | sed "s/= CONFIG_PIO_NUM_IOTASKS/= ${PIO_NUM}/" \
+  | sed "s/= CONFIG_PIO_STRIDE/= ${PIO_STRIDE}/" \
+  | sed "s/CONFIG_BLOCK_DECOMP_FILE_PREFIX/= '${DMN_NME}.graph.info.part.'/" \
   > namelist.init_atmosphere.tmp
 mv namelist.init_atmosphere.tmp namelist.init_atmosphere
 
-# update static data interpolation setting
-in_static_interp="\(config_static_interp\)${EQUAL}CONFIG_STATIC_INTERP"
-out_static_interp="\1 = false"
-cat namelist.init_atmosphere \
-  | sed "s/${in_static_interp}/${out_static_interp}/" \
-  > namelist.init_atmosphere.tmp
-mv namelist.init_atmosphere.tmp namelist.init_atmosphere
-
-# update subgridscale statistics setting
-in_gwd_static="\(config_native_gwd_static\)${EQUAL}CONFIG_NATIVE_GWD_STATIC"
-out_gwd_static="\1 = false"
-cat namelist.init_atmosphere \
-  | sed "s/${in_gwd_static}/${out_gwd_static}/" \
-  > namelist.init_atmosphere.tmp
-mv namelist.init_atmosphere.tmp namelist.init_atmosphere
-
-# update generate vertical grid or no
-in_vertical_grid="\(config_vertical_grid\)${EQUAL}CONFIG_VERTICAL_GRID"
-out_vertical_grid="\1 = true"
-cat namelist.init_atmosphere \
-  | sed "s/${in_vertical_grid}/${out_vertical_grid}/" \
-  > namelist.init_atmosphere.tmp
-mv namelist.init_atmosphere.tmp namelist.init_atmosphere
-
-# update whether to interpolate background to intermediate file
-in_met_interp="\(config_met_interp\)${EQUAL}CONFIG_MET_INTERP"
-out_met_interp="\1 = true"
-cat namelist.init_atmosphere \
-  | sed "s/${in_met_interp}/${out_met_interp}/" \
-  > namelist.init_atmosphere.tmp
-mv namelist.init_atmosphere.tmp namelist.init_atmosphere
-
-# update whether to compute SST update
-in_input_sst="\(config_input_sst\)${EQUAL}CONFIG_INPUT_SST"
-out_input_sst="\1 = false"
-cat namelist.init_atmosphere \
-  | sed "s/${in_input_sst}/${out_input_sst}/" \
-  > namelist.init_atmosphere.tmp
-mv namelist.init_atmosphere.tmp namelist.init_atmosphere
-
-# update whether to switch sea ice fraction threshold
-in_frac_seaice="\(config_frac_seaice\)${EQUAL}CONFIG_FRAC_SEAICE"
-out_frac_seaice="\1 = true"
-cat namelist.init_atmosphere \
-  | sed "s/${in_frac_seaice}/${out_frac_seaice}/" \
-  > namelist.init_atmosphere.tmp
-mv namelist.init_atmosphere.tmp namelist.init_atmosphere
-
-
-# update whether to switch sea ice fraction threshold
-in_pio_num="\(config_pio_num_iotasks\)${EQUAL}CONFIG_PIO_NUM_IOTASKS"
-out_pio_num="\1 = ${PIO_NUM}"
-cat namelist.init_atmosphere \
-  | sed "s/${in_pio_num}/${out_pio_num}/" \
-  > namelist.init_atmosphere.tmp
-mv namelist.init_atmosphere.tmp namelist.init_atmosphere
-
-# update whether to switch sea ice fraction threshold
-in_pio_stride="\(config_pio_stride\)${EQUAL}CONFIG_PIO_STRIDE"
-out_pio_stride="\1 = ${PIO_STRIDE}"
-cat namelist.init_atmosphere \
-  | sed "s/${in_pio_stride}/${out_pio_stride}/" \
-  > namelist.init_atmosphere.tmp
-mv namelist.init_atmosphere.tmp namelist.init_atmosphere
-
- = 
-# update the prefix for the block decomposition to the domain name
-in_blk_prfx="\(config_block_decomp_file_prefix\)${EQUAL}CONFIG_BLOCK_DECOMP_FILE_PREFIX"
-out_blk_prfx="\1 = ${DMN_NME}"
-cat namelist.init_atmosphere \
-  | sed "s/${in_blk_prfx}/${out_blk_prfx}/" \
-  > namelist.init_atmosphere.tmp
-mv namelist.init_atmosphere.tmp namelist.init_atmosphere
+cat streams.init_atmosphere \
+  | sed "s/=INPUT_FILE_NAME/=\"${DMN_NME}.static.nc\"/" \
+  | sed "s/=OUTPUT_FILE_NAME/=\"${DMN_NME}.init.nc\"/" \
+  | sed "s/=SURFACE_FILE_NAME/=\"${DMN_NME}.sfc_update.nc\"/" \
+  | sed "s/=SFC_OUTPUT_INTERVAL/=\"${BKG_INT}:00:00\"/" \
+  | sed "s/=LBC_OUTPUT_INTERVAL/=\"${BKG_INT}:00:00\"/" \
+  > streams.init_atmosphere.tmp
+mv streams.init_atmosphere.tmp streams.init_atmosphere
 
 ##################################################################################
 # Run init_atmosphere
@@ -401,62 +346,62 @@ mv namelist.init_atmosphere.tmp namelist.init_atmosphere
 # Print run parameters
 printf "\n"
 printf "EXP_CNFG = ${EXP_CNFG}\n"
+printf "DMN_NME  = ${DMN_NME}\n"
 printf "MEMID    = ${MEMID}\n"
 printf "CYC_HME  = ${CYC_HME}\n"
 printf "STRT_DT  = ${strt_iso}\n"
 printf "END_DT   = ${end_iso}\n"
 printf "BKG_INT  = ${BKG_INT}\n"
-printf "MAX_DOM  = ${MAX_DOM}\n"
 printf "\n"
 now=`date +%Y-%m-%d_%H_%M_%S`
 printf "metgrid started at ${now}.\n"
-cmd="${MPIRUN} -n ${N_PROC} ${init_atmosphere_exe}"
+cmd="${MPIRUN} -n ${N_PROC} ${init_atmos_exe}"
 printf "${cmd}\n"; eval "${cmd}"
 
 ##################################################################################
 # Run time error check
 ##################################################################################
-error=$?
+#error=$?
+#
+## save metgrid logs
+#log_dir=metgrid_log.${now}
+#mkdir ${log_dir}
+#cmd="mv metgrid.log* ${log_dir}"
+#printf "${cmd}\n"; eval "${cmd}"
+#
+#cmd="mv namelist.init_atmosphere ${log_dir}"
+#printf "${cmd}\n"; eval "${cmd}"
+#
+#if [ ${error} -ne 0 ]; then
+#  printf "ERROR:\n ${init_atmos_exe}\n exited with status ${error}.\n"
+#  exit ${error}
+#fi
+#
+## Check to see if metgrid outputs are generated
+#for dmn in ${dmns[@]}; do
+#  for fcst in ${fcst_seq[@]}; do
+#    dt_str=`date +%Y-%m-%d_%H:%M:%S -d "${strt_dt} ${fcst} hours"`
+#    out_name="met_em.d${dmn}.${dt_str}.nc"
+#    if [ ! -s "${out_name}" ]; then
+#      printf "ERROR:\n ${init_atmos_exe}\n failed to complete for d${dmn}.\n"
+#      exit 1
+#    else
+#      # rename to no-colon style for WRF
+#      dt_str=`date +%Y-%m-%d_%H_%M_%S -d "${strt_dt} ${fcst} hours"`
+#      re_name="met_em.d${dmn}.${dt_str}.nc"
+#      cmd="mv ${out_name} ${re_name}"
+#      printf "${cmd}\n"; eval "${cmd}"
+#    fi
+#  done
+#done
+#
+## Remove links to the INIT_ATMOS DAT files
+#for file in ${init_dat_files[@]}; do
+#  cmd="rm -f `basename ${file}`"
+#  printf "${cmd}\n"; eval "${cmd}"
+#done
 
-# save metgrid logs
-log_dir=metgrid_log.${now}
-mkdir ${log_dir}
-cmd="mv metgrid.log* ${log_dir}"
-printf "${cmd}\n"; eval "${cmd}"
-
-cmd="mv namelist.init_atmosphere ${log_dir}"
-printf "${cmd}\n"; eval "${cmd}"
-
-if [ ${error} -ne 0 ]; then
-  printf "ERROR:\n ${init_atmosphere_exe}\n exited with status ${error}.\n"
-  exit ${error}
-fi
-
-# Check to see if metgrid outputs are generated
-for dmn in ${dmns[@]}; do
-  for fcst in ${fcst_seq[@]}; do
-    dt_str=`date +%Y-%m-%d_%H:%M:%S -d "${strt_dt} ${fcst} hours"`
-    out_name="met_em.d${dmn}.${dt_str}.nc"
-    if [ ! -s "${out_name}" ]; then
-      printf "ERROR:\n ${init_atmosphere_exe}\n failed to complete for d${dmn}.\n"
-      exit 1
-    else
-      # rename to no-colon style for WRF
-      dt_str=`date +%Y-%m-%d_%H_%M_%S -d "${strt_dt} ${fcst} hours"`
-      re_name="met_em.d${dmn}.${dt_str}.nc"
-      cmd="mv ${out_name} ${re_name}"
-      printf "${cmd}\n"; eval "${cmd}"
-    fi
-  done
-done
-
-# Remove links to the INIT_ATMOS DAT files
-for file in ${init_atmosphere_dat_files[@]}; do
-  cmd="rm -f `basename ${file}`"
-  printf "${cmd}\n"; eval "${cmd}"
-done
-
-printf "metgrid.sh completed successfully at `date +%Y-%m-%d_%H_%M_%S`.\n"
+printf "mpas_real_ic.sh completed successfully at `date +%Y-%m-%d_%H_%M_%S`.\n"
 
 ##################################################################################
 # end

@@ -127,7 +127,7 @@ fi
 # EXP_CNFG   = Root directory containing sub-directories for namelists
 #              vtables, geogrid data, GSI fix files, etc.
 # CYC_HME    = Start time named directory for cycling data containing
-#              bkg, wpsprd, realprd, wrfprd, wrfdaprd, gsiprd, enkfprd
+#              bkg, ungrib, metgrid, real, wrf, wrfda_bc, gsi, enkf
 #
 ##################################################################################
 
@@ -171,10 +171,10 @@ fi
 ##################################################################################
 
 for memid in `seq -f "%02g" 0 ${ens_max}`; do
-  work_root=${CYC_HME}/wrfdaprd
-  real_dir=${CYC_HME}/realprd/ens_${memid}
-  gsi_dir=${CYC_HME}/gsiprd
-  enkf_dir=${CYC_HME}/enkfprd
+  work_root=${CYC_HME}/wrfda_bc
+  real_dir=${CYC_HME}/real/ens_${memid}
+  gsi_dir=${CYC_HME}/gsi
+  enkf_dir=${CYC_HME}/enkf
   update_bc_exe=${WRFDA_ROOT}/var/da/da_update_bc.exe
   
   if [ ! -d ${real_dir} ]; then
@@ -249,30 +249,13 @@ for memid in `seq -f "%02g" 0 ${ens_max}`; do
       cmd="cp -L ${EXP_CNFG}/namelists/parame.in ."
       printf "${cmd}\n"; eval "${cmd}"
   
-      # Update the namelist for the domain id 
+      # Update the namelist
       cat parame.in \
-        | sed "s/\(DA_FILE\)${EQUAL}DA_FILE/\1 = '\.\/${wrfout}'/" \
-        > parame.in.tmp
-      mv parame.in.tmp parame.in
-  
-      cat parame.in \
-        | sed "s/\(WRF_INPUT\)${EQUAL}WRF_INPUT/\1 = '\.\/${wrfinput}'/" \
-        > parame.in.tmp
-      mv parame.in.tmp parame.in
-  
-      cat parame.in \
-        | sed "s/\(DOMAIN_ID\)${EQUAL}DOMAIN_ID/\1 = ${dmn}/" \
-        > parame.in.tmp
-      mv parame.in.tmp parame.in
-  
-      # Update the namelist for lower boundary update 
-      cat parame.in \
-        | sed "s/\(UPDATE_LOW_BDY\)${EQUAL}UPDATE_LOW_BDY/\1 = \.true\./" \
-        > parame.in.tmp
-      mv parame.in.tmp parame.in
-  
-      cat parame.in \
-        | sed "s/\(UPDATE_LATERAL_BDY\)${EQUAL}UPDATE_LATERAL_BDY/\1 = \.false\./" \
+        | sed "s/= DA_FILE/= '\.\/${wrfout}'/" \
+        | sed "s/= WRF_INPUT/= '\.\/${wrfinput}'/" \
+        | sed "s/= DOMAIN_ID/= ${dmn}/" \
+        | sed "s/= UPDATE_LOW_BDY/= \.true\./" \
+        | sed "s/= UPDATE_LATERAL_BDY/= \.false\./" \
         > parame.in.tmp
       mv parame.in.tmp parame.in
   
@@ -368,34 +351,12 @@ for memid in `seq -f "%02g" 0 ${ens_max}`; do
   
     # Update the namelist for lateral boundary update 
     cat parame.in \
-      | sed "s/\(DA_FILE\)${EQUAL}DA_FILE/\1 = '\.\/${wrfvar_outname}'/" \
-      > parame.in.tmp
-    mv parame.in.tmp parame.in
-  
-    cat parame.in \
-      | sed "s/\(DOMAIN_ID\)${EQUAL}DOMAIN_ID/\1 = 01/" \
-      > parame.in.tmp
-    mv parame.in.tmp parame.in
-  
-    # Update the namelist for lateral boundary update 
-    cat parame.in \
-      | sed "s/\(UPDATE_LOW_BDY\)${EQUAL}UPDATE_LOW_BDY/\1 = \.false\./" \
-      > parame.in.tmp
-    mv parame.in.tmp parame.in
-  
-    cat parame.in \
-      | sed "s/\(UPDATE_LATERAL_BDY\)${EQUAL}UPDATE_LATERAL_BDY/\1 = \.true\./" \
-      > parame.in.tmp
-    mv parame.in.tmp parame.in
-
-    cat parame.in \
-       | sed "s/\(WRF_BDY_FILE\)${EQUAL}WRF_BDY_FILE/\1 = '\.\/${wrfbdy_name}'/" \
-       > parame.in.tmp
-    mv parame.in.tmp parame.in
-  
-    # fill with a dummy argument in namelist template
-    cat parame.in \
-      | sed "s/\(WRF_INPUT\)${EQUAL}WRF_INPUT/\1 = '\.\/wrfinput_d01'/" \
+      | sed "s/= DA_FILE/= '\.\/${wrfvar_outname}'/" \
+      | sed "s/= DOMAIN_ID/= 01/" \
+      | sed "s/= UPDATE_LOW_BDY/= \.false\./" \
+      | sed "s/= UPDATE_LATERAL_BDY/= \.true\./" \
+      | sed "s/= WRF_BDY_FILE/= '\.\/${wrfbdy_name}'/" \
+      | sed "s/= WRF_INPUT/= '\.\/wrfinput_d01'/" \
       > parame.in.tmp
     mv parame.in.tmp parame.in
   

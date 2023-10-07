@@ -6,12 +6,12 @@
   <!-- CONTROL FLOW NAME / TUNABLE SETTINGS -->
   <!ENTITY EXP_VRF      "2022122800"> <!-- Define the valid date YYYYMMDDHH for verification -->
   <!ENTITY CSE_NAME     "DeepDive"> <!-- Define the case study name for experiment group -->
-  <!ENTITY CNFG_NAME    "&EXP_VRF;_valid_date_ensemble"> <!-- Configuration name including tunable parameters -->
+  <!ENTITY CNFG_NAME    "&EXP_VRF;_valid_date_wrf_ensemble"> <!-- Configuration name including tunable parameters -->
   <!ENTITY EXP_NAME     "&CSE_NAME;/&CNFG_NAME;"> <!-- Experiment logs and data are defined in the case / configuration nested structure -->
   <!-- END CONTROL FLOW NAME / TUNABLE SETTINGS -->
 
   <!-- COMPUTER-DEPENDENT ITEMS -->
-  <!ENTITY CLNE_ROOT    "/expanse/lustre/projects/ddp181/cgrudzien/JEDI-MPAS-Common-Case/GSI-WRF-Cycling-Template"> <!-- Full path of framework git clone -->
+  <!ENTITY CLNE_ROOT    "/expanse/lustre/projects/ddp181/cgrudzien/JEDI-MPAS-Common-Case/Ensemble-DA-Cycling-Template"> <!-- Full path of framework git clone -->
   <!ENTITY SOFT_ROOT    "/expanse/lustre/projects/ddp181/cgrudzien/SOFT_ROOT"> <!-- Root directory of software stack executables -->
   <!ENTITY DATA_ROOT    "/expanse/lustre/projects/ddp181/cgrudzien/JEDI-MPAS-Common-Case/DATA/&CSE_NAME;"> <!-- Root directory of case study forcing data -->
   <!ENTITY WORK_ROOT    "/expanse/lustre/projects/ddp181/cgrudzien/JEDI-MPAS-Common-Case/WRF_Cycles/&EXP_NAME;"> <!-- Root directory of /data/simulation_io -->
@@ -60,7 +60,7 @@
   <!ENTITY PART_DEBUG   "--partition=debug">  <!-- Slurm partition for small jobs / rapid debugging -->
   <!ENTITY MPIRUN       "mpirun"> <!-- MPI exec command to call multiprocess jobs with (machine and scheduler specific) -->
   <!ENTITY WPS_PROC     "128"> <!-- WPS parallel / REAL number of procs (all serial jobs are hard-coded as 1) -->
-  <!ENTITY WPS_MEM      "1G"> <!-- WPS MEM per CPU argument for SLURM -->
+  <!ENTITY WPS_MEM      "1750M"> <!-- WPS MEM per CPU argument for SLURM -->
   <!ENTITY WPS_NODESIZE "128"> <!-- WPS node size -->
   <!ENTITY WPS_NODES    "1"> <!-- Number of nodes for WPS / REAL jobs -->
   <!ENTITY WPS_WC       "00:30:00"> <!-- Wallclock limit for WPS cycle jobs -->
@@ -151,7 +151,7 @@
     </task>
 
     <task name="metgrid_ens_#ENS_N#" maxtries="12" cycledefs="forecast_cycles">
-      <command>&DRIVERS;/metgrid.sh</command>
+      <command>&DRIVERS;/wrf_metgrid.sh</command>
       <cores>&WPS_PROC;</cores>
       <nodesize>&WPS_NODESIZE;</nodesize>
       <walltime>&WPS_WC;</walltime>
@@ -181,6 +181,14 @@
       <envar>
         <name>EXP_VRF</name>
         <value>&EXP_VRF;</value>
+      </envar>
+      <envar>
+        <name>BKG_DATA</name>
+        <value>&ENS_BKG_DATA;</value>
+      </envar>
+      <envar>
+        <name>IF_ECMWF_ML</name>
+        <value>No</value>
       </envar>
       <envar>
         <name>BKG_INT</name>
@@ -216,7 +224,7 @@
     </task>
 
     <task name="real_ens_#ENS_N#" maxtries="12" cycledefs="forecast_cycles">
-      <command>&DRIVERS;/real.sh</command>
+      <command>&DRIVERS;/wrf_real.sh</command>
       <cores>&REAL_PROC;</cores>
       <nodesize>&WPS_NODESIZE;</nodesize>
       <walltime>&WPS_WC;</walltime>
@@ -289,7 +297,7 @@
     </task>
 
     <task name="wrf_ens_#ENS_N#" maxtries="12" cycledefs="forecast_cycles">
-      <command>&DRIVERS;/wrf.sh</command>
+      <command>&DRIVERS;/wrf_model.sh</command>
       <cores>&WRF_PROC;</cores>
       <nodesize>&WRF_NODESIZE;</nodesize>
       <walltime>&WRF_WC;</walltime>

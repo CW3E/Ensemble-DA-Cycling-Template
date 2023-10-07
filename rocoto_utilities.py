@@ -50,7 +50,8 @@ CSES = [
 
 # name of .xml workflows to execute and monitor WITHOUT the extension of file
 CTR_FLWS = [
-            '2022122800_valid_date_mpas_ensemble',
+            '2022122800_valid_date_x1.10242_mpas_ensemble',
+            '2022122800_valid_date_wrf_ensemble',
            ]
 
 END = dt(2024, 1, 1, 0)
