@@ -318,6 +318,7 @@ cat namelist.init_atmosphere \
   | sed "s/= CONFIG_START_TIME/= '${strt_iso}'/" \
   | sed "s/= CONFIG_STOP_TIME/= '${end_iso}'/" \
   | sed "s/= CONFIG_MET_PREFIX/= '${BKG_DATA}'/" \
+  | sed "s/= CONFIG_MET_SFC/= '${BKG_DATA}'/" \
   | sed "s/= CONFIG_FG_INTERVAL/= ${data_interval_sec}/" \
   | sed "s/= CONFIG_STATIC_INTERP/= false/" \
   | sed "s/= CONFIG_NATIVE_GWD_STATIC/= false/" \
