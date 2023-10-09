@@ -337,12 +337,12 @@ fi
 
 # Update the start and end date in namelist (propagates settings to three domains)
 cat namelist.wps \
-  | sed "s/= START_DATE/= ${out_sd}/" \
-  | sed "s/= END_DATE/= ${out_ed}/" \
-  | sed "s/= MAX_DOM/= ${MAX_DOM}/" \
-  | sed "s/= INTERVAL_SECONDS/= ${data_interval_sec}/" \
-  | sed "s/= PREFIX/= '${BKG_DATA}'/" \
-  | sed "s/= FG_NAME/= ${out_fg_name}/" \
+  | sed "s/= START_DATE,/= ${out_sd},/" \
+  | sed "s/= END_DATE,/= ${out_ed},/" \
+  | sed "s/= MAX_DOM,/= ${MAX_DOM},/" \
+  | sed "s/= INTERVAL_SECONDS,/= ${data_interval_sec},/" \
+  | sed "s/= PREFIX,/= '${BKG_DATA}',/" \
+  | sed "s/= FG_NAME,/= ${out_fg_name},/" \
   > namelist.wps.tmp
 mv namelist.wps.tmp namelist.wps
 
@@ -382,6 +382,13 @@ printf "${cmd}\n"; eval "${cmd}"
 cmd="mv namelist.wps ${log_dir}"
 printf "${cmd}\n"; eval "${cmd}"
 
+# Remove links to the WPS DAT files
+for file in ${wps_dat_files[@]}; do
+  cmd="rm -f `basename ${file}`"
+  printf "${cmd}\n"; eval "${cmd}"
+done
+
+# check run error code
 if [ ${error} -ne 0 ]; then
   printf "ERROR:\n ${metgrid_exe}\n exited with status ${error}.\n"
   exit ${error}
@@ -403,12 +410,6 @@ for dmn in ${dmns[@]}; do
       printf "${cmd}\n"; eval "${cmd}"
     fi
   done
-done
-
-# Remove links to the WPS DAT files
-for file in ${wps_dat_files[@]}; do
-  cmd="rm -f `basename ${file}`"
-  printf "${cmd}\n"; eval "${cmd}"
 done
 
 printf "metgrid.sh completed successfully at `date +%Y-%m-%d_%H_%M_%S`.\n"

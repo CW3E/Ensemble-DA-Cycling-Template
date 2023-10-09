@@ -314,30 +314,30 @@ end_iso=`date +%Y-%m-%d_%H_%M_%S -d "${end_dt}"`
 
 # Update the init_atmosphere namelist / streams for real initial conditions
 cat namelist.init_atmosphere \
-  | sed "s/= CONFIG_INIT_CASE/= 7/" \
-  | sed "s/= CONFIG_START_TIME/= '${strt_iso}'/" \
-  | sed "s/= CONFIG_STOP_TIME/= '${end_iso}'/" \
-  | sed "s/= CONFIG_MET_PREFIX/= '${BKG_DATA}'/" \
-  | sed "s/= CONFIG_MET_SFC/= '${BKG_DATA}'/" \
-  | sed "s/= CONFIG_FG_INTERVAL/= ${data_interval_sec}/" \
-  | sed "s/= CONFIG_STATIC_INTERP/= false/" \
-  | sed "s/= CONFIG_NATIVE_GWD_STATIC/= false/" \
-  | sed "s/= CONFIG_VERTICAL_GRID/= true/" \
-  | sed "s/= CONFIG_MET_INTERP/= true/" \
-  | sed "s/= CONFIG_INPUT_SST/= false/" \
-  | sed "s/= CONFIG_FRAC_SEAICE/= true/" \
-  | sed "s/= CONFIG_PIO_NUM_IOTASKS/= ${PIO_NUM}/" \
-  | sed "s/= CONFIG_PIO_STRIDE/= ${PIO_STRIDE}/" \
-  | sed "s/CONFIG_BLOCK_DECOMP_FILE_PREFIX/= '${DMN_NME}.graph.info.part.'/" \
+  | sed "s/= CONFIG_INIT_CASE,/= 7/" \
+  | sed "s/= CONFIG_START_TIME,/= '${strt_iso}'/" \
+  | sed "s/= CONFIG_STOP_TIME,/= '${end_iso}'/" \
+  | sed "s/= CONFIG_MET_PREFIX,/= '${BKG_DATA}'/" \
+  | sed "s/= CONFIG_MET_SFC,/= '${BKG_DATA}'/" \
+  | sed "s/= CONFIG_FG_INTERVAL,/= ${data_interval_sec}/" \
+  | sed "s/= CONFIG_STATIC_INTERP,/= false/" \
+  | sed "s/= CONFIG_NATIVE_GWD_STATIC,/= false/" \
+  | sed "s/= CONFIG_VERTICAL_GRID,/= true/" \
+  | sed "s/= CONFIG_MET_INTERP,/= true/" \
+  | sed "s/= CONFIG_INPUT_SST,/= false/" \
+  | sed "s/= CONFIG_FRAC_SEAICE,/= true/" \
+  | sed "s/= CONFIG_PIO_NUM_IOTASKS,/= ${PIO_NUM}/" \
+  | sed "s/= CONFIG_PIO_STRIDE,/= ${PIO_STRIDE}/" \
+  | sed "s/CONFIG_BLOCK_DECOMP_FILE_PREFIX,/= '${DMN_NME}.graph.info.part.'/" \
   > namelist.init_atmosphere.tmp
 mv namelist.init_atmosphere.tmp namelist.init_atmosphere
 
 cat streams.init_atmosphere \
-  | sed "s/=INPUT_FILE_NAME/=\"${DMN_NME}.static.nc\"/" \
-  | sed "s/=OUTPUT_FILE_NAME/=\"${DMN_NME}.init.nc\"/" \
-  | sed "s/=SURFACE_FILE_NAME/=\"${DMN_NME}.sfc_update.nc\"/" \
-  | sed "s/=SFC_OUTPUT_INTERVAL/=\"${BKG_INT}:00:00\"/" \
-  | sed "s/=LBC_OUTPUT_INTERVAL/=\"${BKG_INT}:00:00\"/" \
+  | sed "s/=INPUT_FILE_NAME,/=\"${DMN_NME}.static.nc\"/" \
+  | sed "s/=OUTPUT_FILE_NAME,/=\"${DMN_NME}.init.nc\"/" \
+  | sed "s/=SURFACE_FILE_NAME,/=\"${DMN_NME}.sfc_update.nc\"/" \
+  | sed "s/=SFC_OUTPUT_INTERVAL,/=\"${BKG_INT}:00:00\"/" \
+  | sed "s/=LBC_OUTPUT_INTERVAL,/=\"${BKG_INT}:00:00\"/" \
   > streams.init_atmosphere.tmp
 mv streams.init_atmosphere.tmp streams.init_atmosphere
 
@@ -362,22 +362,31 @@ printf "${cmd}\n"; eval "${cmd}"
 ##################################################################################
 # Run time error check
 ##################################################################################
-#error=$?
-#
-## save metgrid logs
-#log_dir=metgrid_log.${now}
-#mkdir ${log_dir}
-#cmd="mv metgrid.log* ${log_dir}"
-#printf "${cmd}\n"; eval "${cmd}"
-#
-#cmd="mv namelist.init_atmosphere ${log_dir}"
-#printf "${cmd}\n"; eval "${cmd}"
-#
-#if [ ${error} -ne 0 ]; then
-#  printf "ERROR:\n ${init_atmos_exe}\n exited with status ${error}.\n"
-#  exit ${error}
-#fi
-#
+error=$?
+
+# save mpas_real_ic logs
+log_dir=init_atmosphere_log.${now}
+mkdir ${log_dir}
+cmd="mv log.init_atmosphere.* ${log_dir}"
+printf "${cmd}\n"; eval "${cmd}"
+
+cmd="mv namelist.init_atmosphere ${log_dir}"
+printf "${cmd}\n"; eval "${cmd}"
+
+cmd="mv streams.init_atmosphere ${log_dir}"
+printf "${cmd}\n"; eval "${cmd}"
+
+# Remove links to the INIT_ATMOS DAT files
+for file in ${init_dat_files[@]}; do
+  cmd="rm -f `basename ${file}`"
+  printf "${cmd}\n"; eval "${cmd}"
+done
+
+if [ ${error} -ne 0 ]; then
+  printf "ERROR:\n ${init_atmos_exe}\n exited with status ${error}.\n"
+  exit ${error}
+fi
+
 ## Check to see if metgrid outputs are generated
 #for dmn in ${dmns[@]}; do
 #  for fcst in ${fcst_seq[@]}; do
@@ -394,12 +403,6 @@ printf "${cmd}\n"; eval "${cmd}"
 #      printf "${cmd}\n"; eval "${cmd}"
 #    fi
 #  done
-#done
-#
-## Remove links to the INIT_ATMOS DAT files
-#for file in ${init_dat_files[@]}; do
-#  cmd="rm -f `basename ${file}`"
-#  printf "${cmd}\n"; eval "${cmd}"
 #done
 
 printf "mpas_real_ic.sh completed successfully at `date +%Y-%m-%d_%H_%M_%S`.\n"

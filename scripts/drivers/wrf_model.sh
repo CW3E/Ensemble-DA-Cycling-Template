@@ -533,29 +533,29 @@ run_mins=$(( ${fcst_hrs} * 60 ))
 
 # Update the wrf namelist (propagates settings to three domains)
 cat namelist.input \
-  | sed "s/= START_YEAR/= ${s_Y}, ${s_Y}, ${s_Y}/" \
-  | sed "s/= START_MONTH/= ${s_m}, ${s_m}, ${s_m}/" \
-  | sed "s/= START_DAY/= ${s_d}, ${s_d}, ${s_d}/" \
-  | sed "s/= START_HOUR/= ${s_H}, ${s_H}, ${s_H}/" \
-  | sed "s/= START_MINUTE/= ${s_M}, ${s_M}, ${s_M}/" \
-  | sed "s/= START_SECOND/= ${s_S}, ${s_S}, ${s_S}/" \
-  | sed "s/= END_YEAR/= ${e_Y}, ${e_Y}, ${e_Y}/" \
-  | sed "s/= END_MONTH/= ${e_m}, ${e_m}, ${e_m}/" \
-  | sed "s/= END_DAY/= ${e_d}, ${e_d}, ${e_d}/" \
-  | sed "s/= END_HOUR/= ${e_H}, ${e_H}, ${e_H}/" \
-  | sed "s/= END_MINUTE/= ${e_M}, ${e_M}, ${e_M}/" \
-  | sed "s/= END_SECOND/= ${e_S}, ${e_S}, ${e_S}/" \
-  | sed "s/= MAX_DOM/= ${MAX_DOM}/" \
-  | sed "s/= INTERVAL_SECONDS/= ${data_interval_sec}/" \
-  | sed "s/= SST_UPDATE/= ${sst_update}/"\
-  | sed "s/= AUXINPUT4_INTERVAL/= ${aux_out}/" \
-  | sed "s/= AUXHIST2_INTERVAL/= ${out_hist}/" \
-  | sed "s/= HISTORY_INTERVAL/= ${out_hist}/" \
-  | sed "s/= RESTART/= ${wrf_restart}/" \
-  | sed "s/= RESTART_INTERVAL/= ${run_mins}/" \
-  | sed "s/= FEEDBACK/= ${feedback}/"\
-  | sed "s/= NIO_TASKS_PER_GROUP/= ${NIO_TPG}/" \
-  | sed "s/= NIO_GROUPS/= ${NIO_GROUPS}/" \
+  | sed "s/= START_YEAR,/= ${s_Y}, ${s_Y}, ${s_Y},/" \
+  | sed "s/= START_MONTH,/= ${s_m}, ${s_m}, ${s_m},/" \
+  | sed "s/= START_DAY,/= ${s_d}, ${s_d}, ${s_d},/" \
+  | sed "s/= START_HOUR,/= ${s_H}, ${s_H}, ${s_H},/" \
+  | sed "s/= START_MINUTE,/= ${s_M}, ${s_M}, ${s_M},/" \
+  | sed "s/= START_SECOND,/= ${s_S}, ${s_S}, ${s_S},/" \
+  | sed "s/= END_YEAR,/= ${e_Y}, ${e_Y}, ${e_Y},/" \
+  | sed "s/= END_MONTH,/= ${e_m}, ${e_m}, ${e_m},/" \
+  | sed "s/= END_DAY,/= ${e_d}, ${e_d}, ${e_d},/" \
+  | sed "s/= END_HOUR,/= ${e_H}, ${e_H}, ${e_H},/" \
+  | sed "s/= END_MINUTE,/= ${e_M}, ${e_M}, ${e_M},/" \
+  | sed "s/= END_SECOND,/= ${e_S}, ${e_S}, ${e_S},/" \
+  | sed "s/= MAX_DOM,/= ${MAX_DOM},/" \
+  | sed "s/= INTERVAL_SECONDS,/= ${data_interval_sec},/" \
+  | sed "s/= SST_UPDATE,/= ${sst_update},/"\
+  | sed "s/= AUXINPUT4_INTERVAL,/= ${aux_out},/" \
+  | sed "s/= AUXHIST2_INTERVAL,/= ${out_hist},/" \
+  | sed "s/= HISTORY_INTERVAL,/= ${out_hist},/" \
+  | sed "s/= RESTART,/= ${wrf_restart},/" \
+  | sed "s/= RESTART_INTERVAL,/= ${run_mins},/" \
+  | sed "s/= FEEDBACK,/= ${feedback},/"\
+  | sed "s/= NIO_TASKS_PER_GROUP,/= ${NIO_TPG},/" \
+  | sed "s/= NIO_GROUPS,/= ${NIO_GROUPS},/" \
   > namelist.input.tmp
 mv namelist.input.tmp namelist.input
 
@@ -596,6 +596,13 @@ printf "${cmd}\n"; eval "${cmd}"
 cmd="mv namelist.* ${rsldir}"
 printf "${cmd}\n"; eval "${cmd}"
 
+# Remove links to the WRF DAT files
+for file in ${wrf_dat_files[@]}; do
+    cmd="rm -f `basename ${file}`"
+    printf "${cmd}\n"; eval "${cmd}"
+done
+
+# check run error code
 if [ ${error} -ne 0 ]; then
   printf "ERROR:\n ${wrf_exe}\n exited with status ${error}.\n"
   exit ${error}
@@ -644,12 +651,6 @@ for dmn in ${dmns[@]}; do
     cmd="ln -sfr wrfrst_d${dmn}_${dt_str} ${CYC_HME}/../${new_bkg}"
     printf "${cmd}\n"; eval "${cmd}"
   fi
-done
-
-# Remove links to the WRF DAT files
-for file in ${wrf_dat_files[@]}; do
-    cmd="rm -f `basename ${file}`"
-    printf "${cmd}\n"; eval "${cmd}"
 done
 
 printf "wrf.sh completed successfully at `date +%Y-%m-%d_%H_%M_%S`.\n"

@@ -361,12 +361,12 @@ fi
 
 # apply updates
 cat namelist.wps \
-  | sed "s/= START_DATE/= ${strt_iso}/" \
-  | sed "s/= END_DATE/= ${end_iso}/" \
-  | sed "s/= INTERVAL_SECONDS/= ${data_interval_sec}/" \
-  | sed "s/= MAX_DOM/= ${MAX_DOM}/" \
-  | sed "s/= PREFIX/= '${BKG_DATA}'/" \
-  | sed "s/= FG_NAME/= ${out_fg_name}/" \
+  | sed "s/= START_DATE,/= ${strt_iso},/" \
+  | sed "s/= END_DATE,/= ${end_iso},/" \
+  | sed "s/= INTERVAL_SECONDS,/= ${data_interval_sec},/" \
+  | sed "s/= MAX_DOM,/= ${MAX_DOM},/" \
+  | sed "s/= PREFIX,/= '${BKG_DATA}',/" \
+  | sed "s/= FG_NAME,/= ${out_fg_name},/" \
   > namelist.wps.tmp
 mv namelist.wps.tmp namelist.wps
 
@@ -403,6 +403,20 @@ printf "${cmd}\n"; eval "${cmd}"
 cmd="mv namelist.wps ${log_dir}"
 printf "${cmd}\n"; eval "${cmd}"
 
+# Remove links to the WPS DAT files
+for file in ${wps_dat_files[@]}; do
+    cmd="rm -f `basename ${file}`"
+    printf "${cmd}\n"; eval "${cmd}"
+done
+
+# remove links to grib files
+cmd="rm -f GRIBFILE.*"
+printf "${cmd}\n"; eval "${cmd}"
+
+# remove link to vtable
+cmd="rm -f Vtable"
+printf "${cmd}\n"; eval "${cmd}"
+
 # check run error code
 if [ ${error} -ne 0 ]; then
   printf "ERROR: \n${ungrib_exe}\n exited with status ${error}.\n"
@@ -435,20 +449,6 @@ if [ ${IF_ECMWF_ML} = ${YES} ]; then
     fi
   done
 fi
-
-# Remove links to the WPS DAT files
-for file in ${wps_dat_files[@]}; do
-    cmd="rm -f `basename ${file}`"
-    printf "${cmd}\n"; eval "${cmd}"
-done
-
-# remove links to grib files
-cmd="rm -f GRIBFILE.*"
-printf "${cmd}\n"; eval "${cmd}"
-
-# remove link to vtable
-cmd="rm -f Vtable"
-printf "${cmd}\n"; eval "${cmd}"
 
 printf "ungrib.sh completed successfully at `date +%Y-%m-%d_%H_%M_%S`.\n"
 

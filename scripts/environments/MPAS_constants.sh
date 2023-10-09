@@ -27,11 +27,7 @@
 # Using GMT time zone for time computations
 export TZ="GMT"
 
-# defines expanse environment
-module purge
-module restore
-
-# intel
+# defines expanse environment with intel compilers
 module purge
 module restore
 module load cpu/0.15.4
@@ -50,7 +46,6 @@ export MPAS_EXTERNAL_INCLUDES="-I${HDF5HOME}/include"
 
 # create variables for namelist templates / switches
 CYCLING=[Cc][Yy][Cc][Ll][Ii][Nn][Gg]
-EQUAL=[[:blank:]]*=[[:blank:]]*
 LATERAL=[Ll][Aa][Tt][Ee][Rr][Aa][Ll]
 LOWER=[Ll][Oo][Ww][Ee][Rr]
 RESTART=[Rr][Ee][Ss][Tt][Aa][Rr][Tt]
