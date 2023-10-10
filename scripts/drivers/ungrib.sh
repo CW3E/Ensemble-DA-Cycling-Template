@@ -244,7 +244,12 @@ fi
 if [ ! ${CYC_HME} ]; then
   printf "ERROR: \${CYC_HME} is not defined.\n"
   exit 1
-elif [ ! -d ${CYC_HME} ]; then
+else
+  cmd="mkdir -p ${CYC_HME}"
+  printf "${cmd}\n"; eval "${cmd}"
+fi
+
+if [ ! -d ${CYC_HME} ]; then
   printf "ERROR: \${CYC_HME} directory\n ${CYC_HME}\n does not exist.\n"
   exit 1
 fi

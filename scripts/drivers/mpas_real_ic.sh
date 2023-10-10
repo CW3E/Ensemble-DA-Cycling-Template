@@ -306,8 +306,8 @@ else
 fi
 
 # define start / end time patterns for namelist.init_atmosphere
-strt_iso=`date +%Y-%m-%d_%H_%M_%S -d "${strt_dt}"`
-end_iso=`date +%Y-%m-%d_%H_%M_%S -d "${end_dt}"`
+strt_iso=`date +%Y-%m-%d_%H:%M:%S -d "${strt_dt}"`
+end_iso=`date +%Y-%m-%d_%H:%M:%S -d "${end_dt}"`
 
 # Update background data interval in namelist
 (( data_interval_sec = BKG_INT * 3600 ))
@@ -318,7 +318,7 @@ cat namelist.init_atmosphere \
   | sed "s/= CONFIG_START_TIME,/= '${strt_iso}'/" \
   | sed "s/= CONFIG_STOP_TIME,/= '${end_iso}'/" \
   | sed "s/= CONFIG_MET_PREFIX,/= '${BKG_DATA}'/" \
-  | sed "s/= CONFIG_MET_SFC,/= '${BKG_DATA}'/" \
+  | sed "s/= CONFIG_SFC_PREFIX,/= '${BKG_DATA}'/" \
   | sed "s/= CONFIG_FG_INTERVAL,/= ${data_interval_sec}/" \
   | sed "s/= CONFIG_STATIC_INTERP,/= false/" \
   | sed "s/= CONFIG_NATIVE_GWD_STATIC,/= false/" \
@@ -328,13 +328,16 @@ cat namelist.init_atmosphere \
   | sed "s/= CONFIG_FRAC_SEAICE,/= true/" \
   | sed "s/= CONFIG_PIO_NUM_IOTASKS,/= ${PIO_NUM}/" \
   | sed "s/= CONFIG_PIO_STRIDE,/= ${PIO_STRIDE}/" \
-  | sed "s/CONFIG_BLOCK_DECOMP_FILE_PREFIX,/= '${DMN_NME}.graph.info.part.'/" \
+  | sed "s/= CONFIG_BLOCK_DECOMP_FILE_PREFIX,/= '${DMN_NME}.graph.info.part.'/" \
   > namelist.init_atmosphere.tmp
 mv namelist.init_atmosphere.tmp namelist.init_atmosphere
 
+# define initial conditions output name
+out_name=${DMN_NME}.init.nc
+
 cat streams.init_atmosphere \
   | sed "s/=INPUT_FILE_NAME,/=\"${DMN_NME}.static.nc\"/" \
-  | sed "s/=OUTPUT_FILE_NAME,/=\"${DMN_NME}.init.nc\"/" \
+  | sed "s/=OUTPUT_FILE_NAME,/=\"${out_name}\"/" \
   | sed "s/=SURFACE_FILE_NAME,/=\"${DMN_NME}.sfc_update.nc\"/" \
   | sed "s/=SFC_OUTPUT_INTERVAL,/=\"${BKG_INT}:00:00\"/" \
   | sed "s/=LBC_OUTPUT_INTERVAL,/=\"${BKG_INT}:00:00\"/" \
@@ -387,23 +390,11 @@ if [ ${error} -ne 0 ]; then
   exit ${error}
 fi
 
-## Check to see if metgrid outputs are generated
-#for dmn in ${dmns[@]}; do
-#  for fcst in ${fcst_seq[@]}; do
-#    dt_str=`date +%Y-%m-%d_%H:%M:%S -d "${strt_dt} ${fcst} hours"`
-#    out_name="met_em.d${dmn}.${dt_str}.nc"
-#    if [ ! -s "${out_name}" ]; then
-#      printf "ERROR:\n ${init_atmos_exe}\n failed to complete for d${dmn}.\n"
-#      exit 1
-#    else
-#      # rename to no-colon style for WRF
-#      dt_str=`date +%Y-%m-%d_%H_%M_%S -d "${strt_dt} ${fcst} hours"`
-#      re_name="met_em.d${dmn}.${dt_str}.nc"
-#      cmd="mv ${out_name} ${re_name}"
-#      printf "${cmd}\n"; eval "${cmd}"
-#    fi
-#  done
-#done
+# Check to see if metgrid outputs are generated
+if [ ! -s "${out_name}" ]; then
+  printf "ERROR:\n ${init_atmos_exe}\n failed to complete writing ${out_name}.\n"
+  exit 1
+fi
 
 printf "mpas_real_ic.sh completed successfully at `date +%Y-%m-%d_%H_%M_%S`.\n"
 
