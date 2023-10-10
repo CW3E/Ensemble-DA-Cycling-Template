@@ -328,39 +328,53 @@ fi
 # The following paths are relative to workflow supplied root paths
 #
 # work_root     = Working directory where WRF runs
-# wrf_dat_files = All file contents of clean WRF/run directory
+# wrf_in_root   = Directory of previous wrf run for restart runs
+# wrf_run_files = All file contents of clean WRF/run directory
 #                 namelists, boundary and input data will be linked
 #                 from other sources
 # wrf_exe       = Path and name of working executable
 #
 ##################################################################################
+# define work root and change directories
+if [[ ${WRF_IC} = ${RESTART} ]]; then
+  work_root=${CYC_HME}/wrfrst/ens_${memid}	
+  wrf_in_root=${CYC_HME}/wrf/ens_${memid}
+  if [[ ! -d ${wrf_in_root} ]]; then
+    printf "ERROR: \${wrf_in_root} directory\n ${wrf_in_root}\n does not exist.\n"
+    exit 1
+  fi
+else
+  work_root=${CYC_HME}/wrf/ens_${memid}
+fi
 
-work_root=${CYC_HME}/wrf/ens_${memid}
-mkdir -p ${work_root}
-cmd="cd ${work_root}"
+cmd="mkdir -p ${work_root}; cd ${work_root}"
 printf "${cmd}\n"; eval "${cmd}"
 
-wrf_dat_files=(${WRF_ROOT}/run/*)
+# Check that the wrf executable exists and runs
 wrf_exe=${WRF_ROOT}/main/wrf.exe
-
 if [ ! -x ${wrf_exe} ]; then
   printf "ERROR:\n ${wrf_exe}\n does not exist, or is not executable.\n"
   exit 1
 fi
 
-# Make links to the WRF DAT files
-for file in ${wrf_dat_files[@]}; do
+# Make links to the WRF run files
+wrf_run_files=(${WRF_ROOT}/run/*)
+for file in ${wrf_run_files[@]}; do
   cmd="ln -sf ${file} ."
   printf "${cmd}\n"; eval "${cmd}"
 done
 
-if [[ ${WRF_IC} = ${REALEXE} || ${WRF_IC} = ${CYCLING} ]]; then
-  # Remove any old WRF outputs in the directory from failed runs
-  cmd="rm -f wrfout_*"
-  printf "${cmd}\n"; eval "${cmd}"
-  cmd="rm -f wrfrst_*"
-  printf "${cmd}\n"; eval "${cmd}"
-fi
+# Remove IC/BC in the directory if old data present
+cmd="rm -f wrfinput_d0*; rm -f wrfbdy_d01"
+printf "${cmd}\n"; eval "${cmd}"
+
+# Remove any previous namelists
+cmd="rm -f namelist.input"
+printf "${cmd}\n"; eval "${cmd}"
+
+# Remove any old WRF outputs in the directory from failed runs
+cmd="rm -f wrfout_*; rm -f wrfrst_*"
+printf "${cmd}\n"; eval "${cmd}"
 
 # Link WRF initial conditions
 for dmn in ${dmns[@]}; do
@@ -402,10 +416,13 @@ for dmn in ${dmns[@]}; do
 
   elif [[ ${WRF_IC} = ${RESTART} ]]; then
     # check for restart files at valid start time for each domain
-    wrfrst=${work_root}/wrfrst_d${dmn}_${dt_str}
+    wrfrst=${wrf_in_root}/wrfrst_d${dmn}_${dt_str}
     if [ ! -r ${wrfrst} ]; then
       printf "ERROR: wrfrst source\n ${wrfrst}\n does not exist or is not readable.\n"
       exit 1
+    else
+      cmd="ln -sfr ${wrfrst} ./"
+      printf "${cmd}\n"; eval "${cmd}"
     fi
 
     if [[ ${dmn} = 01 ]]; then
@@ -475,10 +492,6 @@ fi
 ##################################################################################
 #  Build WRF namelist
 ##################################################################################
-# Remove any previous namelists
-cmd="rm -f namelist.input"
-printf "${cmd}\n"; eval "${cmd}"
-
 # Copy the wrf namelist template, NOTE: THIS WILL BE MODIFIED DO NOT LINK TO IT
 namelist_temp=${EXP_CNFG}/namelists/namelist.${BKG_DATA}
 if [ ! -r ${namelist_temp} ]; then 
@@ -579,12 +592,14 @@ printf
 now=`date +%Y-%m-%d_%H_%M_%S`
 printf "wrf started at ${now}.\n"
 cmd="${MPIRUN} -n ${N_PROC} ${wrf_exe}"
-printf "${cmd}\n"; eval "${cmd}"
+printf "${cmd}\n"
+${MPIRUN} -n ${N_PROC} ${wrf_exe}
 
 ##################################################################################
 # Run time error check
 ##################################################################################
-error=$?
+error="$?"
+printf "wrf exited with code ${error}.\n"
 
 # Save a copy of the RSL files
 rsldir=rsl.wrf.${now}
@@ -596,8 +611,8 @@ printf "${cmd}\n"; eval "${cmd}"
 cmd="mv namelist.* ${rsldir}"
 printf "${cmd}\n"; eval "${cmd}"
 
-# Remove links to the WRF DAT files
-for file in ${wrf_dat_files[@]}; do
+# Remove links to the WRF run files
+for file in ${wrf_run_files[@]}; do
     cmd="rm -f `basename ${file}`"
     printf "${cmd}\n"; eval "${cmd}"
 done
@@ -637,6 +652,13 @@ for dmn in ${dmns[@]}; do
     else
       cmd="ln -sfr wrfout_d${dmn}_${dt_str} ${CYC_HME}/../${new_bkg}"
       printf "${cmd}\n"; eval "${cmd}"
+
+      # if performing a restart run, link the outputs back to the original
+      # run directory for sake of easy post-processing
+      if [[ ${WRF_IC} = ${RESTART} ]]; then
+        cmd="ln -sfr wrfout_d${dmn}_${dt_str} ${wrf_in_root}"
+        printf "${cmd}\n"; eval "${cmd}"
+      fi
     fi
   done
   # Check for all wrfrst files for each domain at end of forecast and link files to
@@ -650,6 +672,13 @@ for dmn in ${dmns[@]}; do
   else
     cmd="ln -sfr wrfrst_d${dmn}_${dt_str} ${CYC_HME}/../${new_bkg}"
     printf "${cmd}\n"; eval "${cmd}"
+
+    # if performing a restart run, link the outputs back to the original
+    # run directory for sake of easy post-processing
+    if [[ ${WRF_IC} = ${RESTART} ]]; then
+      cmd="ln -sfr wrfrst_d${dmn}_${dt_str} ${wrf_in_root}"
+      printf "${cmd}\n"; eval "${cmd}"
+    fi
   fi
 done
 

@@ -262,37 +262,41 @@ fi
 # The following paths are relative to workflow supplied root paths
 #
 # work_root     = Working directory where real runs and outputs background files
-# wrf_dat_files = All file contents of clean WRF/run directory
+# wrf_run_files = All file contents of clean WRF/run directory
 #                 namelists, boundary and input data will be linked
 #                 from other sources
 # real_exe      = Path and name of working executable
 #
 ##################################################################################
-
+# define work root and change directories
 work_root=${CYC_HME}/real/ens_${memid}
-mkdir -p ${work_root}
-cmd="cd ${work_root}"
+cmd="mkdir -p ${work_root}; cd ${work_root}"
 printf "${cmd}\n"; eval "${cmd}"
 
-wrf_dat_files=(${WRF_ROOT}/run/*)
+# Check that the real executable exists and runs
 real_exe=${WRF_ROOT}/main/real.exe
-
 if [ ! -x ${real_exe} ]; then
   printf "ERROR:\n ${real_exe}\n does not exist, or is not executable.\n"
   exit 1
 fi
 
-# Make links to the WRF DAT files
-for file in ${wrf_dat_files[@]}; do
+# Make links to the WRF run files
+wrf_run_files=(${WRF_ROOT}/run/*)
+for file in ${wrf_run_files[@]}; do
   cmd="ln -sf ${file} ."
   printf "${cmd}\n"; eval "${cmd}"
 done
 
-# Remove IC/BC in the directory if old data present
-cmd="rm -f wrfinput_d0*"
+# Remove pre-existing metgrid files
+cmd="rm -f met_em.d0*.*.nc"
 printf "${cmd}\n"; eval "${cmd}"
 
-cmd="rm -f wrfbdy_d01"
+# Remove IC/BC in the directory if old data present
+cmd="rm -f wrfinput_d0*; rm -f wrfbdy_d01"
+printf "${cmd}\n"; eval "${cmd}"
+
+# Remove any previous namelists
+cmd="rm -f namelist.input"
 printf "${cmd}\n"; eval "${cmd}"
 
 # Check to make sure the real input files (e.g. met_em.d01.*)
@@ -329,10 +333,6 @@ fi
 ##################################################################################
 #  Build real namelist
 ##################################################################################
-# Remove any previous namelists
-cmd="rm -f namelist.input"
-printf "${cmd}\n"; eval "${cmd}"
-
 # Copy the wrf namelist template, NOTE: THIS WILL BE MODIFIED DO NOT LINK TO IT
 namelist_temp=${EXP_CNFG}/namelists/namelist.${BKG_DATA}
 if [ ! -r ${namelist_temp} ]; then 
@@ -414,12 +414,14 @@ printf "\n"
 now=`date +%Y-%m-%d_%H_%M_%S`
 printf "real started at ${now}.\n"
 cmd="${MPIRUN} -n ${N_PROC} ${real_exe}"
-printf "${cmd}\n"; eval "${cmd}"
+printf "${cmd}\n"
+${MPIRUN} -n ${N_PROC} ${real_exe}
 
 ##################################################################################
 # Run time error check
 ##################################################################################
-error=$?
+error="$?"
+printf "real exited with code ${error}.\n"
 
 # Save a copy of the RSL files
 rsldir=rsl.real.${now}
@@ -437,8 +439,8 @@ printf "${cmd}\n"; eval "${cmd}"
 cmd="rm -f ./met_em.*"
 printf "${cmd}\n"; eval "${cmd}"
 
-# Remove links to the WRF DAT files
-for file in ${wrf_dat_files[@]}; do
+# Remove links to the WRF run files
+for file in ${wrf_run_files[@]}; do
     cmd="rm -f `basename ${file}`"
     printf "${cmd}\n"; eval "${cmd}"
 done

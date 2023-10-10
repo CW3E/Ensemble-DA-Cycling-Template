@@ -275,17 +275,20 @@ for memid in `seq -f "%02g" 0 ${ens_max}`; do
       now=`date +%Y-%m-%d_%H_%M_%S`
       printf "da_update_bc.exe started at ${now}.\n"
       cmd="${update_bc_exe}"
-      printf "${cmd}\n"; eval "${cmd}"
-  
+      printf "${cmd}\n"
+      ${update_bc_exe} 
+
       ##################################################################################
       # Run time error check
       ##################################################################################
-      error=$?
+      error="$?"
       
       # NOTE: THIS CHECK NEEDS IMPROVEMENT, DOESN'T CATCH ERRORS IN THE PROGRAM LOG
       if [ ${error} -ne 0 ]; then
-        printf "ERROR:\n ${update_bc_exe}\n exited with status ${error}.\n"
+        printf "ERROR:\n ${update_bc_exe}\n exited with code ${error}.\n"
         exit ${error}
+      else
+	printf "${update_bc_exe} exited with code ${error}.\n"
       fi
     done
   
@@ -376,17 +379,20 @@ for memid in `seq -f "%02g" 0 ${ens_max}`; do
     now=`date +%Y-%m-%d_%H_%M_%S`
     printf "da_update_bc.exe started at ${now}.\n"
     cmd="${update_bc_exe}"
-    printf "${cmd}\n"; eval "${cmd}"
-  
+    printf "${cmd}\n"
+    ${update_bc_exe} 
+
     ##################################################################################
     # Run time error check
     ##################################################################################
-    error=$?
+    error="$?"
     
     # NOTE: THIS CHECK NEEDS IMPROVEMENT, DOESN'T CATCH ERRORS IN THE PROGRAM LOG
     if [ ${error} -ne 0 ]; then
-      printf "ERROR:\n ${update_bc_exe}\n exited with status ${error}.\n"
+      printf "ERROR:\n ${update_bc_exe}\n exited with code ${error}.\n"
       exit ${error}
+    else
+      printf "${update_bc_exe} exited with code ${error}.\n"
     fi
   fi
 done

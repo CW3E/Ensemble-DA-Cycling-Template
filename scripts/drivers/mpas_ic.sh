@@ -3,7 +3,7 @@
 # Description
 ##################################################################################
 # This driver script is designed to dynamically propagate the
-# namelist.init_amosphere and streams.init_atmosphere templates included in
+# namelist.init_atmosphere and streams.init_atmosphere templates included in
 # this repository to generate real data initial conditions for the MPAS-A model.
 #
 # One should write machine specific options for the MPAS environment
@@ -42,7 +42,7 @@ else
 fi
 
 ##################################################################################
-# Make checks for metgrid settings
+# Make checks for init_atmosphere settings
 ##################################################################################
 # Options below are defined in workflow variables
 #
@@ -127,7 +127,7 @@ if [[ ${BKG_DATA} != GFS && ${BKG_DATA} != GEFS ]]; then
 fi
 
 ##################################################################################
-# Define metgrid workflow dependencies
+# Define init_atmosphere workflow dependencies
 ##################################################################################
 # Below variables are defined in workflow variables
 #
@@ -177,7 +177,7 @@ if [ ! ${N_PROC} ]; then
   exit 1
 elif [ ${N_PROC} -le 0 ]; then
   msg="ERROR: The variable \${N_PROC} must be set to the number"
-  msg+=" of processors to run metgrid.exe.\n"
+  msg+=" of processors to run init_atmosphere.exe.\n"
   printf "${msg}"
   exit 1
 fi
@@ -207,22 +207,61 @@ fi
 ##################################################################################
 # The following paths are relative to workflow root paths
 #
+# ungrib_root     = Directory from which ungribbed background data is sourced
 # work_root       = Working directory where init_atmosphere runs and outputs
-# init_dat_files  = All file contents of clean MPAS build directory
+# init_run_files  = All file contents of clean MPAS build directory
 #                   namelists and input data is linked from other sources
 # init_atmos_exe  = Path and name of working executable
 #
 ##################################################################################
+# Create work root and change directory
+work_root=${CYC_HME}/init_atmosphere_ic/ens_${memid}
+cmd="mkdir -p ${work_root}; cd ${work_root}"
+printf "${cmd}\n"; eval "${cmd}"
 
+# Check that the executable exists and can be run
+init_atmos_exe=${MPAS_ROOT}/init_atmosphere_model
+if [ ! -x ${init_atmos_exe} ]; then
+  printf "ERROR:\n ${init_atmos_exe}\n does not exist, or is not executable.\n"
+  exit 1
+fi
+
+# Make links to the init_atmos run files
+init_run_files=(${MPAS_ROOT}/*)
+for file in ${init_run_files[@]}; do
+  cmd="ln -sf ${file} ."
+  printf "${cmd}\n"; eval "${cmd}"
+done
+
+# Remove any mpas static files following ${DMN_NME}.static.nc pattern
+cmd="rm -f *.static.nc"
+printf "${cmd}\n"; eval "${cmd}"
+
+# Remove any mpas init files following ${DMN_NME}.init.nc pattern
+cmd="rm -f *.init.nc"
+printf "${cmd}\n"; eval "${cmd}"
+
+# Remove any mpas partition files following ${DMN_NME}.graph.info.part.* pattern
+cmd="rm -f ${DMN_NME}.graph.info.part.*"
+printf "${cmd}\n"; eval "${cmd}"
+
+# Remove any previous namelists and stream lists
+cmd="rm -f namelist.*; rm -f streams.*; rm -f stream_list.*"
+printf "${cmd}\n"; eval "${cmd}"
+
+# Remove pre-existing ungrib case data
+for fcst in ${fcst_seq[@]}; do
+  filename="${BKG_DATA}:`date +%Y-%m-%d_%H -d "${strt_dt} ${fcst} hours"`"
+  cmd="rm -f ./${filename}"
+  printf "${cmd}\n"; eval "${cmd}"
+done
+
+# Link case ungrib data from ungrib root
 ungrib_root=${CYC_HME}/ungrib/ens_${memid}
-work_root=${CYC_HME}/init_atmosphere/ens_${memid}
 if [ ! -d ${ungrib_root} ]; then
   printf "ERROR: \${ungrib_root} directory\n ${ungrib_root}\n does not exist.\n"
   exit 1
 else
-  cmd="mkdir -p ${work_root}; cd ${work_root}"
-  printf "${cmd}\n"; eval "${cmd}"
-
   for fcst in ${fcst_seq[@]}; do
     filename="${ungrib_root}/${BKG_DATA}:`date +%Y-%m-%d_%H -d "${strt_dt} ${fcst} hours"`"
     if [ ! -s ${filename} ]; then
@@ -234,24 +273,6 @@ else
     fi
   done
 fi
-
-init_dat_files=(${MPAS_ROOT}/*)
-init_atmos_exe=${MPAS_ROOT}/init_atmosphere_model
-
-if [ ! -x ${init_atmos_exe} ]; then
-  printf "ERROR:\n ${init_atmos_exe}\n does not exist, or is not executable.\n"
-  exit 1
-fi
-
-# Make links to the INIT_ATMOS DAT files
-for file in ${init_dat_files[@]}; do
-  cmd="ln -sf ${file} ."
-  printf "${cmd}\n"; eval "${cmd}"
-done
-
-# Remove any previous mpas static files following ${DMN_NME}.static.nc pattern
-cmd="rm -f *.static.nc"
-printf "${cmd}\n"; eval "${cmd}"
 
 # Check to make sure the static terrestrial input file is available and link
 static_input_name=${EXP_CNFG}/static_files/${DMN_NME}.static.nc
@@ -277,13 +298,11 @@ fi
 ##################################################################################
 #  Build init_atmosphere namelist
 ##################################################################################
-# Remove any previous namelists and stream lists
-cmd="rm -f namelist.*; rm -f streams.*; rm -f stream_list.*"
-printf "${cmd}\n"; eval "${cmd}"
-
 # Copy the init_atmosphere namelist / streams templates,
 # NOTE: THESE WILL BE MODIFIED DO NOT LINK TO THEM
 namelist_temp=${EXP_CNFG}/namelists/namelist.init_atmosphere.${BKG_DATA}
+streams_temp=${EXP_CNFG}/streamlists/streams.init_atmosphere
+
 if [ ! -r ${namelist_temp} ]; then 
   msg="init_atmosphere namelist template\n ${namelist_temp}\n is not readable or "
   msg+="does not exist.\n"
@@ -294,7 +313,6 @@ else
   printf "${cmd}\n"; eval "${cmd}"
 fi
 
-streams_temp=${EXP_CNFG}/streamlists/streams.init_atmosphere
 if [ ! -r ${streams_temp} ]; then 
   msg="init_atmosphere streams template\n ${streams_temp}\n is not readable or "
   msg+="does not exist.\n"
@@ -358,17 +376,19 @@ printf "END_DT   = ${end_iso}\n"
 printf "BKG_INT  = ${BKG_INT}\n"
 printf "\n"
 now=`date +%Y-%m-%d_%H_%M_%S`
-printf "metgrid started at ${now}.\n"
+printf "init_atmpshere started at ${now}.\n"
 cmd="${MPIRUN} -n ${N_PROC} ${init_atmos_exe}"
-printf "${cmd}\n"; eval "${cmd}"
+printf "${cmd}\n"
+${MPIRUN} -n ${N_PROC} ${init_atmos_exe}
 
 ##################################################################################
 # Run time error check
 ##################################################################################
-error=$?
+error="$?"
+printf "init_atmosphere exited with code ${error}.\n"
 
-# save mpas_real_ic logs
-log_dir=init_atmosphere_log.${now}
+# save mpas_ic logs
+log_dir=init_atmosphere_ic_log.${now}
 mkdir ${log_dir}
 cmd="mv log.init_atmosphere.* ${log_dir}"
 printf "${cmd}\n"; eval "${cmd}"
@@ -379,24 +399,38 @@ printf "${cmd}\n"; eval "${cmd}"
 cmd="mv streams.init_atmosphere ${log_dir}"
 printf "${cmd}\n"; eval "${cmd}"
 
-# Remove links to the INIT_ATMOS DAT files
-for file in ${init_dat_files[@]}; do
+# Remove links to the init_atmos run files
+for file in ${init_run_files[@]}; do
   cmd="rm -f `basename ${file}`"
   printf "${cmd}\n"; eval "${cmd}"
 done
+
+# remove links to ungrib data
+for fcst in ${fcst_seq[@]}; do
+  filename="./${BKG_DATA}:`date +%Y-%m-%d_%H -d "${strt_dt} ${fcst} hours"`"
+  cmd="rm -f ${filename} ."
+  printf "${cmd}\n"; eval "${cmd}"
+done
+
+# remove links to static and partition data
+cmd="rm -f ${DMN_NME}.static.nc"
+printf "${cmd}\n"; eval "${cmd}"
+
+cmd="rm -f ${DMN_NME}.graph.info.part.${N_PROC}"
+printf "${cmd}\n"; eval "${cmd}"
 
 if [ ${error} -ne 0 ]; then
   printf "ERROR:\n ${init_atmos_exe}\n exited with status ${error}.\n"
   exit ${error}
 fi
 
-# Check to see if metgrid outputs are generated
+# Check to see if init_atmosphere outputs are generated
 if [ ! -s "${out_name}" ]; then
   printf "ERROR:\n ${init_atmos_exe}\n failed to complete writing ${out_name}.\n"
   exit 1
 fi
 
-printf "mpas_real_ic.sh completed successfully at `date +%Y-%m-%d_%H_%M_%S`.\n"
+printf "mpas_ic.sh completed successfully at `date +%Y-%m-%d_%H_%M_%S`.\n"
 
 ##################################################################################
 # end

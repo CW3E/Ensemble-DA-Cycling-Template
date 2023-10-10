@@ -268,29 +268,28 @@ fi
 # The following paths are relative to workflow supplied root paths
 #
 # work_root     = Working directory where ungrib_exe runs and outputs
-# wps_dat_files = All file contents of clean WPS directory
+# wps_run_files = All file contents of clean WPS directory
 #                 namelists and input data will be linked from other sources
 # ungrib_exe    = Path and name of working executable
 # vtable        = Path and name of variable table
 # grib_dataroot = Path to the raw data to be processed
 #
 ##################################################################################
-
+# define work root and change directories
 work_root=${CYC_HME}/ungrib/ens_${memid}
-mkdir -p ${work_root}
-cmd="cd ${work_root}"
+cmd="mkdir -p ${work_root}; cd ${work_root}"
 printf "${cmd}\n"; eval "${cmd}"
 
-wps_dat_files=(${WPS_ROOT}/*)
+# check that the ungrib executable exists and runs
 ungrib_exe=${WPS_ROOT}/ungrib.exe
-
 if [ ! -x ${ungrib_exe} ]; then
   printf "ERROR: ungrib.exe\n ${ungrib_exe}\n does not exist, or is not executable.\n"
   exit 1
 fi
 
-# Make links to the WPS DAT files
-for file in ${wps_dat_files[@]}; do
+# Make links to the WPS run files
+wps_run_files=(${WPS_ROOT}/*)
+for file in ${wps_run_files[@]}; do
   cmd="ln -sf ${file} ."
   printf "${cmd}\n"; eval "${cmd}"
 done
@@ -311,6 +310,34 @@ else
   printf "${cmd}\n"; eval "${cmd}"
 fi
 
+# Remove any ungrib inputs
+cmd="rm -f GRIBFILE.*"
+printf "${cmd}\n"; eval "${cmd}"
+
+# Remove any ungrib outputs
+for fcst in ${fcst_seq[@]}; do
+  filename="${BKG_DATA}:`date +%Y-%m-%d_%H -d "${strt_dt} ${fcst} hours"`"
+  cmd="rm -f ${filename}"
+  printf "${cmd}\n"; eval "${cmd}"
+done
+
+# Remove ECMWF coefficients if processing EC model levels
+if [ ${IF_ECMWF_ML} = ${YES} ]; then
+  cmd="rm -f ecmwf_coeffs"
+  printf "${cmd}\n"; eval "${cmd}"
+
+  # Check for ECMWF pressure coefficients 
+  for fcst in ${fcst_seq[@]}; do
+    filename=PRES:`date +%Y-%m-%d_%H -d "${strt_dt} ${fcst} hours"`
+    cmd="rm -f ${filename}"
+    printf "${cmd}\n"; eval "${cmd}"
+  done
+fi
+
+# Remove any namelists
+cmd="rm -f namelist.wps"
+printf "${cmd}\n"; eval "${cmd}"
+
 # check to make sure the grib_dataroot exists and is non-empty
 grib_dataroot=${DATA_ROOT}/gribbed/${BKG_DATA}/${bkg_strt_dt}
 if [ ! -d ${grib_dataroot} ]; then
@@ -330,10 +357,6 @@ fi
 ##################################################################################
 #  Build WPS namelist
 ##################################################################################
-# Remove any previous namelists
-cmd="rm -f namelist.wps"
-printf "${cmd}\n"; eval "${cmd}"
-
 # Copy the wps namelist template, NOTE: THIS WILL BE MODIFIED DO NOT LINK TO IT
 namelist_temp=${EXP_CNFG}/namelists/namelist.wps
 if [ ! -r ${namelist_temp} ]; then 
@@ -392,15 +415,17 @@ printf "\n"
 now=`date +%Y-%m-%d_%H_%M_%S`
 printf "ungrib started at ${now}.\n"
 cmd="./ungrib.exe"
-printf "${cmd}\n"; eval "${cmd}"
+printf "${cmd}\n"
+./ungrib.exe
 
 ##################################################################################
 # Run time error check
 ##################################################################################
-error=$?
+error="$?"
+printf "ungrib exited with code ${error}.\n"
 
 # save ungrib logs
-log_dir=ungrib_log.${now}
+log_dir=ungrib_log_${BKG}.${now}
 mkdir ${log_dir}
 cmd="mv ungrib.log ${log_dir}"
 printf "${cmd}\n"; eval "${cmd}"
@@ -408,8 +433,8 @@ printf "${cmd}\n"; eval "${cmd}"
 cmd="mv namelist.wps ${log_dir}"
 printf "${cmd}\n"; eval "${cmd}"
 
-# Remove links to the WPS DAT files
-for file in ${wps_dat_files[@]}; do
+# Remove links to the WPS run files
+for file in ${wps_run_files[@]}; do
     cmd="rm -f `basename ${file}`"
     printf "${cmd}\n"; eval "${cmd}"
 done
@@ -445,7 +470,7 @@ if [ ${IF_ECMWF_ML} = ${YES} ]; then
   cmd="./util/calc_ecmwf_p.exe"
   printf "${cmd}\n"; eval "${cmd}"
 
-  # Check to see if we've got all the files we're expecting
+  # Check for ECMWF pressure coefficients 
   for fcst in ${fcst_seq[@]}; do
     filename=PRES:`date +%Y-%m-%d_%H -d "${strt_dt} ${fcst} hours"`
     if [ ! -s ${filename} ]; then

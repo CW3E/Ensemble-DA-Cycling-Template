@@ -799,16 +799,19 @@ for dmn in `seq -f "%02g" 1 ${max_dom}`; do
     now=`date +%Y-%m-%d_%H_%M_%S`
     printf "gsi analysis started at ${now} on domain d${dmn}.\n"
     cmd="${MPIRUN} -n ${N_PROC} ${GSI_EXE} > stdout.anl.${anl_iso} 2>&1"
-    printf "${cmd}\n"; eval ${cmd}
+    printf "${cmd}\n"
+    ${MPIRUN} -n ${N_PROC} ${GSI_EXE} > stdout.anl.${anl_iso} 2>&1
 
     ##################################################################################
     # Run time error check
     ##################################################################################
-    error=$?
+    error="$?"
 
     if [ ${error} -ne 0 ]; then
-      printf "ERROR:\n ${GSI_EXE}\n exited with status ${error}.\n"
+      printf "ERROR:\n ${GSI_EXE}\n exited with code ${error}.\n"
       exit ${error}
+    else
+      printf "${GSI_EXE} exited with code ${error}.\n"
     fi
 
     # Copy the output to cycling naming convention
@@ -911,14 +914,17 @@ for dmn in `seq -f "%02g" 1 ${max_dom}`; do
         # run GSI
         printf "Run GSI observer for member ${memid}.\n"
         cmd="${MPIRUN} ${GSI_EXE} > stdout_ens_${memid}.anl.${anl_iso} 2>&1"
-	      printf "${cmd}\n"; eval ${cmd}
+	printf "${cmd}\n"
+        ${MPIRUN} ${GSI_EXE} > stdout_ens_${memid}.anl.${anl_iso} 2>&1
 
         # run time error check and save run time file status
-        error=$?
+        error="$?"
 
         if [ ${error} -ne 0 ]; then
-          printf "ERROR:\n ${GSI_EXE}\n exited with status ${error} for member ${memid}.\n"
+          printf "ERROR:\n ${GSI_EXE}\n exited with code ${error} for member ${memid}.\n"
           exit ${error}
+	else
+          printf "${GSI_EXE}\n exited with code ${error} for member ${memid}.\n"
         fi
 
         cmd="ls -l * > list_run_directory_mem${memid}"

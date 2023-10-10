@@ -238,22 +238,57 @@ fi
 ##################################################################################
 # The following paths are relative to workflow root paths
 #
+# ungrib_root   = Directory from which ungribbed background data is sourced
 # work_root     = Working directory where metgrid_exe runs and outputs
-# wps_dat_files = All file contents of clean WPS directory
+# wps_run_files = All file contents of clean WPS directory
 #                 namelists and input data will be linked from other sources
 # metgrid_exe   = Path and name of working executable
 #
 ##################################################################################
-
-ungrib_root=${CYC_HME}/ungrib/ens_${memid}
+# define work root and change directories
 work_root=${CYC_HME}/metgrid/ens_${memid}
+cmd="mkdir -p ${work_root}; cd ${work_root}"
+printf "${cmd}\n"; eval "${cmd}"
+
+# Check that metgrid executable exists and runs
+metgrid_exe=${WPS_ROOT}/metgrid.exe
+if [ ! -x ${metgrid_exe} ]; then
+  printf "ERROR:\n ${metgrid_exe}\n does not exist, or is not executable.\n"
+  exit 1
+fi
+
+# Make links to the WPS run files
+wps_run_files=(${WPS_ROOT}/*)
+for file in ${wps_run_files[@]}; do
+  cmd="ln -sf ${file} ."
+  printf "${cmd}\n"; eval "${cmd}"
+done
+
+# Remove any previous namelists
+cmd="rm -f namelist.wps"
+printf "${cmd}\n"; eval "${cmd}"
+
+# Remove any previous geogrid static files
+cmd="rm -f geo_em.d*"
+printf "${cmd}\n"; eval "${cmd}"
+
+# Remove pre-existing metgrid files
+cmd="rm -f met_em.d0*.*.nc"
+printf "${cmd}\n"; eval "${cmd}"
+
+# Remove any ungrib outputs
+for fcst in ${fcst_seq[@]}; do
+  filename="${BKG_DATA}:`date +%Y-%m-%d_%H -d "${strt_dt} ${fcst} hours"`"
+  cmd="rm -f ${filename}"
+  printf "${cmd}\n"; eval "${cmd}"
+done
+
+# check for the ungrib case products and link to them
+ungrib_root=${CYC_HME}/ungrib/ens_${memid}
 if [ ! -d ${ungrib_root} ]; then
   printf "ERROR: \${ungrib_root} directory\n ${ungrib_root}\n does not exist.\n"
   exit 1
 else
-  cmd="mkdir -p ${work_root}; cd ${work_root}"
-  printf "${cmd}\n"; eval "${cmd}"
-
   for fcst in ${fcst_seq[@]}; do
     filename="${ungrib_root}/${BKG_DATA}:`date +%Y-%m-%d_%H -d "${strt_dt} ${fcst} hours"`"
     if [ ! -s ${filename} ]; then
@@ -265,24 +300,6 @@ else
     fi
   done
 fi
-
-wps_dat_files=(${WPS_ROOT}/*)
-metgrid_exe=${WPS_ROOT}/metgrid.exe
-
-if [ ! -x ${metgrid_exe} ]; then
-  printf "ERROR:\n ${metgrid_exe}\n does not exist, or is not executable.\n"
-  exit 1
-fi
-
-# Make links to the WPS DAT files
-for file in ${wps_dat_files[@]}; do
-  cmd="ln -sf ${file} ."
-  printf "${cmd}\n"; eval "${cmd}"
-done
-
-# Remove any previous geogrid static files
-cmd="rm -f geo_em.d*"
-printf "${cmd}\n"; eval "${cmd}"
 
 # Check to make sure the geogrid input files (e.g. geo_em.d01.nc)
 # are available and make links to them
@@ -300,10 +317,6 @@ done
 ##################################################################################
 #  Build WPS namelist
 ##################################################################################
-# Remove any previous namelists
-cmd="rm -f namelist.wps"
-printf "${cmd}\n"; eval "${cmd}"
-
 # Copy the wps namelist template, NOTE: THIS WILL BE MODIFIED DO NOT LINK TO IT
 namelist_temp=${EXP_CNFG}/namelists/namelist.wps
 if [ ! -r ${namelist_temp} ]; then 
@@ -315,7 +328,6 @@ else
   cmd="cp -L ${namelist_temp} ."
   printf "${cmd}\n"; eval "${cmd}"
 fi
-
 
 # define start / end time patterns for namelist.wps
 strt_iso=`date +%Y-%m-%d_%H_%M_%S -d "${strt_dt}"`
@@ -346,10 +358,6 @@ cat namelist.wps \
   > namelist.wps.tmp
 mv namelist.wps.tmp namelist.wps
 
-# Remove pre-existing metgrid files
-cmd="rm -f met_em.d0*.*.nc"
-printf "${cmd}\n"; eval "${cmd}"
-
 ##################################################################################
 # Run metgrid 
 ##################################################################################
@@ -366,12 +374,14 @@ printf "\n"
 now=`date +%Y-%m-%d_%H_%M_%S`
 printf "metgrid started at ${now}.\n"
 cmd="${MPIRUN} -n ${N_PROC} ${metgrid_exe}"
-printf "${cmd}\n"; eval "${cmd}"
+printf "${cmd}\n"
+${MPIRUN} -n ${N_PROC} ${metgrid_exe}
 
 ##################################################################################
 # Run time error check
 ##################################################################################
-error=$?
+error="$?"
+printf "metgrid exited with code ${error}.\n"
 
 # save metgrid logs
 log_dir=metgrid_log.${now}
@@ -382,8 +392,8 @@ printf "${cmd}\n"; eval "${cmd}"
 cmd="mv namelist.wps ${log_dir}"
 printf "${cmd}\n"; eval "${cmd}"
 
-# Remove links to the WPS DAT files
-for file in ${wps_dat_files[@]}; do
+# Remove links to the WPS run files
+for file in ${wps_run_files[@]}; do
   cmd="rm -f `basename ${file}`"
   printf "${cmd}\n"; eval "${cmd}"
 done
