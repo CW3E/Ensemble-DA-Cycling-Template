@@ -1,7 +1,7 @@
 &nhyd_model
-    config_init_case = CONFIG_INIT_CASE,
-    config_start_time = CONFIG_START_TIME,
-    config_stop_time = CONFIG_STOP_TIME,
+    config_init_case = INIT_CASE,
+    config_start_time = STRT_DT,
+    config_stop_time = STOP_DT,
     config_theta_adv_order = 3
     config_coef_3rd_order = 0.25
     config_interface_projection = 'linear_interpolation'
@@ -20,7 +20,7 @@
     config_geog_data_path = '/expanse/lustre/projects/ddp181/cgrudzien/JEDI-MPAS-Common-Case/DATA/static_terrestrial/mpas_static'
     config_met_prefix = 'BKG_DATA'
     config_sfc_prefix = 'BKG_DATA'
-    config_fg_interval = CONFIG_FG_INTERVAL,
+    config_fg_interval = FG_INT,
     config_landuse_data = 'MODIFIED_IGBP_MODIS_NOAH'
     config_topo_data = 'GMTED2010'
     config_vegfrac_data = 'MODIS'
@@ -45,16 +45,16 @@
     config_extrap_airtemp = 'lapse-rate'
 /
 &preproc_stages
-    config_static_interp = CONFIG_STATIC_INTERP,
-    config_native_gwd_static = CONFIG_NATIVE_GWD_STATIC,
-    config_vertical_grid = CONFIG_VERTICAL_GRID,
-    config_met_interp = CONFIG_MET_INTERP,
-    config_input_sst = CONFIG_INPUT_SST,
-    config_frac_seaice = CONFIG_FRAC_SEAICE,
+    config_static_interp = IF_STATIC_INTERP,
+    config_native_gwd_static = IF_NATIVE_GWD_STATIC,
+    config_vertical_grid = IF_VERTICAL_GRID,
+    config_met_interp = IF_MET_INTERP,
+    config_input_sst = IF_INPUT_SST,
+    config_frac_seaice = IF_FRAC_SEAICE,
 /
 &io
-    config_pio_num_iotasks = CONFIG_PIO_NUM_IOTASKS,
-    config_pio_stride = CONFIG_PIO_STRIDE,
+    config_pio_num_iotasks = PIO_NUM_IOTASKS,
+    config_pio_stride = PIO_STRIDE,
 /
 &decomposition
     config_block_decomp_file_prefix = 'DMN_NME.graph.info.part.' 

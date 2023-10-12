@@ -51,14 +51,14 @@ fi
 ##################################################################################
 # Options below are defined in control flow xml
 #
-# ANL_DT       = Analysis time YYYYMMDDHH
-# BOUNDARY     = 'LOWER' if updating lower boundary conditions 
-#                'LATERAL' if updating lateral boundary conditions
-# WRF_CTR_DOM  = Max domain index of control forecast to update BOUNDARY=LOWER
-# IF_ENS_UPDTE = Skip lower / lateral BC updates if 'No'
-# N_ENS        = Max ensemble index to apply update IF_ENS_UPDATE='Yes'
-# ENS_ROOT     = Forecast ensemble located at ${ENS_ROOT}/ens_${memid}/wrfout* 
-# WRF_ENS_DOM  = Max domain index of ensemble perturbations
+# ANL_DT      = Analysis time YYYYMMDDHH
+# BOUNDARY    = 'LOWER' if updating lower boundary conditions 
+#               'LATERAL' if updating lateral boundary conditions
+# WRF_CTR_DOM = Max domain index of control forecast to update BOUNDARY=LOWER
+# IF_ENS_UPDT = Skip lower / lateral BC updates if 'No'
+# N_ENS       = Max ensemble index to apply update IF_ENS_UPDATE='Yes'
+# ENS_ROOT    = Forecast ensemble located at ${ENS_ROOT}/ens_${memid}/wrfout* 
+# WRF_ENS_DOM = Max domain index of ensemble perturbations
 #
 ##################################################################################
 
@@ -89,10 +89,10 @@ else
   exit 1
 fi
 
-if [[ ${IF_ENS_UPDTE} = ${NO} ]]; then
+if [[ ${IF_ENS_UPDT} = ${NO} ]]; then
   # skip the boundary updates for the ensemble, perform on control alone
   ens_max=0
-elif [[ ${IF_ENS_UPDTE} = ${YES} ]]; then
+elif [[ ${IF_ENS_UPDT} = ${YES} ]]; then
   if [ ! ${N_ENS} ]; then
     printf "ERROR: \${N_ENS} is not defined.\n"
     exit 1
@@ -114,7 +114,7 @@ elif [[ ${IF_ENS_UPDTE} = ${YES} ]]; then
     printf "${msg}"
   fi
 else
-  printf "ERROR: \${IF_ENS_UPDTE} must equal 'Yes' or 'No' (case insensitive).\n"
+  printf "ERROR: \${IF_ENS_UPDT} must equal 'Yes' or 'No' (case insensitive).\n"
   exit 1
 fi
 
@@ -166,7 +166,7 @@ fi
 # ens_dir        = Directory with ensemble WRF forecast for lower boundary update 
 # gsi_dir        = Directory with GSI control analysis for lateral update
 # enkf_dir       = Directory with EnKF analysis for ensemble lateral update
-# update_bc_exe  = Path and name of the update executable
+# updt_bc_exe  = Path and name of the update executable
 #
 ##################################################################################
 
@@ -175,21 +175,21 @@ for memid in `seq -f "%02g" 0 ${ens_max}`; do
   real_dir=${CYC_HME}/real/ens_${memid}
   gsi_dir=${CYC_HME}/gsi
   enkf_dir=${CYC_HME}/enkf
-  update_bc_exe=${WRFDA_ROOT}/var/da/da_update_bc.exe
+  updt_bc_exe=${WRFDA_ROOT}/var/da/da_update_bc.exe
   
   if [ ! -d ${real_dir} ]; then
     printf "ERROR: \${real_dir} directory\n ${real_dir}\n does not exist.\n"
     exit 1
   fi
   
-  if [ ! -x ${update_bc_exe} ]; then
-    printf "ERROR:\n ${update_bc_exe}\n does not exist, or is not executable.\n"
+  if [ ! -x ${updt_bc_exe} ]; then
+    printf "ERROR:\n ${updt_bc_exe}\n does not exist, or is not executable.\n"
     exit 1
   fi
   
   if [[ ${BOUNDARY} = ${LOWER} ]]; then 
     # create working directory and cd into it
-    work_root=${work_root}/lower_bdy_update/ens_${memid}
+    work_root=${work_root}/lower_bdy_updt/ens_${memid}
     mkdir -p ${work_root}
     cmd="cd ${work_root}"
     printf "${cmd}\n"; eval "${cmd}"
@@ -274,9 +274,9 @@ for memid in `seq -f "%02g" 0 ${ens_max}`; do
       printf "\n"
       now=`date +%Y-%m-%d_%H_%M_%S`
       printf "da_update_bc.exe started at ${now}.\n"
-      cmd="${update_bc_exe}"
+      cmd="${updt_bc_exe}"
       printf "${cmd}\n"
-      ${update_bc_exe} 
+      ${updt_bc_exe} 
 
       ##################################################################################
       # Run time error check
@@ -285,16 +285,16 @@ for memid in `seq -f "%02g" 0 ${ens_max}`; do
       
       # NOTE: THIS CHECK NEEDS IMPROVEMENT, DOESN'T CATCH ERRORS IN THE PROGRAM LOG
       if [ ${error} -ne 0 ]; then
-        printf "ERROR:\n ${update_bc_exe}\n exited with code ${error}.\n"
+        printf "ERROR:\n ${updt_bc_exe}\n exited with code ${error}.\n"
         exit ${error}
       else
-	printf "${update_bc_exe} exited with code ${error}.\n"
+	printf "${updt_bc_exe} exited with code ${error}.\n"
       fi
     done
   
   else
     # create working directory and cd into it
-    work_root=${work_root}/lateral_bdy_update/ens_${memid}
+    work_root=${work_root}/lateral_bdy_updt/ens_${memid}
     mkdir -p ${work_root}
     cmd="cd ${work_root}"
     printf "${cmd}\n"; eval "${cmd}"
@@ -378,9 +378,9 @@ for memid in `seq -f "%02g" 0 ${ens_max}`; do
     printf "\n"
     now=`date +%Y-%m-%d_%H_%M_%S`
     printf "da_update_bc.exe started at ${now}.\n"
-    cmd="${update_bc_exe}"
+    cmd="${updt_bc_exe}"
     printf "${cmd}\n"
-    ${update_bc_exe} 
+    ${updt_bc_exe} 
 
     ##################################################################################
     # Run time error check
@@ -389,10 +389,10 @@ for memid in `seq -f "%02g" 0 ${ens_max}`; do
     
     # NOTE: THIS CHECK NEEDS IMPROVEMENT, DOESN'T CATCH ERRORS IN THE PROGRAM LOG
     if [ ${error} -ne 0 ]; then
-      printf "ERROR:\n ${update_bc_exe}\n exited with code ${error}.\n"
+      printf "ERROR:\n ${updt_bc_exe}\n exited with code ${error}.\n"
       exit ${error}
     else
-      printf "${update_bc_exe} exited with code ${error}.\n"
+      printf "${updt_bc_exe} exited with code ${error}.\n"
     fi
   fi
 done

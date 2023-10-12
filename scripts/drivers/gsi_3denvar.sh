@@ -47,6 +47,12 @@
 # uncomment to run verbose for debugging / testing
 #set -x
 
+# designed for 3D-envar only
+if4d=".false."
+nummiter=2
+if_read_obs_save=".false."
+if_read_obs_skip=".false."
+
 # Background error set for WRF-ARW by default
 bk_core_arw=".true."
 bk_core_nmm=".false."
@@ -78,11 +84,8 @@ fi
 #
 # ANL_DT      = Analysis time YYYYMMDDHH
 # CYC_HME     = Start time named directory for cycling data containing
-#               bkg, ungrib, metgrid, real, wrf, wrfda_bc, gsi, enkf
-# IF_OBSERVER = Yes : Only used as observation operator for ensemble members
-#             = No  : Analyzes control solution
 # WRF_CTR_DOM = Analyze up to domain index format DD of control solution
-# IF_HYBRID   = Yes : Run GSI with ensemble, required for IF_OBSERVER = Yes
+# IF_HYBRID   = Yes : Run GSI with ensemble background covariance
 # N_ENS       = Max ensemble pertubation index
 # WRF_ENS_DOM = Utilize ensemble perturbations up to domain index DD
 # BETA        = Scaling float in [0,1], 0 - full ensemble, 1 - full static
@@ -90,7 +93,6 @@ fi
 # S_ENS_V     = Vertical localization scale (grid units)
 # MAX_BC_LOOP = Maximum number of times to iteratively generate variational bias
 #               correction files, loop zero starts with GDAS defaults
-# IF_4DENVAR  = Yes : Run GSI as 4D EnVar
 #
 ##################################################################################
 
@@ -115,32 +117,12 @@ elif [ ! -d "${CYC_HME}" ]; then
   exit 1
 fi
 
-if [[ ${IF_OBSERVER} = ${NO} ]]; then
-  if [ ${#WRF_CTR_DOM} -ne 2 ]; then
-    printf "ERROR: \${WRF_CTR_DOM}\n ${WRF_CTR_DOM}\n is not in DD format.\n"
-    exit 1
-  else
-    printf "GSI updates control forecast.\n"
-    nummiter=2
-    if_read_obs_save=".false."
-    if_read_obs_skip=".false."
-    work_root=${CYC_HME}/gsi
-    max_dom=${WRF_CTR_DOM}
-  fi
-elif [[ ${IF_OBSERVER} = ${YES} ]]; then
-  if [[ ! ${IF_HYBRID} = ${YES} ]]; then
-    printf "ERROR: \${IF_HYBRID} must equal Yes if \${IF_OBSERVER} = Yes.\n"
-    exit 1
-  fi
-  printf "GSI is observer for EnKF ensemble.\n"
-  nummiter=0
-  if_read_obs_save=".true."
-  if_read_obs_skip=".false."
-  work_root=${CYC_HME}/enkf
-  max_dom=${WRF_ENS_DOM}
-else
-  printf "ERROR: \${IF_OBSERVER} must equal 'Yes' or 'No' (case insensitive).\n"
+
+if [ ${#WRF_CTR_DOM} -ne 2 ]; then
+  printf "ERROR: \${WRF_CTR_DOM}\n ${WRF_CTR_DOM}\n is not in DD format.\n"
   exit 1
+else
+  max_dom=${WRF_CTR_DOM}
 fi
 
 if [[ ${IF_HYBRID} = ${YES} ]]; then
@@ -211,21 +193,6 @@ elif [ ${MAX_BC_LOOP} -lt 0 ]; then
   msg="ERROR: the number of iterations of variational bias "
   msg+="correction must be non-negative.\n"
   printf "${msg}"
-  exit 1
-fi
-
-if [[ ${IF_4DENVAR} = ${YES} ]]; then
-  if [[ ! ${IF_HYBRID} = ${YES} ]]; then
-    printf "ERROR: \${IF_HYBRID} must equal Yes if \${IF_4DENVAR} = Yes.\n"
-    exit 1
-  else
-    printf "GSI performs 4D hybrid ensemble variational DA.\n"
-    if4d=".true."
-  fi
-elif [[ ${IF_4DENVAR} = ${NO} ]]; then
-    if4d=".false."
-else
-  printf "ERROR: \${IF_4DENVAR} must equal 'Yes' or 'No' (case insensitive).\n"
   exit 1
 fi
 
@@ -385,6 +352,8 @@ fi
 # Begin pre-GSI setup, running one domain at a time
 ##################################################################################
 # Create the work directory organized by domain analyzed and cd into it
+work_root=${CYC_HME}/gsi
+
 for dmn in `seq -f "%02g" 1 ${max_dom}`; do
   # NOTE: Hybrid DA uses the control forecast as the EnKF forecast mean, not the
   # control analysis. Work directory for GSI is sub-divided based on domain index
@@ -693,7 +662,7 @@ for dmn in `seq -f "%02g" 1 ${max_dom}`; do
     # bkg_file = Path and name of background file
     #
     ##################################################################################
-    bkg_dir=${CYC_HME}/wrfda_bc/lower_bdy_update/ens_00
+    bkg_dir=${CYC_HME}/wrfda_bc/lower_bdy_updt/ens_00
     bkg_file=${bkg_dir}/wrfout_d${dmn}_${anl_iso}
 
     if [ ! -r ${bkg_file} ]; then
@@ -705,18 +674,6 @@ for dmn in `seq -f "%02g" 1 ${max_dom}`; do
       cmd="cp -L ${bkg_file} wrf_inout"
       printf "${cmd}\n"; eval ${cmd}
     fi
-
-    # NOTE: THE FOLLOWING DIRECTORIES WILL NEED TO BE REVISED
-    #if [[ ${IF_4DENVAR} = ${YES} ]] ; then
-    # PDYa=`echo ${ANL_DT} | cut -c1-8`
-    # cyca=`echo ${ANL_DT} | cut -c9-10`
-    # gdate=`date -u -d "${PDYa} ${cyca} -6 hour" +%Y%m%d%H` #guess date is 6hr ago
-    # gHH=`echo ${gdate} |cut -c9-10`
-    # datem1=`date -u -d "${PDYa} ${cyca} -1 hour" +%Y-%m-%d_%H_%M_%S` #1hr ago
-    # datep1=`date -u -d "${PDYa} ${cyca} 1 hour"  +%Y-%m-%d_%H_%M_%S`  #1hr later
-    #  bkg_file_p1=${bkg_root}/wrfout_d${dmn}_${datep1}
-    #  bkg_file_m1=${bkg_root}/wrfout_d${dmn}_${datem1}
-    #fi
 
     ##################################################################################
     # Prep GSI ensemble 
@@ -739,14 +696,6 @@ for dmn in `seq -f "%02g" 1 ${max_dom}`; do
         
         cmd="ls ./wrf_ens_* > filelist02"
         printf "${cmd}\n"; eval ${cmd}
-
-        # NOTE: THE FOLLOWING DIRECTORIES WILL NEED TO BE REVISED
-        #if [[ ${IF_4DENVAR} = ${YES} ]]; then
-        #  cp ${bkg_file_p1} ./wrf_inou3
-        #  cp ${bkg_file_m1} ./wrf_inou1
-        #  ls ${ENSEMBLE_FILE_mem_p1}* > filelist03
-        #  ls ${ENSEMBLE_FILE_mem_m1}* > filelist01
-        #fi
 
       else
         # run simple 3D-VAR without an ensemble 
@@ -788,13 +737,11 @@ for dmn in `seq -f "%02g" 1 ${max_dom}`; do
     printf "\n"
     printf "ANL_DT      = ${ANL_DT}\n"
     printf "BKG         = ${bkg_file}\n"
-    printf "IF_OBSERVER = ${IF_OBSERVER}\n"
     printf "IF_HYBRID   = ${IF_HYBRID}\n"
     printf "ENS_ROOT    = ${ENS_ROOT}\n"
     printf "BETA        = ${BETA}\n"
     printf "S_ENS_V     = ${S_ENS_V}\n"
     printf "S_ENS_H     = ${S_ENS_H}\n"
-    printf "IF_4DENVAR  = ${IF_4DENVAR}\n"
     printf "\n"
     now=`date +%Y-%m-%d_%H_%M_%S`
     printf "gsi analysis started at ${now} on domain d${dmn}.\n"
@@ -867,83 +814,16 @@ for dmn in `seq -f "%02g" 1 ${max_dom}`; do
     #  Clean working directory to save only important files
     ls -l * > list_run_directory
 
-    if [[ ${if_clean} = ${YES} && ${IF_OBSERVER} = ${NO} ]]; then
-      printf "Clean working directory after GSI run.\n"
-      rm -f *Coeff.bin     # all CRTM coefficient files
-      rm -f pe0*           # diag files on each processor
-      rm -f obs_input.*    # observation middle files
-      rm -f siganl sigf0?  # background middle files
-      rm -f fsize_*        # delete temporal file for bufr size
-    fi
-
-    ##################################################################################
-    # Calculate diag files for each member if EnKF observer
-    ##################################################################################
-
-    if [[ ${IF_OBSERVER} = ${YES} ]]; then
-      string=ges
-      for type in ${listall}; do
-        if [[ -f diag_${type}_${string}.${anl_iso} ]]; then
-           cmd="mv diag_${type}_${string}.${anl_iso} diag_${type}_${string}.ensmean"
-           printf "${cmd}\n"; eval ${cmd}
-        fi
-      done
-      cmd="cp -L wrfanl_ens_00_${anl_iso} wrf_inout_ensmean"
-      printf "${cmd}\n"; eval ${cmd}
-
-      # Build the GSI namelist on-the-fly for each member
-      if_read_obs_save=".false."
-      if_read_obs_skip=".true."
-      cmd=". ${gsi_namelist}"
-      printf "${cmd}\n"; eval ${cmd}
-
-      # Loop through each member
-      loop=01
-      for memid in ${mem_list[@]}; do
-        rm pe0*
-        # get new background for each member
-        if [[ -f wrf_inout ]]; then
-          rm wrf_inout
-        fi
-
-        ens_file=wrf_ens_${memid}
-        printf "Copying ${ens_file} for GSI observer.\n"
-        cmd="cp -L ${ens_file} wrf_inout"
-        printf "${cmd}\n"; eval ${cmd}
-
-        # run GSI
-        printf "Run GSI observer for member ${memid}.\n"
-        cmd="${MPIRUN} ${GSI_EXE} > stdout_ens_${memid}.anl.${anl_iso} 2>&1"
-	printf "${cmd}\n"
-        ${MPIRUN} ${GSI_EXE} > stdout_ens_${memid}.anl.${anl_iso} 2>&1
-
-        # run time error check and save run time file status
-        error="$?"
-
-        if [ ${error} -ne 0 ]; then
-          printf "ERROR:\n ${GSI_EXE}\n exited with code ${error} for member ${memid}.\n"
-          exit ${error}
-	else
-          printf "${GSI_EXE}\n exited with code ${error} for member ${memid}.\n"
-        fi
-
-        cmd="ls -l * > list_run_directory_mem${memid}"
-        printf "${cmd}\n"; eval ${cmd}
-
-        # generate diag files
-        for type in ${listall}; do
-          count=`ls pe*${type}_${loop}* | wc -l`
-          if [[ ${count} -gt 0 ]]; then
-            cmd="cat pe*${type}_${loop}* > diag_${type}_${string}.mem${memid}"
-            printf "${cmd}\n"; eval ${cmd}
-          fi
-        done
-      done
-    fi
+    printf "Clean working directory after GSI run.\n"
+    rm -f *Coeff.bin     # all CRTM coefficient files
+    rm -f pe0*           # diag files on each processor
+    rm -f obs_input.*    # observation middle files
+    rm -f siganl sigf0?  # background middle files
+    rm -f fsize_*        # delete temporal file for bufr size
   done 
 done
 
-printf "gsi.sh completed successfully at `date +%Y-%m-%d_%H_%M_%S`.\n"
+printf "gsi_3denvar.sh completed successfully at `date +%Y-%m-%d_%H_%M_%S`.\n"
 
 ##################################################################################
 

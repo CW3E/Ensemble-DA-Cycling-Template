@@ -155,8 +155,8 @@ if [[ ${IF_DYN_LEN} = ${NO} ]]; then
     exit 1
   else
     # parse forecast hours as base 10 padded
-    fcst_len=`printf %03d $(( 10#${FCST_HRS} ))`
-    printf "Forecast length is ${fcst_len} hours.\n"
+    fcst_hrs=`printf %03d $(( 10#${FCST_HRS} ))`
+    printf "Forecast length is ${fcst_hrs} hours.\n"
   fi
 elif [[ ${IF_DYN_LEN} = ${YES} ]]; then
   printf "Generating forecast forcing data until experiment validation time.\n"
@@ -167,8 +167,8 @@ elif [[ ${IF_DYN_LEN} = ${YES} ]]; then
     # compute forecast length relative to start time and verification time
     exp_vrf="${EXP_VRF:0:8} ${EXP_VRF:8:2}"
     exp_vrf=`date +%s -d "${exp_vrf}"`
-    fcst_len=$(( (${exp_vrf} - `date +%s -d "${strt_dt}"`) / 3600 ))
-    fcst_len=`printf %03d $(( 10#${fcst_len} ))`
+    fcst_hrs=$(( (${exp_vrf} - `date +%s -d "${strt_dt}"`) / 3600 ))
+    fcst_hrs=`printf %03d $(( 10#${fcst_hrs} ))`
   fi
 else
   printf "\${IF_DYN_LEN} must be set to 'Yes' or 'No' (case insensitive).\n"
@@ -176,7 +176,7 @@ else
 fi
 
 # define the end time based on forecast length control flow above
-end_dt=`date -d "${strt_dt} ${fcst_len} hours"`
+end_dt=`date -d "${strt_dt} ${fcst_hrs} hours"`
 
 
 if [ ! ${BKG_INT} ]; then
@@ -246,10 +246,10 @@ fi
 
 if [[ ${IF_SST_UPDTE} = ${YES} ]]; then
   printf "SST Update turned on.\n"
-  sst_update=1
+  sst_updt=1
 elif [[ ${IF_SST_UPDTE} = ${NO} ]]; then
   printf "SST Update turned off.\n"
-  sst_update=0
+  sst_updt=0
 else
   printf "ERROR: \${IF_SST_UPDTE} must equal 'Yes' or 'No' (case insensitive).\n"
   exit 1
@@ -384,7 +384,7 @@ for dmn in ${dmns[@]}; do
   if [[ ${WRF_IC} = ${CYCLING} && ${dmn} -lt ${DOWN_DOM} ]]; then
     if [[ ${dmn} = 01 ]]; then
       # obtain the boundary files from the lateral boundary update by WRFDA 
-      wrfanlroot=${CYC_HME}/wrfda_bc/lateral_bdy_update/ens_${memid}
+      wrfanlroot=${CYC_HME}/wrfda_bc/lateral_bdy_updt/ens_${memid}
       wrfbdy=${wrfanlroot}/wrfbdy_d01
       cmd="ln -sfr ${wrfbdy} wrfbdy_d01"
       printf "${cmd}\n"; eval "${cmd}"
@@ -428,7 +428,7 @@ for dmn in ${dmns[@]}; do
     if [[ ${dmn} = 01 ]]; then
       # obtain the boundary files from the lateral boundary update by WRFDA step
       # included for possible re-generation of BCs for longer extended forecast
-      wrfanlroot=${CYC_HME}/wrfda_bc/lateral_bdy_update/ens_${memid}
+      wrfanlroot=${CYC_HME}/wrfda_bc/lateral_bdy_updt/ens_${memid}
       wrfbdy=${wrfanlroot}/wrfbdy_d01
       cmd="ln -sfr ${wrfbdy} wrfbdy_d01"
       printf "${cmd}\n"; eval "${cmd}"
@@ -523,7 +523,7 @@ strt_iso=`date +%Y-%m-%d_%H_%M_%S -d "${strt_dt}"`
 end_iso=`date +%Y-%m-%d_%H_%M_%S -d "${end_dt}"`
 
 # Update interval in namelist
-(( data_interval_sec = BKG_INT * 3600 ))
+(( data_int_sec = BKG_INT * 3600 ))
 
 # update auxinput4 interval
 (( auxinput4_minutes = BKG_INT * 60 ))
@@ -540,33 +540,33 @@ else
   wrf_restart=".false."
 fi
 
-# Update the restart interval in wrf namelist to the end of the fcst_len
-fcst_hrs=`printf $(( 10#${fcst_len} ))`
+# Update the restart interval in wrf namelist to the end of the fcst_hrs
+fcst_hrs=`printf $(( 10#${fcst_hrs} ))`
 run_mins=$(( ${fcst_hrs} * 60 ))
 
 # Update the wrf namelist (propagates settings to three domains)
 cat namelist.input \
-  | sed "s/= START_YEAR,/= ${s_Y}, ${s_Y}, ${s_Y},/" \
-  | sed "s/= START_MONTH,/= ${s_m}, ${s_m}, ${s_m},/" \
-  | sed "s/= START_DAY,/= ${s_d}, ${s_d}, ${s_d},/" \
-  | sed "s/= START_HOUR,/= ${s_H}, ${s_H}, ${s_H},/" \
-  | sed "s/= START_MINUTE,/= ${s_M}, ${s_M}, ${s_M},/" \
-  | sed "s/= START_SECOND,/= ${s_S}, ${s_S}, ${s_S},/" \
-  | sed "s/= END_YEAR,/= ${e_Y}, ${e_Y}, ${e_Y},/" \
-  | sed "s/= END_MONTH,/= ${e_m}, ${e_m}, ${e_m},/" \
-  | sed "s/= END_DAY,/= ${e_d}, ${e_d}, ${e_d},/" \
-  | sed "s/= END_HOUR,/= ${e_H}, ${e_H}, ${e_H},/" \
-  | sed "s/= END_MINUTE,/= ${e_M}, ${e_M}, ${e_M},/" \
-  | sed "s/= END_SECOND,/= ${e_S}, ${e_S}, ${e_S},/" \
+  | sed "s/= STRT_Y,/= ${s_Y}, ${s_Y}, ${s_Y},/" \
+  | sed "s/= STRT_m,/= ${s_m}, ${s_m}, ${s_m},/" \
+  | sed "s/= STRT_d,/= ${s_d}, ${s_d}, ${s_d},/" \
+  | sed "s/= STRT_H,/= ${s_H}, ${s_H}, ${s_H},/" \
+  | sed "s/= STRT_M,/= ${s_M}, ${s_M}, ${s_M},/" \
+  | sed "s/= STRT_S,/= ${s_S}, ${s_S}, ${s_S},/" \
+  | sed "s/= STOP_Y,/= ${e_Y}, ${e_Y}, ${e_Y},/" \
+  | sed "s/= STOP_m,/= ${e_m}, ${e_m}, ${e_m},/" \
+  | sed "s/= STOP_d,/= ${e_d}, ${e_d}, ${e_d},/" \
+  | sed "s/= STOP_H,/= ${e_H}, ${e_H}, ${e_H},/" \
+  | sed "s/= STOP_M,/= ${e_M}, ${e_M}, ${e_M},/" \
+  | sed "s/= STOP_S,/= ${e_S}, ${e_S}, ${e_S},/" \
   | sed "s/= MAX_DOM,/= ${MAX_DOM},/" \
-  | sed "s/= INTERVAL_SECONDS,/= ${data_interval_sec},/" \
-  | sed "s/= SST_UPDATE,/= ${sst_update},/"\
-  | sed "s/= AUXINPUT4_INTERVAL,/= ${aux_out},/" \
-  | sed "s/= AUXHIST2_INTERVAL,/= ${out_hist},/" \
-  | sed "s/= HISTORY_INTERVAL,/= ${out_hist},/" \
-  | sed "s/= RESTART,/= ${wrf_restart},/" \
-  | sed "s/= RESTART_INTERVAL,/= ${run_mins},/" \
-  | sed "s/= FEEDBACK,/= ${feedback},/"\
+  | sed "s/= INT_SEC,/= ${data_int_sec},/" \
+  | sed "s/= IF_SST_UPDT,/= ${sst_updt},/"\
+  | sed "s/= AUXINPUT4_INT,/= ${aux_out},/" \
+  | sed "s/= AUXHIST2_INT,/= ${out_hist},/" \
+  | sed "s/= HIST_INT,/= ${out_hist},/" \
+  | sed "s/= RSTRT,/= ${wrf_restart},/" \
+  | sed "s/= RSTRT_INT,/= ${run_mins},/" \
+  | sed "s/= IF_FEEDBACK,/= ${feedback},/"\
   | sed "s/= NIO_TASKS_PER_GROUP,/= ${NIO_TPG},/" \
   | sed "s/= NIO_GROUPS,/= ${NIO_GROUPS},/" \
   > namelist.input.tmp
@@ -581,7 +581,7 @@ printf "EXP_CONFIG   = ${EXP_CONFIG}\n"
 printf "MEMID        = ${MEMID}\n"
 printf "CYC_HME      = ${CYC_HME}\n"
 printf "STRT_DT      = ${strt_iso}\n"
-printf "END_DT       = ${end_iso}\n"
+printf "STOP_DT       = ${end_iso}\n"
 printf "WRFOUT_INT   = ${WRFOUT_INT}\n"
 printf "BKG_DATA     = ${BKG_DATA}\n"
 printf "MAX_DOM      = ${MAX_DOM}\n"
@@ -642,7 +642,7 @@ printf "${cmd}\n"; eval "${cmd}"
 # Check for all wrfout files on WRFOUT_INT and link files to
 # the appropriate bkg directory
 for dmn in ${dmns[@]}; do
-  for fcst in `seq -f "%03g" 0 ${WRFOUT_INT} ${fcst_len}`; do
+  for fcst in `seq -f "%03g" 0 ${WRFOUT_INT} ${fcst_hrs}`; do
     dt_str=`date +%Y-%m-%d_%H_%M_%S -d "${strt_dt} ${fcst} hours"`
     if [ ! -s wrfout_d${dmn}_${dt_str} ]; then
       msg="WRF failed to complete, wrfout_d${dmn}_${dt_str} "
@@ -663,7 +663,7 @@ for dmn in ${dmns[@]}; do
   done
   # Check for all wrfrst files for each domain at end of forecast and link files to
   # the appropriate bkg directory
-  dt_str=`date +%Y-%m-%d_%H_%M_%S -d "${strt_dt} ${fcst_len} hours"`
+  dt_str=`date +%Y-%m-%d_%H_%M_%S -d "${strt_dt} ${fcst_hrs} hours"`
   if [ ! -s wrfrst_d${dmn}_${dt_str} ]; then
     msg="WRF failed to complete, wrfrst_d${dmn}_${dt_str} is "
     msg+="missing or empty.\n"

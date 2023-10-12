@@ -138,7 +138,7 @@ if [[ ${IF_DYN_LEN} = ${NO} ]]; then
     exit 1
   else
     # parse forecast hours as base 10 padded
-    fcst_len=`printf %03d $(( 10#${FCST_HRS} ))`
+    fcst_hrs=`printf %03d $(( 10#${FCST_HRS} ))`
   fi
 elif [[ ${IF_DYN_LEN} = ${YES} ]]; then
   printf "Generating forecast forcing data until experiment validation time.\n"
@@ -149,19 +149,19 @@ elif [[ ${IF_DYN_LEN} = ${YES} ]]; then
     # compute forecast length relative to start time and verification time
     exp_vrf="${EXP_VRF:0:8} ${EXP_VRF:8:2}"
     exp_vrf=`date +%s -d "${exp_vrf}"`
-    fcst_len=$(( (${exp_vrf} - `date +%s -d "${strt_dt}"`) / 3600 ))
-    fcst_len=`printf %03d $(( 10#${fcst_len} ))`
+    fcst_hrs=$(( (${exp_vrf} - `date +%s -d "${strt_dt}"`) / 3600 ))
+    fcst_hrs=`printf %03d $(( 10#${fcst_hrs} ))`
   fi
 else
   printf "\${IF_DYN_LEN} must be set to 'Yes' or 'No' (case insensitive).\n"
   exit 1
 fi
 
-# define the end time based on forecast length control flow above
-end_dt=`date -d "${strt_dt} ${fcst_len} hours"`
+# define the stop time based on forecast length control flow above
+stop_dt=`date -d "${strt_dt} ${fcst_hrs} hours"`
 
 # define a sequence of all forecast hours with background interval spacing
-fcst_seq=`seq -f "%03g" 0 ${BKG_INT} ${fcst_len}`
+fcst_seq=`seq -f "%03g" 0 ${BKG_INT} ${fcst_hrs}`
 
 if [ ${#BKG_STRT_DT} -ne 10 ]; then
   printf "ERROR: \${BKG_STRT_DT}, '${BKG_STRT_DT}', is not in 'YYYYMMDDHH' format.\n"
@@ -185,7 +185,7 @@ if [ ${BKG_DATA} = GFS ]; then
   fnames="gfs.0p25.${BKG_STRT_DT}.f*"
 
   # compute the number of input files to ungrib (incld. first/last times)
-  n_files=$(( ${fcst_len} / ${BKG_INT} + 1 ))
+  n_files=$(( ${fcst_hrs} / ${BKG_INT} + 1 ))
 
 elif [ ${BKG_DATA} = GEFS ]; then
   if [ ${memid} = 00 ]; then
@@ -196,7 +196,7 @@ elif [ ${BKG_DATA} = GEFS ]; then
     fnames="gep${memid}.t${bkg_strt_hh}z.pgrb*"
   fi
   # GEFS comes in a/b files for each valid time
-  n_files=$(( 2 * ${fcst_len} / ${BKG_INT} + 1 ))
+  n_files=$(( 2 * ${fcst_hrs} / ${BKG_INT} + 1 ))
 
 else
   msg="ERROR: \${BKG_DATA} must equal 'GFS' or 'GEFS'"
@@ -369,12 +369,12 @@ else
   printf "${cmd}\n"; eval "${cmd}"
 fi
 
-# define start / end time patterns for namelist.wps
+# define start / stop time patterns for namelist.wps
 strt_iso=`date +%Y-%m-%d_%H_%M_%S -d "${strt_dt}"`
-end_iso=`date +%Y-%m-%d_%H_%M_%S -d "${end_dt}"`
+stop_iso=`date +%Y-%m-%d_%H_%M_%S -d "${stop_dt}"`
 
 # Update interval in namelist
-(( data_interval_sec = BKG_INT * 3600 ))
+(( data_int_sec = BKG_INT * 3600 ))
 
 # Update max_dom in namelist to dummy value
 # domains not needed for ungrib but throws error
@@ -389,9 +389,9 @@ fi
 
 # apply updates
 cat namelist.wps \
-  | sed "s/= START_DATE,/= ${strt_iso},/" \
-  | sed "s/= END_DATE,/= ${end_iso},/" \
-  | sed "s/= INTERVAL_SECONDS,/= ${data_interval_sec},/" \
+  | sed "s/= STRT_DT,/= ${strt_iso},/" \
+  | sed "s/= STOP_DT,/= ${stop_iso},/" \
+  | sed "s/= INT_SEC,/= ${data_int_sec},/" \
   | sed "s/= MAX_DOM,/= ${MAX_DOM},/" \
   | sed "s/= PREFIX,/= '${BKG_DATA}',/" \
   | sed "s/= FG_NAME,/= ${out_fg_name},/" \
@@ -407,7 +407,7 @@ printf "EXP_CNFG    = ${EXP_CNFG}\n"
 printf "MEMID       = ${MEMID}\n"
 printf "CYC_HME     = ${CYC_HME}\n"
 printf "STRT_DT     = ${strt_iso}\n"
-printf "END_DT      = ${end_iso}\n"
+printf "STOP_DT     = ${stop_iso}\n"
 printf "BKG_DATA    = ${BKG_DATA}\n"
 printf "BKG_STRT_DT = ${BKG_STRT_DT}\n"
 printf "BKG_INT     = ${BKG_INT}\n"

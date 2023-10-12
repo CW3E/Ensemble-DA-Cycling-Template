@@ -63,7 +63,7 @@ fi
 # IF_IAU       = If performing incremental assimilation update (Yes / No)
 # IF_SST_UPDTE = If updating SST with lower BC update files
 # IF_SST_DIURN = If updating SST with diurnal cycling
-# IF_DEEPSOIL  = If slowly updating  lower boundary deep soil temperature
+# IF_DEEPSOIL  = If slowly updating lower boundary deep soil temperature
 #
 ##################################################################################
 
@@ -120,6 +120,10 @@ end_dt=`date -d "${strt_dt} ${fcst_len} hours"`
 
 if [[ ${IF_RGNL} = ${NO} ]]; then 
   printf "MPAS-A is run as a global simulation.\n"
+  if_rgnl="false"
+elif [[ ${IF_RGNL} = ${YES} ]]; then
+  printf "MPAS-A is run as a regional simulation.\n"
+  if_rgnl="true"
 
   # check that interval for background lbc data is defined
   if [ ! ${BKG_INT} ]; then
@@ -129,9 +133,6 @@ if [[ ${IF_RGNL} = ${NO} ]]; then
     printf "ERROR: \${BKG_INT} must be HH > 0 for the frequency of data inputs.\n"
     exit 1
   fi
-
-elif [[ ${IF_RGNL} = ${YES} ]]; then
-  printf "MPAS-A is run as a regional simulation.\n"
 else
   printf "\${IF_RGNL} must be set to 'Yes' or 'No' (case insensitive).\n"
   exit 1
@@ -163,8 +164,12 @@ fi
 
 if [[ ${IF_RSTRT} = ${NO} ]]; then 
   printf "MPAS-A is run from init_atmosphere initial conditions.\n"
+  if_rstrt="false"
+
 elif [[ ${IF_RSTRT} = ${YES} ]]; then
   printf "MPAS-A is run as a restart simulation.\n"
+  if_rstrt="true"
+
 else
   printf "\${IF_RSTRT} must be set to 'Yes' or 'No' (case insensitive).\n"
   exit 1
@@ -172,26 +177,78 @@ fi
 
 if [[ ${IF_DA} = ${NO} ]]; then 
   printf "Data assimilation control fields are not automatically written.\n"
+  if_da="false"
+
 elif [[ ${IF_DA} = ${YES} ]]; then
   printf "MPAS-A writes out temperature and specific humidity as diagnostics.\n"
+  if_da="true"
+
   if [[ ${IF_DA_CYC} = ${YES} ]]; then
     printf "MPAS-A recomputes coupled fields from analyzed fields in DA update.\n"
-  else
+    if_dacyc="true"
+
+  elif [[ ${IF_DA_CYC} = ${NO} ]]; then
     printf "MPAS-A does not update coupled fields from analyzed fields.\n"
+    if_dacyc="false"
+
+  else
+    printf "\${IF_DA_CYC} must be set to 'Yes' or 'No' (case insensitive).\n"
+    exit 1
   fi
   if [[ ${IF_IAU} = ${YES} ]]; then
     printf "MPAS-A performs the Incremental Analysis Update scheme.\n"
-  else
-    printf "MPAS-A does not perform the Incremental Analysis Update scheme.\n"
-  fi
+    if_iau="on"
 
+  elif [[ ${IF_IAU} = ${NO} ]]; then
+    printf "MPAS-A does not perform the Incremental Analysis Update scheme.\n"
+    if_iau="off"
+
+  else
+    printf "\${IF_IAU} must be set to 'Yes' or 'No' (case insensitive).\n"
+    exit 1
+  fi
 else
   printf "\${IF_DA} must be set to 'Yes' or 'No' (case insensitive).\n"
   exit 1
 fi
 
-##################################################################################
-# Define atmosphere workflow dependencies
+if [[ ${IF_SST_UPDTE} = ${NO} ]]; then 
+  printf "MPAS-A uses static lower boundary conditions.\n"
+  if_sst_updte="false"
+
+elif [[ ${IF_SST_UPDTE} = ${YES} ]]; then
+  printf "MPAS-A updates lower boundary conditions.\n"
+  if_sst_updte="true"
+
+  if [[ ${IF_SST_DIURN} = ${YES} ]]; then
+    printf "MPAS-A updates SST on diurnal cycle.\n"
+    if_sst_diurn="true"
+
+  elif [[ ${IF_SST_DIURN} = ${NO} ]]; then
+    printf "MPAS-A does not update SST on diurnal cycle.\n"
+    if_sst_diurn="false"
+
+  else
+    printf "\${IF_SST_DIURN} must be set to 'Yes' or 'No' (case insensitive).\n"
+    exit 1
+  fi
+  if [[ ${IF_DEEPSOIL} = ${YES} ]]; then
+    printf "MPAS-A slowly updates lower boundary deep soil temperatures.\n"
+    if_deepsoil="true"
+
+  elif [[ ${IF_DEEPSOIL} = ${NO} ]]; then
+    printf "MPAS-A does not update lower boundary deep soil temperatures.\n"
+    if_deepsoil="false"
+
+  else
+    printf "\${IF_DEEPSOIL} must be set to 'Yes' or 'No' (case insensitive).\n"
+    exit 1
+  fi
+else
+  printf "\${IF_SST_UPDTE} must be set to 'Yes' or 'No' (case insensitive).\n"
+  exit 1
+fi
+
 ##################################################################################
 # Define atmosphere workflow dependencies
 ##################################################################################
@@ -394,33 +451,8 @@ end_iso=`date +%Y-%m-%d_%H:%M:%S -d "${end_dt}"`
 
 # Update the atmosphere namelist / streams for surface boundary conditions
 cat namelist.atmosphere \
-  | sed "s/= CONFIG_INIT_CASE,/= 8/" \
-  | sed "s/= CONFIG_START_TIME,/= '${strt_iso}'/" \
-  | sed "s/= CONFIG_STOP_TIME,/= '${end_iso}'/" \
-  | sed "s/= CONFIG_MET_PREFIX,/= '${BKG_DATA}'/" \
-  | sed "s/= CONFIG_SFC_PREFIX,/= '${BKG_DATA}'/" \
-  | sed "s/= CONFIG_FG_INTERVAL,/= ${data_interval_sec}/" \
-  | sed "s/= CONFIG_STATIC_INTERP,/= false/" \
-  | sed "s/= CONFIG_NATIVE_GWD_STATIC,/= false/" \
-  | sed "s/= CONFIG_VERTICAL_GRID,/= false/" \
-  | sed "s/= CONFIG_MET_INTERP,/= false/" \
-  | sed "s/= CONFIG_INPUT_SST,/= true/" \
-  | sed "s/= CONFIG_FRAC_SEAICE,/= true/" \
-  | sed "s/= CONFIG_PIO_NUM_IOTASKS,/= ${PIO_NUM}/" \
-  | sed "s/= CONFIG_PIO_STRIDE,/= ${PIO_STRIDE}/" \
-  | sed "s/= CONFIG_BLOCK_DECOMP_FILE_PREFIX,/= '${DMN_NME}.graph.info.part.'/" \
-  > namelist.atmosphere.tmp
-mv namelist.atmosphere.tmp namelist.atmosphere
-
-# define initial conditions output name
-out_name=${DMN_NME}.init.nc
-
-cat streams.atmosphere \
-  | sed "s/=INPUT_FILE_NAME,/=\"${DMN_NME}.static.nc\"/" \
-  | sed "s/=OUTPUT_FILE_NAME,/=\"${out_name}\"/" \
-  | sed "s/=SURFACE_FILE_NAME,/=\"${DMN_NME}.sfc_update.nc\"/" \
-  | sed "s/=SFC_OUTPUT_INTERVAL,/=\"${BKG_INT}:00:00\"/" \
-  | sed "s/=LBC_OUTPUT_INTERVAL,/=\"${BKG_INT}:00:00\"/" \
+  | sed "s/= START_TIME,/= '${strt_iso}'/" \
+  | sed "s/= STOP_TIME,/= '${end_iso}'/" \
   > streams.atmosphere.tmp
 mv streams.atmosphere.tmp streams.atmosphere
 

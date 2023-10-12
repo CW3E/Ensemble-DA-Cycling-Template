@@ -138,7 +138,7 @@ if [[ ${IF_DYN_LEN} = ${NO} ]]; then
     exit 1
   else
     # parse forecast hours as base 10 padded
-    fcst_len=`printf %03d $(( 10#${FCST_HRS} ))`
+    fcst_hrs=`printf %03d $(( 10#${FCST_HRS} ))`
   fi
 elif [[ ${IF_DYN_LEN} = ${YES} ]]; then
   printf "Generating forecast forcing data until experiment validation time.\n"
@@ -149,19 +149,19 @@ elif [[ ${IF_DYN_LEN} = ${YES} ]]; then
     # compute forecast length relative to start time and verification time
     exp_vrf="${EXP_VRF:0:8} ${EXP_VRF:8:2}"
     exp_vrf=`date +%s -d "${exp_vrf}"`
-    fcst_len=$(( (${exp_vrf} - `date +%s -d "${strt_dt}"`) / 3600 ))
-    fcst_len=`printf %03d $(( 10#${fcst_len} ))`
+    fcst_hrs=$(( (${exp_vrf} - `date +%s -d "${strt_dt}"`) / 3600 ))
+    fcst_hrs=`printf %03d $(( 10#${fcst_hrs} ))`
   fi
 else
   printf "\${IF_DYN_LEN} must be set to 'Yes' or 'No' (case insensitive).\n"
   exit 1
 fi
 
-# define the end time based on forecast length control flow above
-end_dt=`date -d "${strt_dt} ${fcst_len} hours"`
+# define the stop time based on forecast length control flow above
+stop_dt=`date -d "${strt_dt} ${fcst_hrs} hours"`
 
 # define a sequence of all forecast hours with background interval spacing
-fcst_seq=`seq -f "%03g" 0 ${BKG_INT} ${fcst_len}`
+fcst_seq=`seq -f "%03g" 0 ${BKG_INT} ${fcst_hrs}`
 
 if [ ! ${BKG_INT} ]; then
   printf "ERROR: \${BKG_INT} is not defined.\n"
@@ -193,10 +193,10 @@ dmns=`seq -f "%02g" 1 ${MAX_DOM}`
 
 if [[ ${IF_SST_UPDTE} = ${YES} ]]; then
   printf "SST Update turned on.\n"
-  sst_update=1
+  sst_updt=1
 elif [[ ${IF_SST_UPDTE} = ${NO} ]]; then
   printf "SST Update turned off.\n"
-  sst_update=0
+  sst_updt=0
 else
   printf "ERROR: \${IF_SST_UPDTE} must equal 'Yes' or 'No' (case insensitive).\n"
   exit 1
@@ -345,26 +345,26 @@ else
   printf "${cmd}\n"; eval "${cmd}"
 fi
 
-# Get the start and end time components
+# Get the start and stop time components
 s_Y=`date +%Y -d "${strt_dt}"`
 s_m=`date +%m -d "${strt_dt}"`
 s_d=`date +%d -d "${strt_dt}"`
 s_H=`date +%H -d "${strt_dt}"`
 s_M=`date +%M -d "${strt_dt}"`
 s_S=`date +%S -d "${strt_dt}"`
-e_Y=`date +%Y -d "${end_dt}"`
-e_m=`date +%m -d "${end_dt}"`
-e_d=`date +%d -d "${end_dt}"`
-e_H=`date +%H -d "${end_dt}"`
-e_M=`date +%M -d "${end_dt}"`
-e_S=`date +%S -d "${end_dt}"`
+e_Y=`date +%Y -d "${stop_dt}"`
+e_m=`date +%m -d "${stop_dt}"`
+e_d=`date +%d -d "${stop_dt}"`
+e_H=`date +%H -d "${stop_dt}"`
+e_M=`date +%M -d "${stop_dt}"`
+e_S=`date +%S -d "${stop_dt}"`
 
-# define start / end time iso patterns
+# define start / stop time iso patterns
 strt_iso=`date +%Y-%m-%d_%H_%M_%S -d "${strt_dt}"`
-end_iso=`date +%Y-%m-%d_%H_%M_%S -d "${end_dt}"`
+stop_iso=`date +%Y-%m-%d_%H_%M_%S -d "${stop_dt}"`
 
 # Update interval in namelist
-(( data_interval_sec = BKG_INT * 3600 ))
+(( data_int_sec = BKG_INT * 3600 ))
 
 # update auxinput4 interval
 (( auxinput4_minutes = BKG_INT * 60 ))
@@ -372,27 +372,27 @@ aux_out="${auxinput4_minutes}, ${auxinput4_minutes}, ${auxinput4_minutes}"
 
 # Update the wrf namelist (propagates settings to three domains)
 cat namelist.input \
-  | sed "s/= START_YEAR,/= ${s_Y}, ${s_Y}, ${s_Y},/" \
-  | sed "s/= START_MONTH,/= ${s_m}, ${s_m}, ${s_m},/" \
-  | sed "s/= START_DAY,/= ${s_d}, ${s_d}, ${s_d},/" \
-  | sed "s/= START_HOUR,/= ${s_H}, ${s_H}, ${s_H},/" \
-  | sed "s/= START_MINUTE,/= ${s_M}, ${s_M}, ${s_M},/" \
-  | sed "s/= START_SECOND,/= ${s_S}, ${s_S}, ${s_S},/" \
-  | sed "s/= END_YEAR,/= ${e_Y}, ${e_Y}, ${e_Y},/" \
-  | sed "s/= END_MONTH,/= ${e_m}, ${e_m}, ${e_m},/" \
-  | sed "s/= END_DAY,/= ${e_d}, ${e_d}, ${e_d},/" \
-  | sed "s/= END_HOUR,/= ${e_H}, ${e_H}, ${e_H},/" \
-  | sed "s/= END_MINUTE,/= ${e_M}, ${e_M}, ${e_M},/" \
-  | sed "s/= END_SECOND,/= ${e_S}, ${e_S}, ${e_S},/" \
+  | sed "s/= STRT_Y,/= ${s_Y}, ${s_Y}, ${s_Y},/" \
+  | sed "s/= STRT_m,/= ${s_m}, ${s_m}, ${s_m},/" \
+  | sed "s/= STRT_d,/= ${s_d}, ${s_d}, ${s_d},/" \
+  | sed "s/= STRT_H,/= ${s_H}, ${s_H}, ${s_H},/" \
+  | sed "s/= STRT_M,/= ${s_M}, ${s_M}, ${s_M},/" \
+  | sed "s/= STRT_S,/= ${s_S}, ${s_S}, ${s_S},/" \
+  | sed "s/= STOP_Y,/= ${e_Y}, ${e_Y}, ${e_Y},/" \
+  | sed "s/= STOP_m,/= ${e_m}, ${e_m}, ${e_m},/" \
+  | sed "s/= STOP_d,/= ${e_d}, ${e_d}, ${e_d},/" \
+  | sed "s/= STOP_H,/= ${e_H}, ${e_H}, ${e_H},/" \
+  | sed "s/= STOP_M,/= ${e_M}, ${e_M}, ${e_M},/" \
+  | sed "s/= STOP_S,/= ${e_S}, ${e_S}, ${e_S},/" \
   | sed "s/= MAX_DOM,/= ${MAX_DOM},/" \
-  | sed "s/= INTERVAL_SECONDS,/= ${data_interval_sec},/" \
-  | sed "s/= SST_UPDATE,/= ${sst_update},/"\
-  | sed "s/= AUXINPUT4_INTERVAL,/= ${aux_out},/" \
-  | sed "s/= AUXHIST2_INTERVAL,/= 0,/" \
-  | sed "s/= HISTORY_INTERVAL,/= 0,/" \
-  | sed "s/= RESTART,/= \.false\.,/" \
-  | sed "s/= RESTART_INTERVAL,/= 0,/" \
-  | sed "s/= FEEDBACK,/= 0,/"\
+  | sed "s/= INT_SEC,/= ${data_int_sec},/" \
+  | sed "s/= IF_SST_UPDT,/= ${sst_updt},/"\
+  | sed "s/= AUXINPUT4_INT,/= ${aux_out},/" \
+  | sed "s/= AUXHIST2_INT,/= 0,/" \
+  | sed "s/= HIST_INT,/= 0,/" \
+  | sed "s/= RSTRT,/= \.false\.,/" \
+  | sed "s/= RSTRT_INT,/= 0,/" \
+  | sed "s/= IF_FEEDBACK,/= 0,/"\
   > namelist.input.tmp
 mv namelist.input.tmp namelist.input
 
@@ -405,7 +405,7 @@ printf "EXP_CNFG     = ${EXP_CNFG}\n"
 printf "MEMID        = ${MEMID}\n"
 printf "CYC_HME      = ${CYC_HME}\n"
 printf "STRT_DT      = ${strt_iso}\n"
-printf "END_DT       = ${end_iso}\n"
+printf "STOP_DT      = ${stop_iso}\n"
 printf "BKG_INT      = ${BKG_INT}\n"
 printf "BKG_DATA     = ${BKG_DATA}\n"
 printf "MAX_DOM      = ${MAX_DOM}\n"

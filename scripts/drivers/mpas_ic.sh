@@ -105,8 +105,8 @@ else
   exit 1
 fi
 
-# define the end time based on forecast length control flow above
-end_dt=`date -d "${strt_dt} ${fcst_len} hours"`
+# define the stop time based on forecast length control flow above
+stop_dt=`date -d "${strt_dt} ${fcst_len} hours"`
 
 if [ ! ${BKG_INT} ]; then
   printf "ERROR: \${BKG_INT} is not defined.\n"
@@ -323,28 +323,28 @@ else
   printf "${cmd}\n"; eval "${cmd}"
 fi
 
-# define start / end time patterns for namelist.init_atmosphere
+# define start / stop time patterns for namelist.init_atmosphere
 strt_iso=`date +%Y-%m-%d_%H:%M:%S -d "${strt_dt}"`
-end_iso=`date +%Y-%m-%d_%H:%M:%S -d "${end_dt}"`
+stop_iso=`date +%Y-%m-%d_%H:%M:%S -d "${stop_dt}"`
 
 # Update background data interval in namelist
 (( data_interval_sec = BKG_INT * 3600 ))
 
 # Update the init_atmosphere namelist / streams for real initial conditions
 cat namelist.init_atmosphere \
-  | sed "s/= CNFG_INIT_CASE,/= 7/" \
-  | sed "s/= CNFG_START_TIME,/= '${strt_iso}'/" \
-  | sed "s/= CNFG_STOP_TIME,/= '${end_iso}'/" \
+  | sed "s/= INIT_CASE,/= 7/" \
+  | sed "s/= START_TIME,/= '${strt_iso}'/" \
+  | sed "s/= STOP_TIME,/= '${stop_iso}'/" \
   | sed "s/BKG_DATA/${BKG_DATA}/" \
-  | sed "s/= CNFG_FG_INT,/= ${data_interval_sec}/" \
-  | sed "s/= CNFG_STATIC_INTERP,/= false/" \
-  | sed "s/= CNFG_NATIVE_GWD_STATIC,/= false/" \
-  | sed "s/= CNFG_VERTICAL_GRID,/= true/" \
-  | sed "s/= CNFG_MET_INTERP,/= true/" \
-  | sed "s/= CNFG_INPUT_SST,/= false/" \
-  | sed "s/= CNFG_FRAC_SEAICE,/= true/" \
-  | sed "s/= CNFG_PIO_NUM_IOTASKS,/= ${PIO_NUM}/" \
-  | sed "s/= CNFG_PIO_STRIDE,/= ${PIO_STRIDE}/" \
+  | sed "s/= FG_INT,/= ${data_interval_sec}/" \
+  | sed "s/= IF_STATIC_INTERP,/= false/" \
+  | sed "s/= IF_NATIVE_GWD_STATIC,/= false/" \
+  | sed "s/= IF_VERTICAL_GRID,/= true/" \
+  | sed "s/= IF_MET_INTERP,/= true/" \
+  | sed "s/= IF_INPUT_SST,/= false/" \
+  | sed "s/= IF_FRAC_SEAICE,/= true/" \
+  | sed "s/= PIO_NUM_IOTASKS,/= ${PIO_NUM}/" \
+  | sed "s/= PIO_STRIDE,/= ${PIO_STRIDE}/" \
   | sed "s/DMN_NME/${DMN_NME}/" \
   > namelist.init_atmosphere.tmp
 mv namelist.init_atmosphere.tmp namelist.init_atmosphere
@@ -366,7 +366,7 @@ printf "DMN_NME  = ${DMN_NME}\n"
 printf "MEMID    = ${MEMID}\n"
 printf "CYC_HME  = ${CYC_HME}\n"
 printf "STRT_DT  = ${strt_iso}\n"
-printf "END_DT   = ${end_iso}\n"
+printf "STOP_DT  = ${stop_iso}\n"
 printf "BKG_INT  = ${BKG_INT}\n"
 printf "\n"
 now=`date +%Y-%m-%d_%H_%M_%S`

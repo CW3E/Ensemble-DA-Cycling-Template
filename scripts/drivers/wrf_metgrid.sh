@@ -135,7 +135,7 @@ if [[ ${IF_DYN_LEN} = ${NO} ]]; then
     exit 1
   else
     # parse forecast hours as base 10 padded
-    fcst_len=`printf %03d $(( 10#${FCST_HRS} ))`
+    fcst_hrs=`printf %03d $(( 10#${FCST_HRS} ))`
   fi
 elif [[ ${IF_DYN_LEN} = ${YES} ]]; then
   printf "Generating forecast forcing data until experiment validation time.\n"
@@ -146,19 +146,19 @@ elif [[ ${IF_DYN_LEN} = ${YES} ]]; then
     # compute forecast length relative to start time and verification time
     exp_vrf="${EXP_VRF:0:8} ${EXP_VRF:8:2}"
     exp_vrf=`date +%s -d "${exp_vrf}"`
-    fcst_len=$(( (${exp_vrf} - `date +%s -d "${strt_dt}"`) / 3600 ))
-    fcst_len=`printf %03d $(( 10#${fcst_len} ))`
+    fcst_hrs=$(( (${exp_vrf} - `date +%s -d "${strt_dt}"`) / 3600 ))
+    fcst_hrs=`printf %03d $(( 10#${fcst_hrs} ))`
   fi
 else
   printf "\${IF_DYN_LEN} must be set to 'Yes' or 'No' (case insensitive).\n"
   exit 1
 fi
 
-# define the end time based on forecast length control flow above
-end_dt=`date -d "${strt_dt} ${fcst_len} hours"`
+# define the stop time based on forecast length control flow above
+stop_dt=`date -d "${strt_dt} ${fcst_hrs} hours"`
 
 # define a sequence of all forecast hours with background interval spacing
-fcst_seq=`seq -f "%03g" 0 ${BKG_INT} ${fcst_len}`
+fcst_seq=`seq -f "%03g" 0 ${BKG_INT} ${fcst_hrs}`
 
 if [ ! ${BKG_INT} ]; then
   printf "ERROR: \${BKG_INT} is not defined.\n"
@@ -184,13 +184,13 @@ dmns=`seq -f "%02g" 1 ${MAX_DOM}`
 ##################################################################################
 # Below variables are defined in workflow variables
 #
-# WPS_ROOT  = Root directory of a clean WPS build
-# EXP_CNFG  = Root directory containing sub-directories for namelists
-#             vtables, geogrid data, GSI fix files, etc.
-# CYC_HME   = Cycle YYYYMMDDHH named directory for cycling data containing
-#             bkg, ungrib, metgrid, real, wrf, wrfda, gsi, enkf
-# MPIRUN    = MPI multiprocessing evaluation call, machine specific
-# N_PROC    = The total number of processes to run metgrid.exe with MPI
+# WPS_ROOT = Root directory of a clean WPS build
+# EXP_CNFG = Root directory containing sub-directories for namelists
+#            vtables, geogrid data, GSI fix files, etc.
+# CYC_HME  = Cycle YYYYMMDDHH named directory for cycling data containing
+#            bkg, ungrib, metgrid, real, wrf, wrfda, gsi, enkf
+# MPIRUN   = MPI multiprocessing evaluation call, machine specific
+# N_PROC   = The total number of processes to run metgrid.exe with MPI
 #
 ##################################################################################
 
@@ -329,16 +329,16 @@ else
   printf "${cmd}\n"; eval "${cmd}"
 fi
 
-# define start / end time patterns for namelist.wps
+# define start / stop time patterns for namelist.wps
 strt_iso=`date +%Y-%m-%d_%H_%M_%S -d "${strt_dt}"`
-end_iso=`date +%Y-%m-%d_%H_%M_%S -d "${end_dt}"`
+stop_iso=`date +%Y-%m-%d_%H_%M_%S -d "${stop_dt}"`
 
 # propagate settings to three domains
 out_sd="'${strt_iso}','${strt_iso}','${strt_iso}'"
-out_ed="'${end_iso}','${end_iso}','${end_iso}'"
+out_ed="'${stop_iso}','${stop_iso}','${stop_iso}'"
 
 # Update interval in namelist
-(( data_interval_sec = BKG_INT * 3600 ))
+(( data_int_sec = BKG_INT * 3600 ))
 
 # Update fg_name to name of background data
 if [ ${IF_ECMWF_ML} = ${YES} ]; then
@@ -347,12 +347,12 @@ else
   out_fg_name="'${BKG_DATA}',"
 fi
 
-# Update the start and end date in namelist (propagates settings to three domains)
+# Update the start and stop date in namelist (propagates settings to three domains)
 cat namelist.wps \
-  | sed "s/= START_DATE,/= ${out_sd},/" \
-  | sed "s/= END_DATE,/= ${out_ed},/" \
+  | sed "s/= STRT_DT,/= ${out_sd},/" \
+  | sed "s/= STOP_DT,/= ${out_ed},/" \
   | sed "s/= MAX_DOM,/= ${MAX_DOM},/" \
-  | sed "s/= INTERVAL_SECONDS,/= ${data_interval_sec},/" \
+  | sed "s/= INT_SEC,/= ${data_int_sec},/" \
   | sed "s/= PREFIX,/= '${BKG_DATA}',/" \
   | sed "s/= FG_NAME,/= ${out_fg_name},/" \
   > namelist.wps.tmp
@@ -367,7 +367,7 @@ printf "EXP_CNFG = ${EXP_CNFG}\n"
 printf "MEMID    = ${MEMID}\n"
 printf "CYC_HME  = ${CYC_HME}\n"
 printf "STRT_DT  = ${strt_iso}\n"
-printf "END_DT   = ${end_iso}\n"
+printf "STOP_DT  = ${stop_iso}\n"
 printf "BKG_INT  = ${BKG_INT}\n"
 printf "MAX_DOM  = ${MAX_DOM}\n"
 printf "\n"

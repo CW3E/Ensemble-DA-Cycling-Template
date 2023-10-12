@@ -1,9 +1,9 @@
 &share
  wrf_core          = 'ARW',
  max_dom           = MAX_DOM,
- start_date        = START_DATE,
- end_date          = END_DATE,
- interval_seconds  = INTERVAL_SECONDS,
+ start_date        = STRT_DATE,
+ end_date          = STOP_DATE,
+ interval_seconds  = INT_SEC,
  io_form_geogrid   = 2,
  debug_level       = 0,
 /
@@ -33,6 +33,6 @@
 /
 
 &metgrid
- fg_name           = FG_NAME
+ fg_name           = FG_NAME,
  io_form_metgrid   = 2,
 /

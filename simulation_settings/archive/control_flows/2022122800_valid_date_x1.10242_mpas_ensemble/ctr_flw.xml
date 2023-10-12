@@ -4,23 +4,23 @@
   <!-- GSI Observation-Analysis-Forecast Cycling Workflow -->
 
   <!-- CONTROL FLOW NAME / TUNABLE SETTINGS -->
-  <!ENTITY EXP_VRF       "2022122800"> <!-- Define the valid date YYYYMMDDHH for verification -->
-  <!ENTITY DMN_NME       "x1.10242"> <!-- Define the valid date YYYYMMDDHH for verification -->
-  <!ENTITY CSE_NAME      "DeepDive"> <!-- Define the case study name for experiment group -->
-  <!ENTITY CNFG_NAME     "&EXP_VRF;_valid_date_&DMN_NME;_mpas_ensemble"> <!-- Configuration name including tunable parameters -->
-  <!ENTITY EXP_NAME      "&CSE_NAME;/&CNFG_NAME;"> <!-- Experiment logs and data are defined in the case / configuration nested structure -->
+  <!ENTITY EXP_VRF      "2022122800"> <!-- Define the valid date YYYYMMDDHH for verification -->
+  <!ENTITY DMN_NME      "x1.10242"> <!-- Define the valid date YYYYMMDDHH for verification -->
+  <!ENTITY CSE_NME      "DeepDive"> <!-- Define the case study name for experiment group -->
+  <!ENTITY CNFG_NME     "&EXP_VRF;_valid_date_&DMN_NME;_mpas_ensemble"> <!-- Configuration name including tunable parameters -->
+  <!ENTITY EXP_NME      "&CSE_NME;/&CNFG_NME;"> <!-- Experiment logs and data are defined in the case / configuration nested structure -->
   <!-- END CONTROL FLOW NAME / TUNABLE SETTINGS -->
 
   <!-- COMPUTER-DEPENDENT ITEMS -->
   <!ENTITY CLNE_ROOT     "/expanse/lustre/projects/ddp181/cgrudzien/JEDI-MPAS-Common-Case/Ensemble-DA-Cycling-Template"> <!-- Full path of framework git clone -->
   <!ENTITY SOFT_ROOT     "/expanse/lustre/projects/ddp181/cgrudzien/SOFT_ROOT"> <!-- Root directory of software stack executables -->
-  <!ENTITY DATA_ROOT     "/expanse/lustre/projects/ddp181/cgrudzien/JEDI-MPAS-Common-Case/DATA/&CSE_NAME;"> <!-- Root directory of case study forcing data -->
-  <!ENTITY WORK_ROOT     "/expanse/lustre/projects/ddp181/cgrudzien/JEDI-MPAS-Common-Case/MPAS_Cycles/&EXP_NAME;"> <!-- Root directory of /data/simulation_io -->
+  <!ENTITY DATA_ROOT     "/expanse/lustre/projects/ddp181/cgrudzien/JEDI-MPAS-Common-Case/DATA/&CSE_NME;"> <!-- Root directory of case study forcing data -->
+  <!ENTITY WORK_ROOT     "/expanse/lustre/projects/ddp181/cgrudzien/JEDI-MPAS-Common-Case/MPAS_Cycles/&EXP_NME;"> <!-- Root directory of /data/simulation_io -->
   <!-- END COMPUTER-DEPENDENT -->
 
   <!-- WORKFLOW SETTINGS  -->
-  <!ENTITY EXP_LOG       "&CLNE_ROOT;/logs/&EXP_NAME;"> <!-- Root directory of workflow task logs -->
-  <!ENTITY EXP_CNFG      "&CLNE_ROOT;/simulation_settings/&EXP_NAME;"> <!-- Root directory of experiment configuration files -->
+  <!ENTITY EXP_LOG       "&CLNE_ROOT;/logs/&EXP_NME;"> <!-- Root directory of workflow task logs -->
+  <!ENTITY EXP_CNFG      "&CLNE_ROOT;/simulation_settings/&EXP_NME;"> <!-- Root directory of experiment configuration files -->
   <!ENTITY SCRIPTS       "&CLNE_ROOT;/scripts"> <!-- Root directory of workflow framework scripts -->
   <!ENTITY DRIVERS       "&SCRIPTS;/drivers"> <!-- Root directory of task driver scripts -->
   <!ENTITY UTILITY       "&SCRIPTS;/utilities"> <!-- Root directory of utility scripts for hacking rocoto to work -->
@@ -36,7 +36,7 @@
 
   <!-- CYCLING SETTINGS  -->
   <!ENTITY CYC_STRT      "202212230000"> <!-- First initial time for a forecast -->
-  <!ENTITY CYC_END       "202212230000"> <!-- Last initial time for a forecast -->
+  <!ENTITY CYC_STOP      "202212230000"> <!-- Last initial time for a forecast -->
   <!ENTITY CYC_INT       "24"> <!-- Interval between cycle start times -->
   <!-- END CYCLING SETTINGS -->
 
@@ -76,7 +76,7 @@
 
 <workflow realtime="F" scheduler="&SCHED;">
   <!-- DEFINE CYCLE GROUPS -->
-  <cycledef group="forecast_cycles">&CYC_STRT; &CYC_END; &CYC_INT;:00:00</cycledef>
+  <cycledef group="forecast_cycles">&CYC_STRT; &CYC_STOP; &CYC_INT;:00:00</cycledef>
   <!-- END CYCLE GROUPS -->
 
   <log verbosity="10"><cyclestr>&EXP_LOG;/@Y@m@d@H/workflow.log</cyclestr></log>
