@@ -33,6 +33,6 @@
 /
 
 &metgrid
- fg_name           = FG_NAME,
+ fg_name           = FG_NAME
  io_form_metgrid   = 2,
 /

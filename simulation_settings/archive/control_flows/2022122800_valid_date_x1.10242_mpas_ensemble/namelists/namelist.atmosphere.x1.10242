@@ -1,0 +1,57 @@
+&nhyd_model
+    config_time_integration_order = 2
+    config_dt = 1200.0
+    config_start_time = CNFG_START_TIME,
+    config_run_duration = CNFG_RUN_DURATION,
+    config_split_dynamics_transport = true
+    config_number_of_sub_steps = 2
+    config_dynamics_split_steps = 3
+    config_horiz_mixing = '2d_smagorinsky'
+    config_visc4_2dsmag = 0.05
+    config_scalar_advection = true
+    config_monotonic = true
+    config_coef_3rd_order = 0.25
+    config_epssm = 0.1
+    config_smdiv = 0.1
+/
+&damping
+    config_zd = 22000.0
+    config_xnutr = 0.2
+/
+&limited_area
+    config_apply_lbcs = CNFG_APPLY_LBCS,
+/
+&io
+    config_pio_num_iotasks = CNFG_PIO_NUM_IOTASKS,
+    config_pio_stride = CNFG_PIO_STRIDE,
+/
+&decomposition
+    config_block_decomp_file_prefix = 'DMN_NME.graph.info.part.' 
+/
+&restart
+    config_do_restart = CNFG_RSTRT,
+    config_do_DAcycling = CNFG_DACYC,
+/
+&printout
+    config_print_global_minmax_vel = true
+    config_print_detailed_minmax_vel = false
+/
+&assimilation/
+    config_jedi_da = CNFG_JEDI,
+/
+&IAU
+    config_IAU_option = CNFG_IAU,
+    config_IAU_window_length_s = 21600.
+/
+&physics
+    config_sst_update = CNFG_SST_UPDATE,
+    config_sstdiurn_update = CNFG_SST_DIURN_UPDATE,
+    config_deepsoiltemp_update = CNFG_DEEPSOILTEMP_UPDATE,
+    config_radtlw_interval = '01:00:00'
+    config_radtsw_interval = '01:00:00'
+    config_bucket_update = CNFG_BUCKET_UPDATE,
+    config_physics_suite = 'mesoscale_reference'
+/
+&soundings
+    config_sounding_interval = CNFG_SOUNDING_INT,
+/

@@ -58,8 +58,7 @@
   <!ENTITY PART_COMPU    "--partition=compute"> <!-- Slurm partition for standard computing -->
   <!ENTITY PART_DEBUG    "--partition=debug">  <!-- Slurm partition for small jobs / rapid debugging -->
   <!ENTITY MPIRUN        "mpirun"> <!-- MPI exec command to call multiprocess jobs with (machine and scheduler specific) -->
-  <!ENTITY WPS_PROC      "128"> <!-- WPS parallel / REAL number of procs (all serial jobs are hard-coded as 1) -->
-  <!ENTITY WPS_MEM       "1G"> <!-- WPS MEM per CPU argument for SLURM -->
+  <!ENTITY WPS_MEM       "1750M"> <!-- WPS MEM per CPU argument for SLURM -->
   <!ENTITY WPS_NODESIZE  "128"> <!-- WPS node size -->
   <!ENTITY WPS_NODES     "1"> <!-- Number of nodes for WPS / REAL jobs -->
   <!ENTITY WPS_WC        "00:30:00"> <!-- Wallclock limit for WPS cycle jobs -->
@@ -114,11 +113,11 @@
       </envar>
       <envar>
         <name>IF_DYN_LEN</name>
-        <value>No</value>
+        <value>Yes</value>
       </envar>
       <envar>
-        <name>FCST_HRS</name>
-        <value>03</value>
+        <name>EXP_VRF</name>
+        <value>&EXP_VRF;</value>
       </envar>
       <envar>
         <name>BKG_INT</name>
@@ -150,13 +149,13 @@
       </envar>
     </task>
 
-    <task name="mpas_real_ic_ens_#ENS_N#" maxtries="12" cycledefs="forecast_cycles">
-      <command>&DRIVERS;/mpas_real_ic.sh</command>
-      <cores>&WPS_PROC;</cores>
+    <task name="mpas_ic_ens_#ENS_N#" maxtries="12" cycledefs="forecast_cycles">
+      <command>&DRIVERS;/mpas_ic.sh</command>
+      <cores>&REAL_PROC;</cores>
       <nodesize>&WPS_NODESIZE;</nodesize>
       <walltime>&WPS_WC;</walltime>
-      <jobname><cyclestr>mpas_real_ic_ens_#ENS_N#_@Y@m@d@H</cyclestr></jobname>
-      <join><cyclestr>&EXP_LOG;/@Y@m@d@H/mpas_real_ic_ens_#ENS_N#.log</cyclestr></join>
+      <jobname><cyclestr>mpas_ic_ens_#ENS_N#_@Y@m@d@H</cyclestr></jobname>
+      <join><cyclestr>&EXP_LOG;/@Y@m@d@H/mpas_ic_ens_#ENS_N#.log</cyclestr></join>
       <native>&PART_DEBUG;</native>
       <native>&PROJECT;</native>
       <native>--export=ALL</native>
@@ -180,11 +179,11 @@
       </envar>
       <envar>
         <name>IF_DYN_LEN</name>
-        <value>No</value>
+        <value>Yes</value>
       </envar>
       <envar>
-        <name>FCST_HRS</name>
-        <value>03</value>
+        <name>EXP_VRF</name>
+        <value>&EXP_VRF;</value>
       </envar>
       <envar>
         <name>BKG_DATA</name>
@@ -224,6 +223,82 @@
       </envar>
       <dependency> 
         <taskdep task="ungrib_ens_#ENS_N#" state="SUCCEEDED"/>
+      </dependency>
+    </task>
+    <task name="mpas_sfc_ens_#ENS_N#" maxtries="12" cycledefs="forecast_cycles">
+      <command>&DRIVERS;/mpas_sfc.sh</command>
+      <cores>&REAL_PROC;</cores>
+      <nodesize>&WPS_NODESIZE;</nodesize>
+      <walltime>&WPS_WC;</walltime>
+      <jobname><cyclestr>mpas_sfc_ens_#ENS_N#_@Y@m@d@H</cyclestr></jobname>
+      <join><cyclestr>&EXP_LOG;/@Y@m@d@H/mpas_sfc_ens_#ENS_N#.log</cyclestr></join>
+      <native>&PART_DEBUG;</native>
+      <native>&PROJECT;</native>
+      <native>--export=ALL</native>
+      <native>--nodes=&WPS_NODES;</native>
+      <native>--mem-per-cpu=&WPS_MEM;</native>
+      <envar>
+        <name>CNST</name>
+        <value>&MPAS_CNST;</value>
+      </envar>
+      <envar>
+        <name>DMN_NME</name>
+        <value>&DMN_NME;</value>
+      </envar>
+      <envar>
+         <name>MEMID</name>
+         <value>#ENS_N#</value>
+      </envar>
+      <envar>
+        <name>STRT_DT</name>
+        <value><cyclestr>@Y@m@d@H</cyclestr></value>
+      </envar>
+      <envar>
+        <name>IF_DYN_LEN</name>
+        <value>Yes</value>
+      </envar>
+      <envar>
+        <name>EXP_VRF</name>
+        <value>&EXP_VRF;</value>
+      </envar>
+      <envar>
+        <name>BKG_DATA</name>
+        <value>&ENS_BKG_DATA;</value>
+      </envar>
+      <envar>
+        <name>BKG_INT</name>
+        <value>&ENS_BKG_INT;</value>
+      </envar>
+      <envar>
+        <name>MPAS_ROOT</name>
+        <value>&MPAS_ROOT;</value>
+      </envar>
+      <envar>
+        <name>EXP_CNFG</name>
+        <value>&EXP_CNFG;</value>
+      </envar>
+      <envar>
+        <name>CYC_HME</name>
+        <value><cyclestr>&WORK_ROOT;/@Y@m@d@H</cyclestr></value>
+      </envar>
+      <envar>
+        <name>MPIRUN</name>
+        <value>&MPIRUN;</value>
+      </envar>
+      <envar>
+        <name>N_PROC</name>
+        <value>&REAL_PROC;</value>
+      </envar>
+      <envar>
+        <name>PIO_NUM</name>
+        <value>&PIO_NUM;</value>
+      </envar>
+      <envar>
+        <name>PIO_STRIDE</name>
+        <value>&PIO_STRIDE;</value>
+      </envar>
+      <dependency> 
+        <taskdep task="mpas_ic_ens_#ENS_N#" state="SUCCEEDED"/>
       </dependency>
     </task>
   </metatask>

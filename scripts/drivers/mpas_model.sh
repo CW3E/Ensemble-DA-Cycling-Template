@@ -4,8 +4,7 @@
 ##################################################################################
 # This driver script is designed to dynamically propagate the
 # namelist.atmosphere and streams.atmosphere templates included in
-# this repository to generate real data surface boundary conditions for the
-# MPAS-A model.
+# this repository to run a model integration for the MPAS-A model.
 #
 # One should write machine specific options for the MPAS environment
 # in a MPAS_constants.sh script to be sourced in the below.
@@ -47,14 +46,24 @@ fi
 ##################################################################################
 # Options below are defined in workflow variables
 #
-# DMN_NME    = MPAS domain name used to call mesh / static file name patterns
-# MEMID      = Ensemble ID index, 00 for control, i > 0 for perturbation
-# STRT_DT    = Simulation start time in YYMMDDHH
-# IF_DYN_LEN = "Yes" or "No" switch to compute forecast length dynamically 
-# FCST_HRS   = Total length of MPAS forecast simulation in HH, IF_DYN_LEN=No
-# EXP_VRF    = Verfication time for calculating forecast hours, IF_DYN_LEN=Yes
-# BKG_INT    = Interval of input data in HH
-# BKG_DATA   = String case variable for supported inputs: GFS, GEFS currently
+# DMN_NME      = MPAS domain name used to call mesh / static file name patterns
+# MEMID        = Ensemble ID index, 00 for control, i > 0 for perturbation
+# STRT_DT      = Simulation start time in YYMMDDHH
+# IF_DYN_LEN   = If to compute forecast length dynamically (Yes / No)
+# FCST_HRS     = Total length of MPAS forecast simulation in HH, IF_DYN_LEN=No
+# EXP_VRF      = Verfication time for calculating forecast hours, IF_DYN_LEN=Yes
+# IF_RGNL      = Equals "Yes" or "No" if MPAS regional simulation is being run
+# BKG_INT      = Interval of lbc input data in HH, required IF_RGNL = Yes
+# DIAG_INT     = Interval at which diagnostic fields are output (HH)
+# HIST_INT     = Interval at which model history fields are output (HH)
+# RSTRT_INT    = Interval at which model restart files are output (HH)
+# IF_RSTRT     = If performing a restart run initialization (Yes / No)
+# IF_DA        = If peforming DA (Yes - writes out necessary fields / No)
+# IF_DA_CYC    = If performing DA cycling initialization (Yes / No)
+# IF_IAU       = If performing incremental assimilation update (Yes / No)
+# IF_SST_UPDTE = If updating SST with lower BC update files
+# IF_SST_DIURN = If updating SST with diurnal cycling
+# IF_DEEPSOIL  = If slowly updating  lower boundary deep soil temperature
 #
 ##################################################################################
 
@@ -109,24 +118,80 @@ fi
 # define the end time based on forecast length control flow above
 end_dt=`date -d "${strt_dt} ${fcst_len} hours"`
 
-# define a sequence of all forecast hours with background interval spacing
-fcst_seq=`seq -f "%03g" 0 ${BKG_INT} ${fcst_len}`
+if [[ ${IF_RGNL} = ${NO} ]]; then 
+  printf "MPAS-A is run as a global simulation.\n"
 
-if [ ! ${BKG_INT} ]; then
-  printf "ERROR: \${BKG_INT} is not defined.\n"
-  exit 1
-elif [ ${BKG_INT} -le 0 ]; then
-  printf "ERROR: \${BKG_INT} must be HH > 0 for the frequency of data inputs.\n"
+  # check that interval for background lbc data is defined
+  if [ ! ${BKG_INT} ]; then
+    printf "ERROR: \${BKG_INT} is not defined.\n"
+    exit 1
+  elif [ ${BKG_INT} -le 0 ]; then
+    printf "ERROR: \${BKG_INT} must be HH > 0 for the frequency of data inputs.\n"
+    exit 1
+  fi
+
+elif [[ ${IF_RGNL} = ${YES} ]]; then
+  printf "MPAS-A is run as a regional simulation.\n"
+else
+  printf "\${IF_RGNL} must be set to 'Yes' or 'No' (case insensitive).\n"
   exit 1
 fi
 
-if [[ ${BKG_DATA} != GFS && ${BKG_DATA} != GEFS ]]; then
-  msg="ERROR: \${BKG_DATA} must equal 'GFS' or 'GEFS'"
-  msg+=" as currently supported inputs.\n"
-  printf "${msg}"
+if [ ! ${DIAG_INT} ]; then
+  printf "ERROR: \${DIAG_INT} is not defined.\n"
+  exit 1
+elif [ ${DIAG_INT} -le 0 ]; then
+  printf "ERROR: \${DIAG_INT} must be HH > 0 for the frequency of data inputs.\n"
   exit 1
 fi
 
+if [ ! ${HIST_INT} ]; then
+  printf "ERROR: \${HIST_INT} is not defined.\n"
+  exit 1
+elif [ ${HIST_INT} -le 0 ]; then
+  printf "ERROR: \${HIST_INT} must be HH > 0 for the frequency of data inputs.\n"
+  exit 1
+fi
+
+if [ ! ${RSTRT_INT} ]; then
+  printf "ERROR: \${RSTRT_INT} is not defined.\n"
+  exit 1
+elif [ ${RSTRT_INT} -le 0 ]; then
+  printf "ERROR: \${RSTRT_INT} must be HH > 0 for the frequency of data inputs.\n"
+  exit 1
+fi
+
+if [[ ${IF_RSTRT} = ${NO} ]]; then 
+  printf "MPAS-A is run from init_atmosphere initial conditions.\n"
+elif [[ ${IF_RSTRT} = ${YES} ]]; then
+  printf "MPAS-A is run as a restart simulation.\n"
+else
+  printf "\${IF_RSTRT} must be set to 'Yes' or 'No' (case insensitive).\n"
+  exit 1
+fi
+
+if [[ ${IF_DA} = ${NO} ]]; then 
+  printf "Data assimilation control fields are not automatically written.\n"
+elif [[ ${IF_DA} = ${YES} ]]; then
+  printf "MPAS-A writes out temperature and specific humidity as diagnostics.\n"
+  if [[ ${IF_DA_CYC} = ${YES} ]]; then
+    printf "MPAS-A recomputes coupled fields from analyzed fields in DA update.\n"
+  else
+    printf "MPAS-A does not update coupled fields from analyzed fields.\n"
+  fi
+  if [[ ${IF_IAU} = ${YES} ]]; then
+    printf "MPAS-A performs the Incremental Analysis Update scheme.\n"
+  else
+    printf "MPAS-A does not perform the Incremental Analysis Update scheme.\n"
+  fi
+
+else
+  printf "\${IF_DA} must be set to 'Yes' or 'No' (case insensitive).\n"
+  exit 1
+fi
+
+##################################################################################
+# Define atmosphere workflow dependencies
 ##################################################################################
 # Define atmosphere workflow dependencies
 ##################################################################################
@@ -208,65 +273,79 @@ fi
 ##################################################################################
 # The following paths are relative to workflow root paths
 #
-# init_atmos_root  = Directory from which ic / bc data is sourced
+# atmos_ic_root    = Directory from which initial condition data is sourced
+# atmos_sfc_root   = Directory from which surface update data is sourced
+# atmos_lbc_root   = Directory from which lateral boundary data is sourced
 # work_root        = Working directory where atmosphere_model runs and outputs
-# atmos_dat_files  = All file contents of clean MPAS build directory
+# model_run_files  = All file contents of clean MPAS build directory
 #                   namelists and input data is linked from other sources
 # atmos_model_exe  = Path and name of working executable
 #
 ##################################################################################
-
-init_atmos_root=${CYC_HME}/init_atmosphere/ens_${memid}
+# Create work root and change directory
 work_root=${CYC_HME}/atmosphere_model/ens_${memid}
+cmd="mkdir -p ${work_root}; cd ${work_root}"
+printf "${cmd}\n"; eval "${cmd}"
 
-input_files=( "${DMN_NME}.init.nc" "${DMN_NME}.sfc_update.nc" )
-if [ ! -d ${init_atmos_root} ]; then
-  msg="ERROR: \${init_atmos_root} directory\n ${init_atmos_root}\n"
-  msg+=" does not exist.\n"
-  printf 
-  exit 1
-else
-  cmd="mkdir -p ${work_root}; cd ${work_root}"
-  printf "${cmd}\n"; eval "${cmd}"
-
-  for input_f in ${input_files[@]}; do
-    if [ ! -s ${init_atmos_root}/${filename} ]; then
-      printf "ERROR: ${filename} is missing.\n"
-      exit 1
-    else
-      cmd="ln -sfr ${init_atmos_root}/${filename} ."
-      printf "${cmd}\n"; eval "${cmd}"
-    fi
-  done
-fi
-
-atmos_dat_files=(${MPAS_ROOT}/*)
-atmos_model_exe=${MPAS_ROOT}/atmosphere_model
-
+# check that the init_atmosphere executable exists and can be run
+atmos_model_exe=${MPAS_ROOT}/init_atmosphere_model
 if [ ! -x ${atmos_model_exe} ]; then
   printf "ERROR:\n ${atmos_model_exe}\n does not exist, or is not executable.\n"
   exit 1
 fi
 
-# Make links to the INIT_ATMOS DAT files
-for file in ${atmos_dat_files[@]}; do
+# Make links to the model run files
+model_run_files=(${MPAS_ROOT}/*)
+for file in ${model_run_files[@]}; do
   cmd="ln -sf ${file} ."
   printf "${cmd}\n"; eval "${cmd}"
 done
 
-# Remove any previous mpas static files following ${DMN_NME}.static.nc pattern
-cmd="rm -f *.static.nc"
+# Remove any mpas init files following ${DMN_NME}.init.nc pattern
+cmd="rm -f *.init.nc"
 printf "${cmd}\n"; eval "${cmd}"
 
-# Check to make sure the static terrestrial input file is available and link
-static_input_name=${EXP_CNFG}/static_files/${DMN_NME}.static.nc
-if [ ! -r "${static_input_name}" ]; then
-  printf "ERROR: Input file\n ${static_input_name}\n is missing.\n"
-  exit 1
-else
-  cmd="ln -sf ${static_input_name} ."
-  printf "${cmd}\n"; eval "${cmd}"
+# Remove any mpas partition files following ${DMN_NME}.graph.info.part.* pattern
+cmd="rm -f ${DMN_NME}.graph.info.part.*"
+printf "${cmd}\n"; eval "${cmd}"
+
+# Remove any previous namelists and stream lists
+cmd="rm -f namelist.*; rm -f streams.*; rm -f stream_list.*"
+printf "${cmd}\n"; eval "${cmd}"
+
+# Remove any previous lateral boundary condition files
+cmd="rm -f lbc.*.nc"
+printf "${cmd}\n"; eval "${cmd}"
+
+# Define list of preprocessed data and make links
+atmos_ic_root=${CYC_HME}/init_atmosphere_ic/ens_${memid}
+atmos_sfc_root=${CYC_HME}/init_atmosphere_sfc/ens_${memid}
+input_files=( 
+             "${atmos_ic_root}/${DMN_NME}.init.nc"
+	     "${atmos_sfc_root}/${DMN_NME}.sfc_update.nc"
+	    )
+
+if [[ ${IF_RGNL} = ${YES} ]]; then 
+  # define a sequence of all forecast hours with background interval spacing
+  bkg_seq=`seq -f "%03g" 0 ${BKG_INT} ${fcst_len}`
+  for fcst in ${fcst_seq[@]}; do
+    lbc_time="`date +%Y-%m-%d_%H -d "${strt_dt} ${fcst} hours"`"
+    input_files+=( "${atmos_lbs_root}/lbc.${lbc_time}.nc" )
+  done
 fi
+
+for input_f in ${input_files[@]}; do
+  if [ ! -r ${filename} ]; then
+    printf "ERROR: ${filename} is missing or is not readable.\n"
+    exit 1
+  elif [ ! -s ${filename} ]; then
+    printf "ERROR: ${filename} is missing or emtpy.\n"
+    exit 1
+  else
+    cmd="ln -sfr ${filename} ."
+    printf "${cmd}\n"; eval "${cmd}"
+  fi
+done
 
 # Check to make sure the graph partitioning file is available and link
 # NOTE: ${N_PROC} must match the number of MPI processes
@@ -282,10 +361,6 @@ fi
 ##################################################################################
 #  Build atmosphere namelist
 ##################################################################################
-# Remove any previous namelists and stream lists
-cmd="rm -f namelist.*; rm -f streams.*; rm -f stream_list.*"
-printf "${cmd}\n"; eval "${cmd}"
-
 # Copy the atmosphere namelist / streams templates,
 # NOTE: THESE WILL BE MODIFIED DO NOT LINK TO THEM
 namelist_temp=${EXP_CNFG}/namelists/namelist.atmosphere.${BKG_DATA}
@@ -386,8 +461,8 @@ printf "${cmd}\n"; eval "${cmd}"
 cmd="mv streams.atmosphere ${log_dir}"
 printf "${cmd}\n"; eval "${cmd}"
 
-# Remove links to the INIT_ATMOS DAT files
-for file in ${atmos_dat_files[@]}; do
+# Remove links to the model run files
+for file in ${model_run_files[@]}; do
   cmd="rm -f `basename ${file}`"
   printf "${cmd}\n"; eval "${cmd}"
 done
@@ -417,7 +492,7 @@ if [ ! -s "${out_name}" ]; then
   exit 1
 fi
 
-printf "mpas_ic.sh completed successfully at `date +%Y-%m-%d_%H_%M_%S`.\n"
+printf "mpas_model.sh completed successfully at `date +%Y-%m-%d_%H_%M_%S`.\n"
 
 ##################################################################################
 # end

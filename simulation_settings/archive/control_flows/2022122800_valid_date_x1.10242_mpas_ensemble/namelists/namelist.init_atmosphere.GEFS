@@ -18,8 +18,8 @@
 /
 &data_sources
     config_geog_data_path = '/expanse/lustre/projects/ddp181/cgrudzien/JEDI-MPAS-Common-Case/DATA/static_terrestrial/mpas_static'
-    config_met_prefix = CONFIG_MET_PREFIX,
-    config_sfc_prefix = CONFIG_SFC_PREFIX,
+    config_met_prefix = 'BKG_DATA'
+    config_sfc_prefix = 'BKG_DATA'
     config_fg_interval = CONFIG_FG_INTERVAL,
     config_landuse_data = 'MODIFIED_IGBP_MODIS_NOAH'
     config_topo_data = 'GMTED2010'
@@ -38,6 +38,9 @@
     config_tc_vertical_grid = true
     config_blend_bdy_terrain = false
 /
+&physics
+    config_tsk_seaice_threshold = 100.000
+/
 &interpolation_control
     config_extrap_airtemp = 'lapse-rate'
 /
@@ -54,5 +57,5 @@
     config_pio_stride = CONFIG_PIO_STRIDE,
 /
 &decomposition
-    config_block_decomp_file_prefix = CONFIG_BLOCK_DECOMP_FILE_PREFIX,
+    config_block_decomp_file_prefix = 'DMN_NME.graph.info.part.' 
 /

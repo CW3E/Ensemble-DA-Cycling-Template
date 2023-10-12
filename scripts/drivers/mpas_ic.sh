@@ -49,7 +49,7 @@ fi
 # DMN_NME    = MPAS domain name used to call mesh / static file name patterns
 # MEMID      = Ensemble ID index, 00 for control, i > 0 for perturbation
 # STRT_DT    = Simulation start time in YYMMDDHH
-# IF_DYN_LEN = "Yes" or "No" switch to compute forecast length dynamically 
+# IF_DYN_LEN = If to compute forecast length dynamically (Yes / No)
 # FCST_HRS   = Total length of MPAS forecast simulation in HH, IF_DYN_LEN=No
 # EXP_VRF    = Verfication time for calculating forecast hours, IF_DYN_LEN=Yes
 # BKG_INT    = Interval of input data in HH
@@ -108,9 +108,6 @@ fi
 # define the end time based on forecast length control flow above
 end_dt=`date -d "${strt_dt} ${fcst_len} hours"`
 
-# define a sequence of all forecast hours with background interval spacing
-fcst_seq=`seq -f "%03g" 0 ${BKG_INT} ${fcst_len}`
-
 if [ ! ${BKG_INT} ]; then
   printf "ERROR: \${BKG_INT} is not defined.\n"
   exit 1
@@ -118,6 +115,9 @@ elif [ ${BKG_INT} -le 0 ]; then
   printf "ERROR: \${BKG_INT} must be HH > 0 for the frequency of data inputs.\n"
   exit 1
 fi
+
+# define a sequence of all forecast hours with background interval spacing
+fcst_seq=`seq -f "%03g" 0 ${BKG_INT} ${fcst_len}`
 
 if [[ ${BKG_DATA} != GFS && ${BKG_DATA} != GEFS ]]; then
   msg="ERROR: \${BKG_DATA} must equal 'GFS' or 'GEFS'"
@@ -332,33 +332,27 @@ end_iso=`date +%Y-%m-%d_%H:%M:%S -d "${end_dt}"`
 
 # Update the init_atmosphere namelist / streams for real initial conditions
 cat namelist.init_atmosphere \
-  | sed "s/= CONFIG_INIT_CASE,/= 7/" \
-  | sed "s/= CONFIG_START_TIME,/= '${strt_iso}'/" \
-  | sed "s/= CONFIG_STOP_TIME,/= '${end_iso}'/" \
-  | sed "s/= CONFIG_MET_PREFIX,/= '${BKG_DATA}'/" \
-  | sed "s/= CONFIG_SFC_PREFIX,/= '${BKG_DATA}'/" \
-  | sed "s/= CONFIG_FG_INTERVAL,/= ${data_interval_sec}/" \
-  | sed "s/= CONFIG_STATIC_INTERP,/= false/" \
-  | sed "s/= CONFIG_NATIVE_GWD_STATIC,/= false/" \
-  | sed "s/= CONFIG_VERTICAL_GRID,/= true/" \
-  | sed "s/= CONFIG_MET_INTERP,/= true/" \
-  | sed "s/= CONFIG_INPUT_SST,/= false/" \
-  | sed "s/= CONFIG_FRAC_SEAICE,/= true/" \
-  | sed "s/= CONFIG_PIO_NUM_IOTASKS,/= ${PIO_NUM}/" \
-  | sed "s/= CONFIG_PIO_STRIDE,/= ${PIO_STRIDE}/" \
-  | sed "s/= CONFIG_BLOCK_DECOMP_FILE_PREFIX,/= '${DMN_NME}.graph.info.part.'/" \
+  | sed "s/= CNFG_INIT_CASE,/= 7/" \
+  | sed "s/= CNFG_START_TIME,/= '${strt_iso}'/" \
+  | sed "s/= CNFG_STOP_TIME,/= '${end_iso}'/" \
+  | sed "s/BKG_DATA/${BKG_DATA}/" \
+  | sed "s/= CNFG_FG_INT,/= ${data_interval_sec}/" \
+  | sed "s/= CNFG_STATIC_INTERP,/= false/" \
+  | sed "s/= CNFG_NATIVE_GWD_STATIC,/= false/" \
+  | sed "s/= CNFG_VERTICAL_GRID,/= true/" \
+  | sed "s/= CNFG_MET_INTERP,/= true/" \
+  | sed "s/= CNFG_INPUT_SST,/= false/" \
+  | sed "s/= CNFG_FRAC_SEAICE,/= true/" \
+  | sed "s/= CNFG_PIO_NUM_IOTASKS,/= ${PIO_NUM}/" \
+  | sed "s/= CNFG_PIO_STRIDE,/= ${PIO_STRIDE}/" \
+  | sed "s/DMN_NME/${DMN_NME}/" \
   > namelist.init_atmosphere.tmp
 mv namelist.init_atmosphere.tmp namelist.init_atmosphere
 
-# define initial conditions output name
-out_name=${DMN_NME}.init.nc
-
 cat streams.init_atmosphere \
-  | sed "s/=INPUT_FILE_NAME,/=\"${DMN_NME}.static.nc\"/" \
-  | sed "s/=OUTPUT_FILE_NAME,/=\"${out_name}\"/" \
-  | sed "s/=SURFACE_FILE_NAME,/=\"${DMN_NME}.sfc_update.nc\"/" \
-  | sed "s/=SFC_OUTPUT_INTERVAL,/=\"${BKG_INT}:00:00\"/" \
-  | sed "s/=LBC_OUTPUT_INTERVAL,/=\"${BKG_INT}:00:00\"/" \
+  | sed "s/DMN_NME/${DMN_NME}/" \
+  | sed "s/=SFC_OUT_INT,/=\"${BKG_INT}:00:00\"/" \
+  | sed "s/=LBC_OUT_INT,/=\"${BKG_INT}:00:00\"/" \
   > streams.init_atmosphere.tmp
 mv streams.init_atmosphere.tmp streams.init_atmosphere
 
