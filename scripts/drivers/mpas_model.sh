@@ -46,24 +46,26 @@ fi
 ##################################################################################
 # Options below are defined in workflow variables
 #
-# DMN_NME      = MPAS domain name used to call mesh / static file name patterns
-# MEMID        = Ensemble ID index, 00 for control, i > 0 for perturbation
-# STRT_DT      = Simulation start time in YYMMDDHH
-# IF_DYN_LEN   = If to compute forecast length dynamically (Yes / No)
-# FCST_HRS     = Total length of MPAS forecast simulation in HH, IF_DYN_LEN=No
-# EXP_VRF      = Verfication time for calculating forecast hours, IF_DYN_LEN=Yes
-# IF_RGNL      = Equals "Yes" or "No" if MPAS regional simulation is being run
-# BKG_INT      = Interval of lbc input data in HH, required IF_RGNL = Yes
-# DIAG_INT     = Interval at which diagnostic fields are output (HH)
-# HIST_INT     = Interval at which model history fields are output (HH)
-# RSTRT_INT    = Interval at which model restart files are output (HH)
-# IF_RSTRT     = If performing a restart run initialization (Yes / No)
-# IF_DA        = If peforming DA (Yes - writes out necessary fields / No)
-# IF_DA_CYC    = If performing DA cycling initialization (Yes / No)
-# IF_IAU       = If performing incremental assimilation update (Yes / No)
-# IF_SST_UPDTE = If updating SST with lower BC update files
-# IF_SST_DIURN = If updating SST with diurnal cycling
-# IF_DEEPSOIL  = If slowly updating lower boundary deep soil temperature
+# DMN_NME       = MPAS domain name used to call mesh / static file name patterns
+# MEMID         = Ensemble ID index, 00 for control, i > 0 for perturbation
+# STRT_DT       = Simulation start time in YYMMDDHH
+# IF_DYN_LEN    = If to compute forecast length dynamically (Yes / No)
+# FCST_HRS      = Total length of MPAS forecast simulation in HH, IF_DYN_LEN=No
+# EXP_VRF       = Verfication time for calculating forecast hours, IF_DYN_LEN=Yes
+# IF_RGNL       = Equals "Yes" or "No" if MPAS regional simulation is being run
+# BKG_INT       = Interval of lbc input data in HH, required IF_RGNL = Yes
+# DIAG_INT      = Interval at which diagnostic fields are output (HH)
+# HIST_INT      = Interval at which model history fields are output (HH)
+# BCKT_INT      = Interval at which accumulation buckets are updated
+# SND_INT       = Interval at which soundings are made
+# RSTRT_INT     = Interval at which model restart files are output (HH)
+# IF_RSTRT      = If performing a restart run initialization (Yes / No)
+# IF_DA         = If peforming DA (Yes - writes out necessary fields / No)
+# IF_DA_CYC     = If performing DA cycling initialization (Yes / No)
+# IF_IAU        = If performing incremental assimilation update (Yes / No)
+# IF_SST_UPDTE  = If updating SST with lower BC update files
+# IF_SST_DIURN  = If updating SST with diurnal cycling
+# IF_DEEPSOIL   = If slowly updating lower boundary deep soil temperature
 #
 ##################################################################################
 
@@ -96,7 +98,7 @@ if [[ ${IF_DYN_LEN} = ${NO} ]]; then
     exit 1
   else
     # parse forecast hours as base 10 padded
-    fcst_len=`printf %03d $(( 10#${FCST_HRS} ))`
+    fcst_hrs=`printf %03d $(( 10#${FCST_HRS} ))`
   fi
 elif [[ ${IF_DYN_LEN} = ${YES} ]]; then
   printf "Generating forecast forcing data until experiment validation time.\n"
@@ -107,8 +109,8 @@ elif [[ ${IF_DYN_LEN} = ${YES} ]]; then
     # compute forecast length relative to start time and verification time
     exp_vrf="${EXP_VRF:0:8} ${EXP_VRF:8:2}"
     exp_vrf=`date +%s -d "${exp_vrf}"`
-    fcst_len=$(( (${exp_vrf} - `date +%s -d "${strt_dt}"`) / 3600 ))
-    fcst_len=`printf %03d $(( 10#${fcst_len} ))`
+    fcst_hrs=$(( (${exp_vrf} - `date +%s -d "${strt_dt}"`) / 3600 ))
+    fcst_hrs=`printf %03d $(( 10#${fcst_hrs} ))`
   fi
 else
   printf "\${IF_DYN_LEN} must be set to 'Yes' or 'No' (case insensitive).\n"
@@ -116,7 +118,7 @@ else
 fi
 
 # define the end time based on forecast length control flow above
-end_dt=`date -d "${strt_dt} ${fcst_len} hours"`
+stop_dt=`date -d "${strt_dt} ${fcst_hrs} hours"`
 
 if [[ ${IF_RGNL} = ${NO} ]]; then 
   printf "MPAS-A is run as a global simulation.\n"
@@ -151,6 +153,22 @@ if [ ! ${HIST_INT} ]; then
   exit 1
 elif [ ${HIST_INT} -le 0 ]; then
   printf "ERROR: \${HIST_INT} must be HH > 0 for the frequency of data inputs.\n"
+  exit 1
+fi
+
+if [ ! ${BCKT_INT} ]; then
+  printf "ERROR: \${BCKT_INT} is not defined.\n"
+  exit 1
+elif [ ${BCKT_INT} -le 0 ]; then
+  printf "ERROR: \${BCKT_INT} must be HH > 0 for the accumulation reset.\n"
+  exit 1
+fi
+
+if [ ! ${SND_INT} ]; then
+  printf "ERROR: \${SND_INT} is not defined.\n"
+  exit 1
+elif [ ${SND_INT} -le 0 ]; then
+  printf "ERROR: \${SND_INT} must be HH > 0 for the frequency of data inputs.\n"
   exit 1
 fi
 
@@ -335,7 +353,7 @@ fi
 # atmos_lbc_root   = Directory from which lateral boundary data is sourced
 # work_root        = Working directory where atmosphere_model runs and outputs
 # model_run_files  = All file contents of clean MPAS build directory
-#                   namelists and input data is linked from other sources
+#                    namelists and input data is linked from other sources
 # atmos_model_exe  = Path and name of working executable
 #
 ##################################################################################
@@ -353,8 +371,15 @@ fi
 
 # Make links to the model run files
 model_run_files=(${MPAS_ROOT}/*)
-for file in ${model_run_files[@]}; do
-  cmd="ln -sf ${file} ."
+for run_f in ${model_run_files[@]}; do
+  cmd="ln -sf ${run_f} ."
+  printf "${cmd}\n"; eval "${cmd}"
+done
+
+# Make links to the model physics files
+model_phys_files=${MPAS_ROOT}/src/core_atmosphere/physics/physics_wrf/files/* .
+for phys_f in ${model_run_files[@]}; do
+  cmd="ln -sf ${phys_f} ."
   printf "${cmd}\n"; eval "${cmd}"
 done
 
@@ -370,8 +395,8 @@ printf "${cmd}\n"; eval "${cmd}"
 cmd="rm -f namelist.*; rm -f streams.*; rm -f stream_list.*"
 printf "${cmd}\n"; eval "${cmd}"
 
-# Remove any previous lateral boundary condition files
-cmd="rm -f lbc.*.nc"
+# Remove any previous lateral boundary condition files ${DMN_NME}.lbc.*.nc
+cmd="rm -f *.lbc.*.nc"
 printf "${cmd}\n"; eval "${cmd}"
 
 # Define list of preprocessed data and make links
@@ -384,22 +409,22 @@ input_files=(
 
 if [[ ${IF_RGNL} = ${YES} ]]; then 
   # define a sequence of all forecast hours with background interval spacing
-  bkg_seq=`seq -f "%03g" 0 ${BKG_INT} ${fcst_len}`
+  bkg_seq=`seq -f "%03g" 0 ${BKG_INT} ${fcst_hrs}`
   for fcst in ${fcst_seq[@]}; do
-    lbc_time="`date +%Y-%m-%d_%H -d "${strt_dt} ${fcst} hours"`"
-    input_files+=( "${atmos_lbs_root}/lbc.${lbc_time}.nc" )
+    lbc_time="`date +%Y-%m-%d_%H_%M_%S -d "${strt_dt} ${fcst} hours"`"
+    input_files+=( "${atmos_lbs_root}/${DMN}.lbc.${lbc_time}.nc" )
   done
 fi
 
 for input_f in ${input_files[@]}; do
-  if [ ! -r ${filename} ]; then
-    printf "ERROR: ${filename} is missing or is not readable.\n"
+  if [ ! -r ${input_f} ]; then
+    printf "ERROR: ${input_f} is missing or is not readable.\n"
     exit 1
-  elif [ ! -s ${filename} ]; then
-    printf "ERROR: ${filename} is missing or emtpy.\n"
+  elif [ ! -s ${input_f} ]; then
+    printf "ERROR: ${input_f} is missing or emtpy.\n"
     exit 1
   else
-    cmd="ln -sfr ${filename} ."
+    cmd="ln -sfr ${input_f} ."
     printf "${cmd}\n"; eval "${cmd}"
   fi
 done
@@ -420,7 +445,7 @@ fi
 ##################################################################################
 # Copy the atmosphere namelist / streams templates,
 # NOTE: THESE WILL BE MODIFIED DO NOT LINK TO THEM
-namelist_temp=${EXP_CNFG}/namelists/namelist.atmosphere.${BKG_DATA}
+namelist_temp=${EXP_CNFG}/namelists/namelist.atmosphere.${DMN_NME}
 if [ ! -r ${namelist_temp} ]; then 
   msg="atmosphere namelist template\n ${namelist_temp}\n is not readable or "
   msg+="does not exist.\n"
@@ -444,17 +469,38 @@ fi
 
 # define start / end time patterns for namelist.atmosphere
 strt_iso=`date +%Y-%m-%d_%H:%M:%S -d "${strt_dt}"`
-end_iso=`date +%Y-%m-%d_%H:%M:%S -d "${end_dt}"`
+stop_iso=`date +%Y-%m-%d_%H:%M:%S -d "${stop_dt}"`
 
 # Update background data interval in namelist
 (( data_interval_sec = BKG_INT * 3600 ))
 
 # Update the atmosphere namelist / streams for surface boundary conditions
 cat namelist.atmosphere \
-  | sed "s/= START_TIME,/= '${strt_iso}'/" \
-  | sed "s/= STOP_TIME,/= '${end_iso}'/" \
+  | sed "s/= STRT_DT,/= '${strt_iso}'/" \
+  | sed "s/= FCST_HRS,/= '${fcst_hrs}'/" \
+  | sed "s/= IF_RGNL,/= '${if_rgnl}'/" \
+  | sed "s/= IF_RSTRT,/= '${if_rstrt}'/" \
+  | sed "s/= IF_DA,/= '${if_da}'/" \
+  | sed "s/= IF_IAU,/= '${if_iau}'/" \
+  | sed "s/= IF_DACYC,/= '${if_dacyc}'/" \
+  | sed "s/= IF_SST_UPDT,/= '${if_sst_updt}'/" \
+  | sed "s/= IF_SST_DIURN,/= '${if_sst_diurn}'/" \
+  | sed "s/= IF_DEEPSOIL,/= '${if_deepsoil}'/" \
+  | sed "s/= BCKT_INT,/= '${bckt_updt_int}'/" \
+  | sed "s/= SND_INT,/= '${snd_int}'/" \
+  | sed "s/= PIO_NUM,/= ${PIO_NUM}/" \
+  | sed "s/= PIO_STRIDE,/= ${PIO_STRIDE}/" \
+  | sed "s/DMN_NME/${DMN_NME}/" \
   > streams.atmosphere.tmp
 mv streams.atmosphere.tmp streams.atmosphere
+
+cat streams.atmosphere \
+  | sed "s/DMN_NME/${DMN_NME}/" \
+  | sed "s/=RSTRT_INT,/=\"${rstrt_int}:00:00\"/" \
+  | sed "s/=HIST_INT,/=\"${hist_int}:00:00\"/" \
+  | sed "s/=DIAG_INT,/=\"${diag_int}:00:00\"/" \
+  > streams.init_atmosphere.tmp
+mv streams.init_atmosphere.tmp streams.init_atmosphere
 
 ##################################################################################
 # Run atmosphere
@@ -466,11 +512,11 @@ printf "DMN_NME  = ${DMN_NME}\n"
 printf "MEMID    = ${MEMID}\n"
 printf "CYC_HME  = ${CYC_HME}\n"
 printf "STRT_DT  = ${strt_iso}\n"
-printf "END_DT   = ${end_iso}\n"
+printf "STOP_DT  = ${stop_iso}\n"
 printf "BKG_INT  = ${BKG_INT}\n"
 printf "\n"
 now=`date +%Y-%m-%d_%H_%M_%S`
-printf "atmosphere started at ${now}.\n"
+printf "atmosphere_model started at ${now}.\n"
 cmd="${MPIRUN} -n ${N_PROC} ${atmos_model_exe}"
 printf "${cmd}\n"
 ${MPIRUN} -n ${N_PROC} ${atmos_model_exe}
@@ -479,10 +525,10 @@ ${MPIRUN} -n ${N_PROC} ${atmos_model_exe}
 # Run time error check
 ##################################################################################
 error="$?"
-printf "atmosphere exited with code ${error}.\n"
+printf "atmosphere_model exited with code ${error}.\n"
 
 # save mpas_sfc logs
-log_dir=atmosphere_sfc_log.${now}
+log_dir=atmosphere_model_log.${now}
 mkdir ${log_dir}
 cmd="mv log.atmosphere.* ${log_dir}"
 printf "${cmd}\n"; eval "${cmd}"
@@ -494,24 +540,22 @@ cmd="mv streams.atmosphere ${log_dir}"
 printf "${cmd}\n"; eval "${cmd}"
 
 # Remove links to the model run files
-for file in ${model_run_files[@]}; do
-  cmd="rm -f `basename ${file}`"
+for run_f in ${model_run_files[@]}; do
+  cmd="rm -f `basename ${run_f}`"
   printf "${cmd}\n"; eval "${cmd}"
 done
 
-# remove links to ungrib data
-for fcst in ${fcst_seq[@]}; do
-  filename="./${BKG_DATA}:`date +%Y-%m-%d_%H -d "${strt_dt} ${fcst} hours"`"
-  cmd="rm -f ${filename} ."
+# Remove links to the model physics files
+for phys_f in ${model_phys_files[@]}; do
+  cmd="rm -f `basename ${phys_f}`"
   printf "${cmd}\n"; eval "${cmd}"
 done
 
-# remove links to static and partition data
-cmd="rm -f ${DMN_NME}.static.nc"
-printf "${cmd}\n"; eval "${cmd}"
-
-cmd="rm -f ${DMN_NME}.graph.info.part.${N_PROC}"
-printf "${cmd}\n"; eval "${cmd}"
+# remove links to input files
+for input_f in ${input_files[@]}; do
+  cmd="rm -f `basename ${input_f}`"
+  printf "${cmd}\n"; eval "${cmd}"
+done
 
 if [ ${error} -ne 0 ]; then
   printf "ERROR:\n ${atmos_model_exe}\n exited with status ${error}.\n"

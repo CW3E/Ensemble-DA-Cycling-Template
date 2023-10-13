@@ -87,7 +87,7 @@ if [[ ${IF_DYN_LEN} = ${NO} ]]; then
     exit 1
   else
     # parse forecast hours as base 10 padded
-    fcst_len=`printf %03d $(( 10#${FCST_HRS} ))`
+    fcst_hrs=`printf %03d $(( 10#${FCST_HRS} ))`
   fi
 elif [[ ${IF_DYN_LEN} = ${YES} ]]; then
   printf "Generating forecast forcing data until experiment validation time.\n"
@@ -98,8 +98,8 @@ elif [[ ${IF_DYN_LEN} = ${YES} ]]; then
     # compute forecast length relative to start time and verification time
     exp_vrf="${EXP_VRF:0:8} ${EXP_VRF:8:2}"
     exp_vrf=`date +%s -d "${exp_vrf}"`
-    fcst_len=$(( (${exp_vrf} - `date +%s -d "${strt_dt}"`) / 3600 ))
-    fcst_len=`printf %03d $(( 10#${fcst_len} ))`
+    fcst_hrs=$(( (${exp_vrf} - `date +%s -d "${strt_dt}"`) / 3600 ))
+    fcst_hrs=`printf %03d $(( 10#${fcst_hrs} ))`
   fi
 else
   printf "\${IF_DYN_LEN} must be set to 'Yes' or 'No' (case insensitive).\n"
@@ -107,7 +107,7 @@ else
 fi
 
 # define the stop time based on forecast length control flow above
-stop_dt=`date -d "${strt_dt} ${fcst_len} hours"`
+stop_dt=`date -d "${strt_dt} ${fcst_hrs} hours"`
 
 if [ ! ${BKG_INT} ]; then
   printf "ERROR: \${BKG_INT} is not defined.\n"
@@ -118,7 +118,7 @@ elif [ ${BKG_INT} -le 0 ]; then
 fi
 
 # define a sequence of all forecast hours with background interval spacing
-fcst_seq=`seq -f "%03g" 0 ${BKG_INT} ${fcst_len}`
+fcst_seq=`seq -f "%03g" 0 ${BKG_INT} ${fcst_hrs}`
 
 if [[ ${BKG_DATA} != GFS && ${BKG_DATA} != GEFS ]]; then
   msg="ERROR: \${BKG_DATA} must equal 'GFS' or 'GEFS'"
@@ -257,7 +257,7 @@ printf "${cmd}\n"; eval "${cmd}"
 # Remove pre-existing ungrib case data
 for fcst in ${fcst_seq[@]}; do
   filename="${BKG_DATA}:`date +%Y-%m-%d_%H -d "${strt_dt} ${fcst} hours"`"
-  cmd="rm -f ./${filename}"
+  cmd="rm -f ${filename}"
   printf "${cmd}\n"; eval "${cmd}"
 done
 
@@ -336,8 +336,8 @@ stop_iso=`date +%Y-%m-%d_%H:%M:%S -d "${stop_dt}"`
 # Update the init_atmosphere namelist / streams for surface boundary conditions
 cat namelist.init_atmosphere \
   | sed "s/= INIT_CASE,/= 8/" \
-  | sed "s/= START_TIME,/= '${strt_iso}'/" \
-  | sed "s/= STOP_TIME,/= '${stop_iso}'/" \
+  | sed "s/= STRT_DT,/= '${strt_iso}'/" \
+  | sed "s/= STOP_DT,/= '${stop_iso}'/" \
   | sed "s/BKG_DATA/${BKG_DATA}/" \
   | sed "s/= FG_INT,/= ${data_interval_sec}/" \
   | sed "s/= IF_STATIC_INTERP,/= false/" \
@@ -346,7 +346,7 @@ cat namelist.init_atmosphere \
   | sed "s/= IF_MET_INTERP,/= false/" \
   | sed "s/= IF_INPUT_SST,/= true/" \
   | sed "s/= IF_FRAC_SEAICE,/= true/" \
-  | sed "s/= PIO_NUM_IOTASKS,/= ${PIO_NUM}/" \
+  | sed "s/= PIO_NUM,/= ${PIO_NUM}/" \
   | sed "s/= PIO_STRIDE,/= ${PIO_STRIDE}/" \
   | sed "s/DMN_NME/${DMN_NME}/" \
   > namelist.init_atmosphere.tmp
@@ -405,7 +405,7 @@ done
 # remove links to ungrib data
 for fcst in ${fcst_seq[@]}; do
   filename="./${BKG_DATA}:`date +%Y-%m-%d_%H -d "${strt_dt} ${fcst} hours"`"
-  cmd="rm -f ${filename} ."
+  cmd="rm -f ${filename}"
   printf "${cmd}\n"; eval "${cmd}"
 done
 
@@ -422,6 +422,7 @@ if [ ${error} -ne 0 ]; then
 fi
 
 # Check to see if init_atmosphere outputs are generated
+out_name=${DMN_NME}.sfc_update.nc
 if [ ! -s "${out_name}" ]; then
   printf "ERROR:\n ${init_atmos_exe}\n failed to complete writing ${out_name}.\n"
   exit 1

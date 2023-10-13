@@ -48,6 +48,10 @@
 
   <!-- MPAS SETTINGS -->
   <!ENTITY HIST_INT      "03"> <!-- Output interval for wrfout files in HH -->
+  <!ENTITY DIAG_INT      "03"> <!-- Output interval for wrfout files in HH -->
+  <!ENTITY SND_INT       "03"> <!-- Output interval for wrfout files in HH -->
+  <!ENTITY BCKT_INT      "24"> <!-- Output interval for wrfout files in HH -->
+  <!ENTITY RSTRT_INT     "24"> <!-- Output interval for wrfout files in HH -->
   <!ENTITY PIO_NUM       "0"> <!-- Quilting tasks per group, set NIO_TPG=0 for default TURN OFF QUILTING --> 
   <!ENTITY PIO_STRIDE    "1"> <!-- Quilting number of groups -->
   <!-- END MPAS SETTINGS -->
@@ -66,11 +70,12 @@
   <!ENTITY REAL_MEM      "1750M"> <!-- WPS MEM per CPU argument for SLURM -->
   <!ENTITY REAL_NODESIZE "128"> <!-- REAL node size -->
   <!ENTITY REAL_NODES    "1"> <!-- Number of nodes for WPS / REAL jobs -->
+  <!ENTITY REAL_WC       "00:30:00"> <!-- Wallclock limit for REAL jobs -->
   <!ENTITY MPAS_PROC     "64"> <!-- MPAS number of procs -->
   <!ENTITY MPAS_MEM      "1750M"> <!-- MPAS MEM per CPU argument for SLURM -->
   <!ENTITY MPAS_NODESIZE "128"> <!-- MPAS node size -->
   <!ENTITY MPAS_NODES    "1"> <!-- Number of nodes for MPAS jobs -->
-  <!ENTITY MPAS_WC       "48:00:00"> <!-- Wallclock limit for MPAS short-range cycling -->
+  <!ENTITY MPAS_WC       "00:30:00"> <!-- Wallclock limit for MPAS short-range cycling -->
   <!-- END JOB SETTINGS -->
 ]>
 
@@ -152,15 +157,15 @@
     <task name="mpas_ic_ens_#ENS_N#" maxtries="12" cycledefs="forecast_cycles">
       <command>&DRIVERS;/mpas_ic.sh</command>
       <cores>&REAL_PROC;</cores>
-      <nodesize>&WPS_NODESIZE;</nodesize>
-      <walltime>&WPS_WC;</walltime>
+      <nodesize>&REAL_NODESIZE;</nodesize>
+      <walltime>&REAL_WC;</walltime>
       <jobname><cyclestr>mpas_ic_ens_#ENS_N#_@Y@m@d@H</cyclestr></jobname>
       <join><cyclestr>&EXP_LOG;/@Y@m@d@H/mpas_ic_ens_#ENS_N#.log</cyclestr></join>
       <native>&PART_DEBUG;</native>
       <native>&PROJECT;</native>
       <native>--export=ALL</native>
-      <native>--nodes=&WPS_NODES;</native>
-      <native>--mem-per-cpu=&WPS_MEM;</native>
+      <native>--nodes=&REAL_NODES;</native>
+      <native>--mem-per-cpu=&REAL_MEM;</native>
       <envar>
         <name>CNST</name>
         <value>&MPAS_CNST;</value>
@@ -228,15 +233,15 @@
     <task name="mpas_sfc_ens_#ENS_N#" maxtries="12" cycledefs="forecast_cycles">
       <command>&DRIVERS;/mpas_sfc.sh</command>
       <cores>&REAL_PROC;</cores>
-      <nodesize>&WPS_NODESIZE;</nodesize>
-      <walltime>&WPS_WC;</walltime>
+      <nodesize>&REAL_NODESIZE;</nodesize>
+      <walltime>&REAL_WC;</walltime>
       <jobname><cyclestr>mpas_sfc_ens_#ENS_N#_@Y@m@d@H</cyclestr></jobname>
       <join><cyclestr>&EXP_LOG;/@Y@m@d@H/mpas_sfc_ens_#ENS_N#.log</cyclestr></join>
       <native>&PART_DEBUG;</native>
       <native>&PROJECT;</native>
       <native>--export=ALL</native>
-      <native>--nodes=&WPS_NODES;</native>
-      <native>--mem-per-cpu=&WPS_MEM;</native>
+      <native>--nodes=&REAL_NODES;</native>
+      <native>--mem-per-cpu=&REAL_MEM;</native>
       <envar>
         <name>CNST</name>
         <value>&MPAS_CNST;</value>
@@ -299,6 +304,118 @@
       </envar>
       <dependency> 
         <taskdep task="mpas_ic_ens_#ENS_N#" state="SUCCEEDED"/>
+      </dependency>
+    </task>
+    <task name="mpas_model_ens_#ENS_N#" maxtries="12" cycledefs="forecast_cycles">
+      <command>&DRIVERS;/mpas_model.sh</command>
+      <cores>&MPAS_PROC;</cores>
+      <nodesize>&MPAS_NODESIZE;</nodesize>
+      <walltime>&MPAS_WC;</walltime>
+      <jobname><cyclestr>mpas_model_ens_#ENS_N#_@Y@m@d@H</cyclestr></jobname>
+      <join><cyclestr>&EXP_LOG;/@Y@m@d@H/mpas_model_ens_#ENS_N#.log</cyclestr></join>
+      <native>&PART_DEBUG;</native>
+      <native>&PROJECT;</native>
+      <native>--export=ALL</native>
+      <native>--nodes=&MPAS_NODES;</native>
+      <native>--mem-per-cpu=&MPAS_MEM;</native>
+      <envar>
+        <name>CNST</name>
+        <value>&MPAS_CNST;</value>
+      </envar>
+      <envar>
+        <name>DMN_NME</name>
+        <value>&DMN_NME;</value>
+      </envar>
+      <envar>
+         <name>MEMID</name>
+         <value>#ENS_N#</value>
+      </envar>
+      <envar>
+        <name>STRT_DT</name>
+        <value><cyclestr>@Y@m@d@H</cyclestr></value>
+      </envar>
+      <envar>
+        <name>IF_DYN_LEN</name>
+        <value>Yes</value>
+      </envar>
+      <envar>
+        <name>EXP_VRF</name>
+        <value>&EXP_VRF;</value>
+      </envar>
+      <envar>
+        <name>IF_RGNL</name>
+        <value>No</value>
+      </envar>
+      <envar>
+        <name>DIAG_INT</name>
+        <value>&DIAG_INT;</value>
+      </envar>
+      <envar>
+        <name>HIST_INT</name>
+        <value>&HIST_INT;</value>
+      </envar>
+      <envar>
+        <name>BCKT_INT</name>
+        <value>&BCKT_INT;</value>
+      </envar>
+      <envar>
+        <name>SND_INT</name>
+        <value>&SND_INT;</value>
+      </envar>
+      <envar>
+        <name>RSTRT_INT</name>
+        <value>&RSTRT_INT;</value>
+      </envar>
+      <envar>
+        <name>IF_RSTRT</name>
+        <value>No</value>
+      </envar>
+      <envar>
+        <name>IF_DA</name>
+        <value>No</value>
+      </envar>
+      <envar>
+        <name>IF_SST_UPDT</name>
+        <value>Yes</value>
+      </envar>
+      <envar>
+        <name>IF_SST_DIURN</name>
+        <value>Yes</value>
+      </envar>
+      <envar>
+        <name>IF_DEEPSOIL</name>
+        <value>No</value>
+      </envar>
+      <envar>
+        <name>MPAS_ROOT</name>
+        <value>&MPAS_ROOT;</value>
+      </envar>
+      <envar>
+        <name>EXP_CNFG</name>
+        <value>&EXP_CNFG;</value>
+      </envar>
+      <envar>
+        <name>CYC_HME</name>
+        <value><cyclestr>&WORK_ROOT;/@Y@m@d@H</cyclestr></value>
+      </envar>
+      <envar>
+        <name>MPIRUN</name>
+        <value>&MPIRUN;</value>
+      </envar>
+      <envar>
+        <name>N_PROC</name>
+        <value>&MPAS_PROC;</value>
+      </envar>
+      <envar>
+        <name>PIO_NUM</name>
+        <value>&PIO_NUM;</value>
+      </envar>
+      <envar>
+        <name>PIO_STRIDE</name>
+        <value>&PIO_STRIDE;</value>
+      </envar>
+      <dependency> 
+        <taskdep task="mpas_sfc_ens_#ENS_N#" state="SUCCEEDED"/>
       </dependency>
     </task>
   </metatask>

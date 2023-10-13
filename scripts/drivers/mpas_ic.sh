@@ -333,8 +333,8 @@ stop_iso=`date +%Y-%m-%d_%H:%M:%S -d "${stop_dt}"`
 # Update the init_atmosphere namelist / streams for real initial conditions
 cat namelist.init_atmosphere \
   | sed "s/= INIT_CASE,/= 7/" \
-  | sed "s/= START_TIME,/= '${strt_iso}'/" \
-  | sed "s/= STOP_TIME,/= '${stop_iso}'/" \
+  | sed "s/= STRT_DT,/= '${strt_iso}'/" \
+  | sed "s/= STOP_DT,/= '${stop_iso}'/" \
   | sed "s/BKG_DATA/${BKG_DATA}/" \
   | sed "s/= FG_INT,/= ${data_interval_sec}/" \
   | sed "s/= IF_STATIC_INTERP,/= false/" \
@@ -343,7 +343,7 @@ cat namelist.init_atmosphere \
   | sed "s/= IF_MET_INTERP,/= true/" \
   | sed "s/= IF_INPUT_SST,/= false/" \
   | sed "s/= IF_FRAC_SEAICE,/= true/" \
-  | sed "s/= PIO_NUM_IOTASKS,/= ${PIO_NUM}/" \
+  | sed "s/= PIO_NUM,/= ${PIO_NUM}/" \
   | sed "s/= PIO_STRIDE,/= ${PIO_STRIDE}/" \
   | sed "s/DMN_NME/${DMN_NME}/" \
   > namelist.init_atmosphere.tmp
@@ -401,8 +401,8 @@ done
 
 # remove links to ungrib data
 for fcst in ${fcst_seq[@]}; do
-  filename="./${BKG_DATA}:`date +%Y-%m-%d_%H -d "${strt_dt} ${fcst} hours"`"
-  cmd="rm -f ${filename} ."
+  filename="${BKG_DATA}:`date +%Y-%m-%d_%H -d "${strt_dt} ${fcst} hours"`"
+  cmd="rm -f ${filename}"
   printf "${cmd}\n"; eval "${cmd}"
 done
 
@@ -419,6 +419,7 @@ if [ ${error} -ne 0 ]; then
 fi
 
 # Check to see if init_atmosphere outputs are generated
+out_name=${DMN_NME}.init.nc
 if [ ! -s "${out_name}" ]; then
   printf "ERROR:\n ${init_atmos_exe}\n failed to complete writing ${out_name}.\n"
   exit 1

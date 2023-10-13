@@ -101,16 +101,16 @@ fi
 ##################################################################################
 # Options below are defined in workflow variables
 #
-# MEMID        = Ensemble ID index, 00 for control, i > 00 for perturbation
-# STRT_DT      = Simulation start time in YYMMDDHH
-# IF_DYN_LEN   = "Yes" or "No" switch to compute forecast length dynamically 
-# FCST_HRS     = Total length of WRF forecast simulation in HH, IF_DYN_LEN=No
-# EXP_VRF      = Verfication time for calculating forecast hours, IF_DYN_LEN=Yes
-# BKG_INT      = Interval of input data in HH
-# BKG_DATA     = String case variable for supported inputs: GFS, GEFS currently
-# MAX_DOM      = Max number of domains to use in namelist settings
-# IF_SST_UPDTE = "Yes" or "No" switch to compute dynamic SST forcing, (must
-#                include auxinput4 path and timing in namelist) case insensitive
+# MEMID       = Ensemble ID index, 00 for control, i > 00 for perturbation
+# STRT_DT     = Simulation start time in YYMMDDHH
+# IF_DYN_LEN  = "Yes" or "No" switch to compute forecast length dynamically 
+# FCST_HRS    = Total length of WRF forecast simulation in HH, IF_DYN_LEN=No
+# EXP_VRF     = Verfication time for calculating forecast hours, IF_DYN_LEN=Yes
+# BKG_INT     = Interval of input data in HH
+# BKG_DATA    = String case variable for supported inputs: GFS, GEFS currently
+# MAX_DOM     = Max number of domains to use in namelist settings
+# IF_SST_UPDT = "Yes" or "No" switch to compute dynamic SST forcing, (must
+#               include auxinput4 path and timing in namelist) case insensitive
 #
 ##################################################################################
 
@@ -191,14 +191,14 @@ fi
 # define a sequence of all domains in padded syntax
 dmns=`seq -f "%02g" 1 ${MAX_DOM}`
 
-if [[ ${IF_SST_UPDTE} = ${YES} ]]; then
+if [[ ${IF_SST_UPDT} = ${YES} ]]; then
   printf "SST Update turned on.\n"
   sst_updt=1
-elif [[ ${IF_SST_UPDTE} = ${NO} ]]; then
+elif [[ ${IF_SST_UPDT} = ${NO} ]]; then
   printf "SST Update turned off.\n"
   sst_updt=0
 else
-  printf "ERROR: \${IF_SST_UPDTE} must equal 'Yes' or 'No' (case insensitive).\n"
+  printf "ERROR: \${IF_SST_UPDT} must equal 'Yes' or 'No' (case insensitive).\n"
   exit 1
 fi
 
@@ -409,7 +409,7 @@ printf "STOP_DT      = ${stop_iso}\n"
 printf "BKG_INT      = ${BKG_INT}\n"
 printf "BKG_DATA     = ${BKG_DATA}\n"
 printf "MAX_DOM      = ${MAX_DOM}\n"
-printf "IF_SST_UPDTE = ${IF_SST_UPDTE}\n"
+printf "IF_SST_UPDT  = ${IF_SST_UPDT}\n"
 printf "\n"
 now=`date +%Y-%m-%d_%H_%M_%S`
 printf "real started at ${now}.\n"
@@ -482,7 +482,7 @@ for dmn in ${dmns[@]}; do
 done
 
 # check to see if the SST update fields are generated
-if [[ ${IF_SST_UPDTE} = ${YES} ]]; then
+if [[ ${IF_SST_UPDT} = ${YES} ]]; then
   for dmn in ${dmns[@]}; do
     sst_file=wrflowinp_d${dmn}
     if [ ! -s ${sst_file} ]; then

@@ -1,7 +1,7 @@
 <streams>
 <immutable_stream name="input"
                   type="input"
-                  filename_template="DMN_NME.static.nc"
+                  filename_template="DMN_NME.init.nc"
                   input_interval="initial_only" />
 
 <immutable_stream name="restart"

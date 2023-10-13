@@ -21,20 +21,9 @@
 &limited_area
     config_apply_lbcs = IF_RGNL,
 /
-&io
-    config_pio_num_iotasks = PIO_NUM_IOTASKS,
-    config_pio_stride = PIO_STRIDE,
-/
-&decomposition
-    config_block_decomp_file_prefix = 'DMN_NME.graph.info.part.' 
-/
 &restart
     config_do_restart = IF_RSTRT,
     config_do_DAcycling = IF_DACYC,
-/
-&printout
-    config_print_global_minmax_vel = true
-    config_print_detailed_minmax_vel = false
 /
 &assimilation/
     config_jedi_da = IF_DA,
@@ -43,15 +32,26 @@
     config_IAU_option = IF_IAU,
     config_IAU_window_length_s = 21600.
 /
+&printout
+    config_print_global_minmax_vel = true
+    config_print_detailed_minmax_vel = false
+/
 &physics
-    config_sst_update = IF_SST_UPDTE,
+    config_sst_update = IF_SST_UPDT,
     config_sstdiurn_update = IF_SST_DIURN,
     config_deepsoiltemp_update = IF_DEEPSOIL,
     config_radtlw_interval = '01:00:00'
     config_radtsw_interval = '01:00:00'
-    config_bucket_update = BCKT_UPDTE_INT,
+    config_bucket_update = BCKT_INT,
     config_physics_suite = 'mesoscale_reference'
 /
 &soundings
-    config_sounding_interval = SNDING_INT,
+    config_sounding_interval = SND_INT,
+/
+&io
+    config_pio_num_iotasks = PIO_NUM,
+    config_pio_stride = PIO_STRIDE,
+/
+&decomposition
+    config_block_decomp_file_prefix = 'DMN_NME.graph.info.part.' 
 /
