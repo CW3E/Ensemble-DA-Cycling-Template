@@ -15,13 +15,13 @@
                   filename_template="DMN_NME.sfc_update.nc"
                   filename_interval="none"
                   packages="sfc_update"
-                  output_interval=SFC_OUT_INT, />
+                  output_interval=SFC_INT, />
 
 <immutable_stream name="lbc"
                   type="output"
                   filename_template="DMN_NME.lbc.$Y-$M-$D_$h_$m_$s.nc"
                   filename_interval="output_interval"
                   packages="lbcs"
-                  output_interval=LBC_OUT_INT, />
+                  output_interval=LBC_INT, />
 
 </streams>

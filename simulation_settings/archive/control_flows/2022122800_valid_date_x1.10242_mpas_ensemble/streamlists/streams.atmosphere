@@ -12,9 +12,8 @@
 
 <stream name="output"
         type="output"
-        filename_template="DMN_NME.history.$Y-$M-$D_$h_$m_$s_nc"
-        output_interval=HIST_INT >
-
+        filename_template="DMN_NME.history.$Y-$M-$D_$h_$m_$s.nc"
+        output_interval=HIST_INT, >
 	<file name="stream_list.atmosphere.output"/>
 </stream>
 
@@ -22,7 +21,6 @@
         type="output"
         filename_template="DMN_NME.diag.$Y-$M-$D_$h_$m_$s.nc"
         output_interval=DIAG_INT, >
-
 	<file name="stream_list.atmosphere.diagnostics"/>
 </stream>
 
@@ -30,11 +28,9 @@
         type="input"
         filename_template="DMN_NME.sfc_update.nc"
         filename_interval="none"
-        input_interval="none" >
-
+        input_interval=SFC_INT, >
 	<file name="stream_list.atmosphere.surface"/>
 </stream>
-
 <immutable_stream name="iau"
                   type="input"
                   filename_template="DMN_NME.AmB.$Y-$M-$D_$h_$m_$s.nc"
@@ -47,6 +43,5 @@
                   filename_template="DMN_NME.lbc.$Y-$M-$D_$h_$m_$s.nc"
                   filename_interval="input_interval"
                   packages="limited_area"
-                  input_interval="3:00:00" />
-
+                  input_interval=LBC_INT, />
 </streams>

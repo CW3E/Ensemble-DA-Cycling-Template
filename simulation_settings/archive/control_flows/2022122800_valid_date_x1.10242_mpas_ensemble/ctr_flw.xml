@@ -47,11 +47,11 @@
   <!-- END ENSEMBLE SETTINGS -->
 
   <!-- MPAS SETTINGS -->
-  <!ENTITY HIST_INT      "03"> <!-- Output interval for wrfout files in HH -->
-  <!ENTITY DIAG_INT      "03"> <!-- Output interval for wrfout files in HH -->
-  <!ENTITY SND_INT       "03"> <!-- Output interval for wrfout files in HH -->
-  <!ENTITY BCKT_INT      "24"> <!-- Output interval for wrfout files in HH -->
-  <!ENTITY RSTRT_INT     "24"> <!-- Output interval for wrfout files in HH -->
+  <!ENTITY HIST_INT      "03"> <!-- Output interval for history files in HH, suppressed = 00 -->
+  <!ENTITY DIAG_INT      "03"> <!-- Output interval for diagnostic files in HH, suppressed = 00 -->
+  <!ENTITY SND_INT       "00"> <!-- Output interval for sounding files in HH, suppressed = 00 -->
+  <!ENTITY BCKT_INT      "24"> <!-- Accumulation reset interval in HH, reset suppressed = 00 -->
+  <!ENTITY RSTRT_INT     "24"> <!-- Output interval for restart files in HH, suppressed = 00 -->
   <!ENTITY PIO_NUM       "0"> <!-- Quilting tasks per group, set NIO_TPG=0 for default TURN OFF QUILTING --> 
   <!ENTITY PIO_STRIDE    "1"> <!-- Quilting number of groups -->
   <!-- END MPAS SETTINGS -->
@@ -365,6 +365,10 @@
       <envar>
         <name>RSTRT_INT</name>
         <value>&RSTRT_INT;</value>
+      </envar>
+      <envar>
+        <name>BKG_INT</name>
+        <value>&ENS_BKG_INT;</value>
       </envar>
       <envar>
         <name>IF_RSTRT</name>

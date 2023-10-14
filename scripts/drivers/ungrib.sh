@@ -334,6 +334,18 @@ if [ ${IF_ECMWF_ML} = ${YES} ]; then
   done
 fi
 
+# Move existing log files to a subdir if there are any
+printf "Checking for pre-existing log files.\n"
+if [ -f ungrib.log ]; then
+  logdir=ungrib_log.`ls -l --time-style=+%Y-%m-%d_%H_%M%_S ungrib.log | cut -d" " -f 6`
+  mkdir ${logdir}
+  printf "Moving pre-existing log files to ${logdir}.\n"
+  cmd="mv ungrib.log ${logdir}"
+  printf "${cmd}\n"; eval "${cmd}"
+else
+  printf "No pre-existing log files were found.\n"
+fi
+
 # Remove any namelists
 cmd="rm -f namelist.wps"
 printf "${cmd}\n"; eval "${cmd}"
@@ -425,7 +437,7 @@ error="$?"
 printf "ungrib exited with code ${error}.\n"
 
 # save ungrib logs
-log_dir=ungrib_log_${BKG}.${now}
+log_dir=ungrib_log_${BKG_DATA}.${now}
 mkdir ${log_dir}
 cmd="mv ungrib.log ${log_dir}"
 printf "${cmd}\n"; eval "${cmd}"

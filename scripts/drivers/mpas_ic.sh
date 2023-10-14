@@ -249,6 +249,18 @@ printf "${cmd}\n"; eval "${cmd}"
 cmd="rm -f namelist.*; rm -f streams.*; rm -f stream_list.*"
 printf "${cmd}\n"; eval "${cmd}"
 
+# Move existing log files to a subdir if there are any
+printf "Checking for pre-existing log files.\n"
+if [ -f log.init_atmosphere.0000.out ]; then
+  logdir=init_amosphere_ic_log.`ls -l --time-style=+%Y-%m-%d_%H_%M%_S log.out.0000 | cut -d" " -f 6`
+  mkdir ${logdir}
+  printf "Moving pre-existing log files to ${logdir}.\n"
+  cmd="mv log.* ${logdir}"
+  printf "${cmd}\n"; eval "${cmd}"
+else
+  printf "No pre-existing log files were found.\n"
+fi
+
 # Remove pre-existing ungrib case data
 for fcst in ${fcst_seq[@]}; do
   filename="${BKG_DATA}:`date +%Y-%m-%d_%H -d "${strt_dt} ${fcst} hours"`"
@@ -351,8 +363,8 @@ mv namelist.init_atmosphere.tmp namelist.init_atmosphere
 
 cat streams.init_atmosphere \
   | sed "s/DMN_NME/${DMN_NME}/" \
-  | sed "s/=SFC_OUT_INT,/=\"${BKG_INT}:00:00\"/" \
-  | sed "s/=LBC_OUT_INT,/=\"${BKG_INT}:00:00\"/" \
+  | sed "s/=SFC_INT,/=\"${BKG_INT}:00:00\"/" \
+  | sed "s/=LBC_INT,/=\"${BKG_INT}:00:00\"/" \
   > streams.init_atmosphere.tmp
 mv streams.init_atmosphere.tmp streams.init_atmosphere
 

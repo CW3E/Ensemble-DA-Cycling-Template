@@ -46,26 +46,26 @@ fi
 ##################################################################################
 # Options below are defined in workflow variables
 #
-# DMN_NME       = MPAS domain name used to call mesh / static file name patterns
-# MEMID         = Ensemble ID index, 00 for control, i > 0 for perturbation
-# STRT_DT       = Simulation start time in YYMMDDHH
-# IF_DYN_LEN    = If to compute forecast length dynamically (Yes / No)
-# FCST_HRS      = Total length of MPAS forecast simulation in HH, IF_DYN_LEN=No
-# EXP_VRF       = Verfication time for calculating forecast hours, IF_DYN_LEN=Yes
-# IF_RGNL       = Equals "Yes" or "No" if MPAS regional simulation is being run
-# BKG_INT       = Interval of lbc input data in HH, required IF_RGNL = Yes
-# DIAG_INT      = Interval at which diagnostic fields are output (HH)
-# HIST_INT      = Interval at which model history fields are output (HH)
-# BCKT_INT      = Interval at which accumulation buckets are updated
-# SND_INT       = Interval at which soundings are made
-# RSTRT_INT     = Interval at which model restart files are output (HH)
-# IF_RSTRT      = If performing a restart run initialization (Yes / No)
-# IF_DA         = If peforming DA (Yes - writes out necessary fields / No)
-# IF_DA_CYC     = If performing DA cycling initialization (Yes / No)
-# IF_IAU        = If performing incremental assimilation update (Yes / No)
-# IF_SST_UPDTE  = If updating SST with lower BC update files
-# IF_SST_DIURN  = If updating SST with diurnal cycling
-# IF_DEEPSOIL   = If slowly updating lower boundary deep soil temperature
+# DMN_NME      = MPAS domain name used to call mesh / static file name patterns
+# MEMID        = Ensemble ID index, 00 for control, i > 0 for perturbation
+# STRT_DT      = Simulation start time in YYMMDDHH
+# IF_DYN_LEN   = If to compute forecast length dynamically (Yes / No)
+# FCST_HRS     = Total length of MPAS forecast simulation in HH, IF_DYN_LEN=No
+# EXP_VRF      = Verfication time for calculating forecast hours, IF_DYN_LEN=Yes
+# IF_RGNL      = Equals "Yes" or "No" if MPAS regional simulation is being run
+# BKG_INT      = Interval of lbc input data in HH, required IF_RGNL = Yes
+# DIAG_INT     = Interval at which diagnostic fields are output (HH)
+# HIST_INT     = Interval at which model history fields are output (HH)
+# BCKT_INT     = Interval at which accumulation buckets are updated (HH)
+# SND_INT      = Interval at which soundings are made (HH)
+# RSTRT_INT    = Interval at which model restart files are output (HH)
+# IF_RSTRT     = If performing a restart run initialization (Yes / No)
+# IF_DA        = If peforming DA (Yes - writes out necessary fields / No)
+# IF_DA_CYC    = If performing DA cycling initialization (Yes / No)
+# IF_IAU       = If performing incremental assimilation update (Yes / No)
+# IF_SST_UPDT  = If updating SST with lower BC update files
+# IF_SST_DIURN = If updating SST with diurnal cycling
+# IF_DEEPSOIL  = If slowly updating lower boundary deep soil temperature
 #
 ##################################################################################
 
@@ -123,6 +123,8 @@ stop_dt=`date -d "${strt_dt} ${fcst_hrs} hours"`
 if [[ ${IF_RGNL} = ${NO} ]]; then 
   printf "MPAS-A is run as a global simulation.\n"
   if_rgnl="false"
+  lbc_int="none"
+
 elif [[ ${IF_RGNL} = ${YES} ]]; then
   printf "MPAS-A is run as a regional simulation.\n"
   if_rgnl="true"
@@ -134,6 +136,9 @@ elif [[ ${IF_RGNL} = ${YES} ]]; then
   elif [ ${BKG_INT} -le 0 ]; then
     printf "ERROR: \${BKG_INT} must be HH > 0 for the frequency of data inputs.\n"
     exit 1
+  else
+    lbc_int="${BKG_INT}:00:00"
+    printf "Lateral boundary conditions are read on ${lbc_int} intervals.\n"
   fi
 else
   printf "\${IF_RGNL} must be set to 'Yes' or 'No' (case insensitive).\n"
@@ -143,41 +148,71 @@ fi
 if [ ! ${DIAG_INT} ]; then
   printf "ERROR: \${DIAG_INT} is not defined.\n"
   exit 1
-elif [ ${DIAG_INT} -le 0 ]; then
-  printf "ERROR: \${DIAG_INT} must be HH > 0 for the frequency of data inputs.\n"
+elif [ ${DIAG_INT} -lt 0 ]; then
+  printf "ERROR: \${DIAG_INT} must be HH >= 0 for the frequency of diagnostics.\n"
   exit 1
+elif [ ${DIAG_INT} = 00 ]; then
+  printf "Model diagnostic fields are suppressed.\n"
+  diag_int="none"
+else
+  diag_int="${DIAG_INT}:00:00"
+  printf "Model diagnostics are written out on ${diag_int} intervals.\n"
 fi
 
 if [ ! ${HIST_INT} ]; then
   printf "ERROR: \${HIST_INT} is not defined.\n"
   exit 1
-elif [ ${HIST_INT} -le 0 ]; then
-  printf "ERROR: \${HIST_INT} must be HH > 0 for the frequency of data inputs.\n"
+elif [ ${HIST_INT} -lt 0 ]; then
+  printf "ERROR: \${HIST_INT} must be HH >= 0 for the frequency of model history.\n"
   exit 1
+elif [ ${HIST_INT} = 00 ]; then
+  printf "Model history outputs are suppressed.\n"
+  hist_int="none"
+else
+  hist_int="${HIST_INT}:00:00"
+  printf "Model history is written out on ${hist_int} intervals.\n"
 fi
 
 if [ ! ${BCKT_INT} ]; then
   printf "ERROR: \${BCKT_INT} is not defined.\n"
   exit 1
-elif [ ${BCKT_INT} -le 0 ]; then
-  printf "ERROR: \${BCKT_INT} must be HH > 0 for the accumulation reset.\n"
+elif [ ${BCKT_INT} -lt 0 ]; then
+  printf "ERROR: \${BCKT_INT} must be HH >= 0 for the accumulation reset.\n"
   exit 1
+elif [ ${BCKT_INT} = 00 ]; then
+  printf "Model accumulations are not reset for the model run.\n"
+  bckt_int="none"
+else
+  bckt_int="${BCKT_INT}:00:00"
+  printf "Accumulation buckets are reset on ${bckt_int} intervals.\n"
 fi
 
 if [ ! ${SND_INT} ]; then
   printf "ERROR: \${SND_INT} is not defined.\n"
   exit 1
-elif [ ${SND_INT} -le 0 ]; then
-  printf "ERROR: \${SND_INT} must be HH > 0 for the frequency of data inputs.\n"
+elif [ ${SND_INT} -lt 0 ]; then
+  printf "ERROR: \${SND_INT} must be HH >= 0 for the frequency of soundings.\n"
   exit 1
+elif [ ${SND_INT} = 00 ]; then
+  printf "Model sounding are suppressed.\n"
+  snd_int="none"
+else
+  snd_int="${SND_INT}:00:00"
+  printf "Soundings are written on ${snd_int} intervals.\n"
 fi
 
 if [ ! ${RSTRT_INT} ]; then
   printf "ERROR: \${RSTRT_INT} is not defined.\n"
   exit 1
-elif [ ${RSTRT_INT} -le 0 ]; then
-  printf "ERROR: \${RSTRT_INT} must be HH > 0 for the frequency of data inputs.\n"
+elif [ ${RSTRT_INT} -lt 0 ]; then
+  printf "ERROR: \${RSTRT_INT} must be HH >= 0 for the frequency of data inputs.\n"
   exit 1
+elif [ ${RSTRT_INT} = 00 ]; then
+  printf "Model restart files are suppressed.\n"
+  rstrt_int="none"
+else
+  rstrt_int="${RSTRT_INT}:00:00"
+  printf "Restart files are written on ${rstrt_int} intervals.\n"
 fi
 
 if [[ ${IF_RSTRT} = ${NO} ]]; then 
@@ -196,6 +231,8 @@ fi
 if [[ ${IF_DA} = ${NO} ]]; then 
   printf "Data assimilation control fields are not automatically written.\n"
   if_da="false"
+  if_dacyc="false"
+  if_iau="off"
 
 elif [[ ${IF_DA} = ${YES} ]]; then
   printf "MPAS-A writes out temperature and specific humidity as diagnostics.\n"
@@ -230,13 +267,28 @@ else
   exit 1
 fi
 
-if [[ ${IF_SST_UPDTE} = ${NO} ]]; then 
+if [[ ${IF_SST_UPDT} = ${NO} ]]; then 
   printf "MPAS-A uses static lower boundary conditions.\n"
-  if_sst_updte="false"
+  if_sst_updt="false"
+  if_sst_diurn="false"
+  if_deepsoil="false"
+  sfc_int="none"
 
-elif [[ ${IF_SST_UPDTE} = ${YES} ]]; then
+elif [[ ${IF_SST_UPDT} = ${YES} ]]; then
   printf "MPAS-A updates lower boundary conditions.\n"
-  if_sst_updte="true"
+  if_sst_updt="true"
+
+  # check that interval for background surface data is defined
+  if [ ! ${BKG_INT} ]; then
+    printf "ERROR: \${BKG_INT} is not defined.\n"
+    exit 1
+  elif [ ${BKG_INT} -le 0 ]; then
+    printf "ERROR: \${BKG_INT} must be HH > 0 for the frequency of data inputs.\n"
+    exit 1
+  else
+    sfc_int="${BKG_INT}:00:00"
+
+  fi
 
   if [[ ${IF_SST_DIURN} = ${YES} ]]; then
     printf "MPAS-A updates SST on diurnal cycle.\n"
@@ -263,7 +315,7 @@ elif [[ ${IF_SST_UPDTE} = ${YES} ]]; then
     exit 1
   fi
 else
-  printf "\${IF_SST_UPDTE} must be set to 'Yes' or 'No' (case insensitive).\n"
+  printf "\${IF_SST_UPDT} must be set to 'Yes' or 'No' (case insensitive).\n"
   exit 1
 fi
 
@@ -362,8 +414,8 @@ work_root=${CYC_HME}/atmosphere_model/ens_${memid}
 cmd="mkdir -p ${work_root}; cd ${work_root}"
 printf "${cmd}\n"; eval "${cmd}"
 
-# check that the init_atmosphere executable exists and can be run
-atmos_model_exe=${MPAS_ROOT}/init_atmosphere_model
+# check that the atmosphere_model executable exists and can be run
+atmos_model_exe=${MPAS_ROOT}/atmosphere_model
 if [ ! -x ${atmos_model_exe} ]; then
   printf "ERROR:\n ${atmos_model_exe}\n does not exist, or is not executable.\n"
   exit 1
@@ -398,6 +450,31 @@ printf "${cmd}\n"; eval "${cmd}"
 # Remove any previous lateral boundary condition files ${DMN_NME}.lbc.*.nc
 cmd="rm -f *.lbc.*.nc"
 printf "${cmd}\n"; eval "${cmd}"
+
+# Remove pre-existing model run outputs
+cmd="rm -f ${DMN_NME}.history.*"
+printf "${cmd}\n"; eval "${cmd}"
+
+cmd="rm -f ${DMN_NME}.diag.*"
+printf "${cmd}\n"; eval "${cmd}"
+
+cmd="rm -f ${DMN_NME}.restart.*"
+printf "${cmd}\n"; eval "${cmd}"
+
+cmd="rm -f ${DMN_NME}.snd.*"
+printf "${cmd}\n"; eval "${cmd}"
+
+# Move existing log files to a subdir if there are any
+printf "Checking for pre-existing log files.\n"
+if [ -f log.atmosphere.0000.out ]; then
+  logdir=atmosphere_model_log.`ls -l --time-style=+%Y-%m-%d_%H_%M%_S log.out.0000 | cut -d" " -f 6`
+  mkdir ${logdir}
+  printf "Moving pre-existing log files to ${logdir}.\n"
+  cmd="mv log.* ${logdir}"
+  printf "${cmd}\n"; eval "${cmd}"
+else
+  printf "No pre-existing log files were found.\n"
+fi
 
 # Define list of preprocessed data and make links
 atmos_ic_root=${CYC_HME}/init_atmosphere_ic/ens_${memid}
@@ -467,6 +544,39 @@ else
   printf "${cmd}\n"; eval "${cmd}"
 fi
 
+streamlist_out_temp=${EXP_CNFG}/streamlists/stream_list.atmosphere.output
+if [ ! -r ${streamlist_out_temp} ]; then 
+  msg="atmosphere stream_list.atmosphere.output\n ${streamlist_out_temp}\n"
+  msg+=" is not readable or does not exist.\n"
+  printf "${msg}"
+  exit 1
+else
+  cmd="cp -L ${streamlist_out_temp} ./stream_list.atmosphere.output"
+  printf "${cmd}\n"; eval "${cmd}"
+fi
+
+streamlist_sfc_temp=${EXP_CNFG}/streamlists/stream_list.atmosphere.surface
+if [ ! -r ${streamlist_sfc_temp} ]; then 
+  msg="atmosphere stream_list.atmosphere.surface\n ${streamlist_sfc_temp}\n"
+  msg+=" is not readable or does not exist.\n"
+  printf "${msg}"
+  exit 1
+else
+  cmd="cp -L ${streamlist_sfc_temp} ./stream_list.atmosphere.surface"
+  printf "${cmd}\n"; eval "${cmd}"
+fi
+
+streamlist_diag_temp=${EXP_CNFG}/streamlists/stream_list.atmosphere.diagnostics
+if [ ! -r ${streamlist_diag_temp} ]; then 
+  msg="atmosphere stream_list.atmosphere.diagnostics\n ${streamlist_diag_temp}\n"
+  msg+=" is not readable or does not exist.\n"
+  printf "${msg}"
+  exit 1
+else
+  cmd="cp -L ${streamlist_diag_temp} ./stream_list.atmosphere.diagnostics"
+  printf "${cmd}\n"; eval "${cmd}"
+fi
+
 # define start / end time patterns for namelist.atmosphere
 strt_iso=`date +%Y-%m-%d_%H:%M:%S -d "${strt_dt}"`
 stop_iso=`date +%Y-%m-%d_%H:%M:%S -d "${stop_dt}"`
@@ -477,30 +587,32 @@ stop_iso=`date +%Y-%m-%d_%H:%M:%S -d "${stop_dt}"`
 # Update the atmosphere namelist / streams for surface boundary conditions
 cat namelist.atmosphere \
   | sed "s/= STRT_DT,/= '${strt_iso}'/" \
-  | sed "s/= FCST_HRS,/= '${fcst_hrs}'/" \
-  | sed "s/= IF_RGNL,/= '${if_rgnl}'/" \
-  | sed "s/= IF_RSTRT,/= '${if_rstrt}'/" \
-  | sed "s/= IF_DA,/= '${if_da}'/" \
+  | sed "s/= FCST_HRS,/= '${fcst_hrs}:00:00'/" \
+  | sed "s/= IF_RGNL,/= ${if_rgnl}/" \
+  | sed "s/= IF_RSTRT,/= ${if_rstrt}/" \
+  | sed "s/= IF_DA,/= ${if_da}/" \
   | sed "s/= IF_IAU,/= '${if_iau}'/" \
-  | sed "s/= IF_DACYC,/= '${if_dacyc}'/" \
-  | sed "s/= IF_SST_UPDT,/= '${if_sst_updt}'/" \
-  | sed "s/= IF_SST_DIURN,/= '${if_sst_diurn}'/" \
-  | sed "s/= IF_DEEPSOIL,/= '${if_deepsoil}'/" \
-  | sed "s/= BCKT_INT,/= '${bckt_updt_int}'/" \
+  | sed "s/= IF_DACYC,/= ${if_dacyc}/" \
+  | sed "s/= IF_SST_UPDT,/= ${if_sst_updt}/" \
+  | sed "s/= IF_SST_DIURN,/= ${if_sst_diurn}/" \
+  | sed "s/= IF_DEEPSOIL,/= ${if_deepsoil}/" \
+  | sed "s/= BCKT_INT,/= '${bckt_int}'/" \
   | sed "s/= SND_INT,/= '${snd_int}'/" \
   | sed "s/= PIO_NUM,/= ${PIO_NUM}/" \
   | sed "s/= PIO_STRIDE,/= ${PIO_STRIDE}/" \
   | sed "s/DMN_NME/${DMN_NME}/" \
-  > streams.atmosphere.tmp
-mv streams.atmosphere.tmp streams.atmosphere
+  > namelist.atmosphere.tmp
+mv namelist.atmosphere.tmp namelist.atmosphere
 
 cat streams.atmosphere \
   | sed "s/DMN_NME/${DMN_NME}/" \
-  | sed "s/=RSTRT_INT,/=\"${rstrt_int}:00:00\"/" \
-  | sed "s/=HIST_INT,/=\"${hist_int}:00:00\"/" \
-  | sed "s/=DIAG_INT,/=\"${diag_int}:00:00\"/" \
-  > streams.init_atmosphere.tmp
-mv streams.init_atmosphere.tmp streams.init_atmosphere
+  | sed "s/=RSTRT_INT,/=\"${rstrt_int}\"/" \
+  | sed "s/=HIST_INT,/=\"${hist_int}\"/" \
+  | sed "s/=DIAG_INT,/=\"${diag_int}\"/" \
+  | sed "s/=SFC_INT,/=\"${sfc_int}\"/" \
+  | sed "s/=LBC_INT,/=\"${lbc_int}\"/" \
+  > streams.atmosphere.tmp
+mv streams.atmosphere.tmp streams.atmosphere
 
 ##################################################################################
 # Run atmosphere
@@ -527,16 +639,19 @@ ${MPIRUN} -n ${N_PROC} ${atmos_model_exe}
 error="$?"
 printf "atmosphere_model exited with code ${error}.\n"
 
-# save mpas_sfc logs
+# save mpas_model logs
 log_dir=atmosphere_model_log.${now}
 mkdir ${log_dir}
-cmd="mv log.atmosphere.* ${log_dir}"
+cmd="mv log.* ${log_dir}"
 printf "${cmd}\n"; eval "${cmd}"
 
 cmd="mv namelist.atmosphere ${log_dir}"
 printf "${cmd}\n"; eval "${cmd}"
 
 cmd="mv streams.atmosphere ${log_dir}"
+printf "${cmd}\n"; eval "${cmd}"
+
+cmd="mv stream_list.* ${log_dir}"
 printf "${cmd}\n"; eval "${cmd}"
 
 # Remove links to the model run files
@@ -557,15 +672,66 @@ for input_f in ${input_files[@]}; do
   printf "${cmd}\n"; eval "${cmd}"
 done
 
+# remove links to partition data
+cmd="rm -f ${DMN_NME}.graph.info.part.${N_PROC}"
+printf "${cmd}\n"; eval "${cmd}"
+
 if [ ${error} -ne 0 ]; then
   printf "ERROR:\n ${atmos_model_exe}\n exited with status ${error}.\n"
   exit ${error}
 fi
 
-# Check to see if atmosphere outputs are generated
-if [ ! -s "${out_name}" ]; then
-  printf "ERROR:\n ${atmos_model_exe}\n failed to complete writing ${out_name}.\n"
-  exit 1
+if [ ! ${HIST_INT} = 00 ]; then
+  # verify all history outputs
+  hist_seq=`seq -f "%03g" 0 ${HIST_INT} ${fcst_hrs}`
+  
+  for hist in ${hist_seq[@]}; do
+    filename="${DMN_NME}.history.`date +%Y-%m-%d_%H_%M_%S -d "${strt_dt} ${hist} hours"`.nc"
+    if [ ! -s ${filename} ]; then
+      printf "ERROR: ${filename} is missing.\n"
+      exit 1
+    fi
+  done
+fi
+
+if [ ! ${DIAG_INT} = 00 ]; then
+  # verify all diagnostic outputs
+  diag_seq=`seq -f "%03g" 0 ${DIAG_INT} ${fcst_hrs}`
+  
+  for diag in ${diag_seq[@]}; do
+    filename="${DMN_NME}.diag.`date +%Y-%m-%d_%H_%M_%S -d "${strt_dt} ${diag} hours"`.nc"
+    if [ ! -s ${filename} ]; then
+      printf "ERROR: ${filename} is missing.\n"
+      exit 1
+    fi
+  done
+fi
+
+if [ ! ${RSTRT_INT} = 00 ]; then
+  # verify all diagnostic outputs
+  rstrt_seq=`seq -f "%03g" ${RSTRT_INT} ${RSTRT_INT} ${fcst_hrs}`
+  
+  for rstrt in ${rstrt_seq[@]}; do
+    filename="${DMN_NME}.restart.`date +%Y-%m-%d_%H_%M_%S -d "${strt_dt} ${rstrt} hours"`.nc"
+    if [ ! -s ${filename} ]; then
+      printf "ERROR: ${filename} is missing.\n"
+      exit 1
+    fi
+  done
+fi
+
+# NOTE: Sounding is still experimental in the workflow, this is just a place holder
+if [ ! ${SND_INT} = 00 ]; then
+  # verify all sounding outputs
+  snd_seq=`seq -f "%03g" 0 ${SND_INT} ${fcst_hrs}`
+  
+  for snd in ${snd_seq[@]}; do
+    filename="${DMN_NME}.snd.`date +%Y-%m-%d_%H_%M_%S -d "${strt_dt} ${snd} hours"`.nc"
+    if [ ! -s ${filename} ]; then
+      printf "ERROR: ${filename} is missing.\n"
+      exit 1
+    fi
+  done
 fi
 
 printf "mpas_model.sh completed successfully at `date +%Y-%m-%d_%H_%M_%S`.\n"

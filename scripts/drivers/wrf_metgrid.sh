@@ -276,6 +276,18 @@ printf "${cmd}\n"; eval "${cmd}"
 cmd="rm -f met_em.d0*.*.nc"
 printf "${cmd}\n"; eval "${cmd}"
 
+# Move existing log files to a subdir if there are any
+printf "Checking for pre-existing log files.\n"
+if [ -f metgrid.log.0000 ]; then
+  logdir=metgrid_log.`ls -l --time-style=+%Y-%m-%d_%H_%M%_S ungrib.log | cut -d" " -f 6`
+  mkdir ${logdir}
+  printf "Moving pre-existing log files to ${logdir}.\n"
+  cmd="mv metgrid.log.* ${logdir}"
+  printf "${cmd}\n"; eval "${cmd}"
+else
+  printf "No pre-existing log files were found.\n"
+fi
+
 # Remove any ungrib outputs
 for fcst in ${fcst_seq[@]}; do
   filename="${BKG_DATA}:`date +%Y-%m-%d_%H -d "${strt_dt} ${fcst} hours"`"
