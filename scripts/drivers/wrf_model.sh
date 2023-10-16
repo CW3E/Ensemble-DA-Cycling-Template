@@ -101,24 +101,24 @@ fi
 ##################################################################################
 # Options below are defined in workflow variables 
 #
-# MEMID        = Ensemble ID index, 00 for control, i > 00 for perturbation
-# STRT_DT      = Simulation start time in YYMMDDHH
-# IF_DYN_LEN   = "Yes" or "No" switch to compute forecast length dynamically 
-# FCST_HRS     = Total length of WRF forecast simulation in HH, IF_DYN_LEN=No
-# EXP_VRF      = Verfication time for calculating forecast hours, IF_DYN_LEN=Yes
-# BKG_INT      = Interval of input data in HH
-# BKG_DATA     = String case variable for supported inputs: GFS, GEFS currently
-# MAX_DOM      = Max number of domains to use in namelist settings
-# DOWN_DOM     = First domain index to downscale ICs from d01, set parameter
-#                less than MAX_DOM if downscaling to be used
-# WRFOUT_INT   = Interval of wrfout in HH
-# CYC_INT      = Interval in HH on which DA is cycled in a cycling control flow
-# WRF_IC       = Defines where to source WRF initial and boundary conditions from
-#                  WRF_IC = REALEXE : ICs / BCs from CYC_HME/real
-#                  WRF_IC = CYCLING : ICs / BCs from GSI / WRFDA analysis
-#                  WRF_IC = RESTART : ICs from restart file in CYC_HME/wrf
-# IF_SST_UPDTE = Yes / No: whether WRF uses dynamic SST values 
-# IF_FEEBACK   = Yes / No: whether WRF domains use 1- or 2-way nesting
+# MEMID       = Ensemble ID index, 00 for control, i > 00 for perturbation
+# STRT_DT     = Simulation start time in YYMMDDHH
+# IF_DYN_LEN  = "Yes" or "No" switch to compute forecast length dynamically 
+# FCST_HRS    = Total length of WRF forecast simulation in HH, IF_DYN_LEN=No
+# EXP_VRF     = Verfication time for calculating forecast hours, IF_DYN_LEN=Yes
+# BKG_INT     = Interval of input data in HH
+# BKG_DATA    = String case variable for supported inputs: GFS, GEFS currently
+# MAX_DOM     = Max number of domains to use in namelist settings
+# DOWN_DOM    = First domain index to downscale ICs from d01, set parameter
+#               less than MAX_DOM if downscaling to be used
+# WRFOUT_INT  = Interval of wrfout in HH
+# CYC_INT     = Interval in HH on which DA is cycled in a cycling control flow
+# WRF_IC      = Defines where to source WRF initial and boundary conditions from
+#                 WRF_IC = REALEXE : ICs / BCs from CYC_HME/real
+#                 WRF_IC = CYCLING : ICs / BCs from GSI / WRFDA analysis
+#                 WRF_IC = RESTART : ICs from restart file in CYC_HME/wrf
+# IF_SST_UPDT = Yes / No: whether WRF uses dynamic SST values 
+# IF_FEEBACK  = Yes / No: whether WRF domains use 1- or 2-way nesting
 #
 ##################################################################################
 
@@ -244,14 +244,14 @@ else
   exit 1
 fi
 
-if [[ ${IF_SST_UPDTE} = ${YES} ]]; then
+if [[ ${IF_SST_UPDT} = ${YES} ]]; then
   printf "SST Update turned on.\n"
   sst_updt=1
-elif [[ ${IF_SST_UPDTE} = ${NO} ]]; then
+elif [[ ${IF_SST_UPDT} = ${NO} ]]; then
   printf "SST Update turned off.\n"
   sst_updt=0
 else
-  printf "ERROR: \${IF_SST_UPDTE} must equal 'Yes' or 'No' (case insensitive).\n"
+  printf "ERROR: \${IF_SST_UPDT} must equal 'Yes' or 'No' (case insensitive).\n"
   exit 1
 fi
 
@@ -463,7 +463,7 @@ for dmn in ${dmns[@]}; do
   fi
 
   # NOTE: THIS LINKS SST UPDATE FILES FROM REAL OUTPUTS REGARDLESS OF GSI CYCLING
-  if [[ ${IF_SST_UPDTE} = ${YES} ]]; then
+  if [[ ${IF_SST_UPDT} = ${YES} ]]; then
     wrflowinp=wrflowinp_d${dmn}
     realname=${CYC_HME}/real/ens_${memid}/${wrflowinp}
     cmd="ln -sfr ${realname} ."
@@ -567,7 +567,7 @@ cat namelist.input \
   | sed "s/= RSTRT,/= ${wrf_restart},/" \
   | sed "s/= RSTRT_INT,/= ${run_mins},/" \
   | sed "s/= IF_FEEDBACK,/= ${feedback},/"\
-  | sed "s/= NIO_TASKS_PER_GROUP,/= ${NIO_TPG},/" \
+  | sed "s/= NIO_TPG,/= ${NIO_TPG},/" \
   | sed "s/= NIO_GROUPS,/= ${NIO_GROUPS},/" \
   > namelist.input.tmp
 mv namelist.input.tmp namelist.input
@@ -577,17 +577,17 @@ mv namelist.input.tmp namelist.input
 ##################################################################################
 # Print run parameters
 printf "\n"
-printf "EXP_CONFIG   = ${EXP_CONFIG}\n"
-printf "MEMID        = ${MEMID}\n"
-printf "CYC_HME      = ${CYC_HME}\n"
-printf "STRT_DT      = ${strt_iso}\n"
-printf "STOP_DT       = ${end_iso}\n"
-printf "WRFOUT_INT   = ${WRFOUT_INT}\n"
-printf "BKG_DATA     = ${BKG_DATA}\n"
-printf "MAX_DOM      = ${MAX_DOM}\n"
-printf "WRF_IC       = ${WRF_IC}\n"
-printf "IF_SST_UPDTE = ${IF_SST_UPDTE}\n"
-printf "IF_FEEDBACK  = ${IF_FEEDBACK}\n"
+printf "EXP_CONFIG  = ${EXP_CONFIG}\n"
+printf "MEMID       = ${MEMID}\n"
+printf "CYC_HME     = ${CYC_HME}\n"
+printf "STRT_DT     = ${strt_iso}\n"
+printf "STOP_DT     = ${end_iso}\n"
+printf "WRFOUT_INT  = ${WRFOUT_INT}\n"
+printf "BKG_DATA    = ${BKG_DATA}\n"
+printf "MAX_DOM     = ${MAX_DOM}\n"
+printf "WRF_IC      = ${WRF_IC}\n"
+printf "IF_SST_UPDT = ${IF_SST_UPDT}\n"
+printf "IF_FEEDBACK = ${IF_FEEDBACK}\n"
 printf
 now=`date +%Y-%m-%d_%H_%M_%S`
 printf "wrf started at ${now}.\n"
@@ -616,6 +616,10 @@ for file in ${wrf_run_files[@]}; do
     cmd="rm -f `basename ${file}`"
     printf "${cmd}\n"; eval "${cmd}"
 done
+
+# remove links to input / boundary condition data
+cmd="rm -f wrfinput_*; rm -f wrfbdy_*"
+printf "${cmd}\n"; eval "${cmd}"
 
 # check run error code
 if [ ${error} -ne 0 ]; then
