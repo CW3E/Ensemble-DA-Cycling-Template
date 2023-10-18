@@ -160,7 +160,7 @@
  scalar_adv_opt                      = 1,      1,     
  epssm                               = 0.5,    0.4,
  hybrid_opt                          = 2,
- gwd_opt                             = 1,      1,
+ gwd_opt                             = 0,      0,
 /
 
 &bdy_control
