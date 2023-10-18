@@ -94,9 +94,9 @@
  ra_lw_physics                       = 4,    4,    
  ra_sw_physics                       = 4,    4,    
  radt                                = 9,    3,   
- sf_sfclay_physics                   = 2,    2,    
+ sf_sfclay_physics                   = 5,    5,    
  sf_surface_physics                  = 4,    4,    
- bl_pbl_physics                      = 2,    2,
+ bl_pbl_physics                      = 5,    5,
  topo_wind                           = 1,    1,      
  bldt                                = 0,    0,    
  cu_physics                          = 3,    0,    
@@ -160,6 +160,7 @@
  scalar_adv_opt                      = 1,      1,     
  epssm                               = 0.5,    0.4,
  hybrid_opt                          = 2,
+ gwd_opt                             = 1,      1,
 /
 
 &bdy_control

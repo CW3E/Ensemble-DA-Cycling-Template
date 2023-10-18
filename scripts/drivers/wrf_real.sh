@@ -468,27 +468,39 @@ if [ ! -s wrfbdy_d01 ]; then
   msg+="wrfbdy_d01.\n"
   printf "${msg}"
   exit 1
+else
+  printf "${real_exe}\n generated wrfbdy_d01.\n"
 fi
 
 # check to see if the IC output is generated
+error=0
 for dmn in ${dmns[@]}; do
   ic_file=wrfinput_d${dmn}
   if [ ! -s ${ic_file} ]; then
-    msg="ERROR:\n ${real_exe}\n failed to generate initial conditions ${ic_file} "
-    msg+="for domain d${dmn}.\n"
+    msg="ERROR:\n ${real_exe}\n failed to generate ${ic_file}.\n"
     printf "${msg}"
+    error=1
+  else
+    printf "${real_exe}\n generated ${ic_file}.\n"
+  fi
+  if [ ${error} = 1 ]; then
     exit 1
   fi
 done
 
 # check to see if the SST update fields are generated
+error=0
 if [[ ${IF_SST_UPDT} = ${YES} ]]; then
   for dmn in ${dmns[@]}; do
     sst_file=wrflowinp_d${dmn}
     if [ ! -s ${sst_file} ]; then
-      msg="ERROR:\n ${real_exe}\n failed to generate SST update file ${sst_file} "
-      msg+="for domain d${dmn}.\n"
+      msg="ERROR:\n ${real_exe}\n failed to generate ${sst_file}.\n"
       printf "${msg}"
+      error=1
+    else
+      printf "${real_exe}\n generated ${sst_file}.\n"
+    fi
+    if [ ${error} = 1 ]; then
       exit 1
     fi
   done

@@ -419,17 +419,17 @@ fi
 # Check to see if metgrid outputs are generated
 for dmn in ${dmns[@]}; do
   for fcst in ${fcst_seq[@]}; do
-    dt_str=`date +%Y-%m-%d_%H:%M:%S -d "${strt_dt} ${fcst} hours"`
+    dt_str=`date +%Y-%m-%d_%H_%M_%S -d "${strt_dt} ${fcst} hours"`
     out_name="met_em.d${dmn}.${dt_str}.nc"
+    error=0
     if [ ! -s "${out_name}" ]; then
-      printf "ERROR:\n ${metgrid_exe}\n failed to complete for d${dmn}.\n"
-      exit 1
+      printf "ERROR:\n ${metgrid_exe}\n failed to complete ${out_name}.\n"
+      error=1
     else
-      # rename to no-colon style for WRF
-      dt_str=`date +%Y-%m-%d_%H_%M_%S -d "${strt_dt} ${fcst} hours"`
-      re_name="met_em.d${dmn}.${dt_str}.nc"
-      cmd="mv ${out_name} ${re_name}"
-      printf "${cmd}\n"; eval "${cmd}"
+      printf "${metgrid}\n generated ${out_name}.\n"
+    fi
+    if [ ${error} = 1 ]; then
+      exit 1
     fi
   done
 done

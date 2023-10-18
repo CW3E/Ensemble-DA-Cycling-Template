@@ -25,12 +25,12 @@
  pole_lat          = 51.0,
  pole_lon          = 180.0,
  stand_lon         = 125.0,
- geog_data_path    = '/expanse/lustre/projects/ddp181/cgrudzien/DATA/WPS_GEOG_HIGH_RES',
+ geog_data_path    = '/expanse/lustre/projects/ddp181/cgrudzien/JEDI-MPAS-Common-Case/DATA/static_terrestrial/WPS_GEOG'
 /
 
 &ungrib
  out_format        = 'WPS',
- prefix            = 'PREFIX',
+ prefix            = PREFIX,
 /
 
 &metgrid

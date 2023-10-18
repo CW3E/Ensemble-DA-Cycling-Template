@@ -645,14 +645,15 @@ printf "${cmd}\n"; eval "${cmd}"
 
 # Check for all wrfout files on WRFOUT_INT and link files to
 # the appropriate bkg directory
+error=0
 for dmn in ${dmns[@]}; do
   for fcst in `seq -f "%03g" 0 ${WRFOUT_INT} ${fcst_hrs}`; do
     dt_str=`date +%Y-%m-%d_%H_%M_%S -d "${strt_dt} ${fcst} hours"`
     if [ ! -s wrfout_d${dmn}_${dt_str} ]; then
-      msg="WRF failed to complete, wrfout_d${dmn}_${dt_str} "
+      msg="ERROR:\n ${wrf_exe}\n failed to complete, wrfout_d${dmn}_${dt_str} "
       msg+="is missing or empty.\n"
       printf "${msg}"
-      exit 1
+      error=1
     else
       cmd="ln -sfr wrfout_d${dmn}_${dt_str} ${CYC_HME}/../${new_bkg}"
       printf "${cmd}\n"; eval "${cmd}"
@@ -669,10 +670,10 @@ for dmn in ${dmns[@]}; do
   # the appropriate bkg directory
   dt_str=`date +%Y-%m-%d_%H_%M_%S -d "${strt_dt} ${fcst_hrs} hours"`
   if [ ! -s wrfrst_d${dmn}_${dt_str} ]; then
-    msg="WRF failed to complete, wrfrst_d${dmn}_${dt_str} is "
+    msg="ERROR:\n ${wrf_exe}\n failed to complete, wrfrst_d${dmn}_${dt_str} is "
     msg+="missing or empty.\n"
     printf "${msg}"
-    exit 1
+    error=1
   else
     cmd="ln -sfr wrfrst_d${dmn}_${dt_str} ${CYC_HME}/../${new_bkg}"
     printf "${cmd}\n"; eval "${cmd}"
@@ -683,6 +684,9 @@ for dmn in ${dmns[@]}; do
       cmd="ln -sfr wrfrst_d${dmn}_${dt_str} ${wrf_in_root}"
       printf "${cmd}\n"; eval "${cmd}"
     fi
+  fi
+  if [ ${error} = 1 ]; then
+    exit 1	
   fi
 done
 

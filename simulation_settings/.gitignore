@@ -5,4 +5,4 @@
 !archive
 !archive/*
 !archive/**/*
-!archive/**/.*.swp
+archive/**/*.swp
