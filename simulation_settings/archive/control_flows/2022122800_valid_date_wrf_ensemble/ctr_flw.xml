@@ -148,9 +148,6 @@
         <name>DATA_ROOT</name>
         <value>&DATA_ROOT;</value>
       </envar>
-      <dependency>
-         <strneq><left>YES</left><right>YES</right></strneq>
-      </dependency>
     </task>
 
     <task name="metgrid_ens_#ENS_N#" maxtries="12" cycledefs="forecast_cycles">
