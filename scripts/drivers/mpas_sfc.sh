@@ -316,25 +316,25 @@ fi
 ##################################################################################
 # Copy the init_atmosphere namelist / streams templates,
 # NOTE: THESE WILL BE MODIFIED DO NOT LINK TO THEM
-namelist_temp=${EXP_CNFG}/namelists/namelist.init_atmosphere.${BKG_DATA}
-if [ ! -r ${namelist_temp} ]; then 
-  msg="init_atmosphere namelist template\n ${namelist_temp}\n is not readable or "
+namelist_tmp=${EXP_CNFG}/namelists/namelist.init_atmosphere.${DMN_NME}.${BKG_DATA}
+if [ ! -r ${namelist_tmp} ]; then 
+  msg="init_atmosphere namelist template\n ${namelist_tmp}\n is not readable or "
   msg+="does not exist.\n"
   printf "${msg}"
   exit 1
 else
-  cmd="cp -L ${namelist_temp} ./namelist.init_atmosphere"
+  cmd="cp -L ${namelist_tmp} ./namelist.init_atmosphere"
   printf "${cmd}\n"; eval "${cmd}"
 fi
 
-streams_temp=${EXP_CNFG}/streamlists/streams.init_atmosphere
-if [ ! -r ${streams_temp} ]; then 
-  msg="init_atmosphere streams template\n ${streams_temp}\n is not readable or "
+streams_tmp=${EXP_CNFG}/streamlists/streams.init_atmosphere
+if [ ! -r ${streams_tmp} ]; then 
+  msg="init_atmosphere streams template\n ${streams_tmp}\n is not readable or "
   msg+="does not exist.\n"
   printf "${msg}"
   exit 1
 else
-  cmd="cp -L ${streams_temp} ./streams.init_atmosphere"
+  cmd="cp -L ${streams_tmp} ./streams.init_atmosphere"
   printf "${cmd}\n"; eval "${cmd}"
 fi
 

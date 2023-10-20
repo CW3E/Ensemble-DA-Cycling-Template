@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <!DOCTYPE workflow
 [
-  <!-- GSI Observation-Analysis-Forecast Cycling Workflow -->
+  <!-- WRF valid date ensemble workflow -->
 
   <!-- CONTROL FLOW NAME / TUNABLE SETTINGS -->
   <!ENTITY EXP_VRF     "2022122800"> <!-- Define the valid date YYYYMMDDHH for verification -->
@@ -55,23 +55,18 @@
 
   <!-- JOB SETTINGS -->
   <!ENTITY SCHED        "slurm"> <!-- Machine scheduler, note native scheduler commands in tasks below -->
-  <!ENTITY PROJECT      "--account=ddp181"> <!-- Project billing account -->
-  <!ENTITY PART_COMPU   "--partition=debug"> <!-- Slurm partition for standard computing -->
-  <!ENTITY PART_DEBUG   "--partition=debug">  <!-- Slurm partition for small jobs / rapid debugging -->
-  <!ENTITY MPIRUN       "mpirun"> <!-- MPI exec command to call multiprocess jobs with (machine and scheduler specific) -->
-  <!ENTITY WPS_PROC     "128"> <!-- WPS parallel / REAL number of procs (all serial jobs are hard-coded as 1) -->
-  <!ENTITY WPS_MEM      "1750M"> <!-- WPS MEM per CPU argument for SLURM -->
-  <!ENTITY WPS_NODESIZE "128"> <!-- WPS node size -->
-  <!ENTITY WPS_NODES    "1"> <!-- Number of nodes for WPS / REAL jobs -->
-  <!ENTITY WPS_WC       "00:30:00"> <!-- Wallclock limit for WPS cycle jobs -->
-  <!ENTITY REAL_PROC    "256"> <!-- WPS parallel / REAL number of procs (all serial jobs are hard-coded as 1) -->
-  <!ENTITY REAL_MEM     "1750M"> <!-- WPS MEM per CPU argument for SLURM -->
-  <!ENTITY REAL_NODES   "2"> <!-- Number of nodes for WPS / REAL jobs -->
+  <!ENTITY PROJECT      "ddp181"> <!-- Project billing account -->
+  <!ENTITY PART_COMPU   "debug"> <!-- Queue for standard computing -->
+  <!ENTITY PART_DEBUG   "debug">  <!-- Queue for small jobs / rapid debugging -->
+  <!ENTITY MPIRUN       "mpiexec"> <!-- MPI exec command -->
+  <!ENTITY WPS_PROC     "128"> <!-- WPS parallel / REAL number of procs -->
+  <!ENTITY WPS_MEM      "1750M"> <!-- WPS MEM per CPU argument -->
+  <!ENTITY WPS_NODES    "2"> <!-- Number of nodes for WPS parallel / REAL jobs -->
+  <!ENTITY WPS_WC       "00:30:00"> <!-- Wallclock limit for WPS jobs -->
   <!ENTITY WRF_PROC     "256"> <!-- WRF number of procs -->
-  <!ENTITY WRF_MEM      "1750M"> <!-- WRF MEM per CPU argument for SLURM -->
-  <!ENTITY WRF_NODESIZE "128"> <!-- WRF node size -->
+  <!ENTITY WRF_MEM      "1750M"> <!-- WRF MEM per CPU argument -->
   <!ENTITY WRF_NODES    "2"> <!-- Number of nodes for WRF jobs -->
-  <!ENTITY WRF_WC       "00:30:00"> <!-- Wallclock limit for WRF short-range cycling -->
+  <!ENTITY WRF_WC       "00:30:00"> <!-- Wallclock limit for WRF -->
   <!-- END JOB SETTINGS -->
 ]>
 
@@ -86,16 +81,14 @@
     <var name="ENS_N">&MEM_LIST;</var>  
     <task name="ungrib_ens_#ENS_N#" maxtries="12" cycledefs="forecast_cycles">
       <command>&DRIVERS;/ungrib.sh</command>
-      <cores>1</cores>
-      <nodesize>&WPS_NODESIZE;</nodesize>
-      <walltime>&WPS_WC;</walltime>
       <jobname><cyclestr>ungrib_ens_#ENS_N#_@Y@m@d@H</cyclestr></jobname>
       <join><cyclestr>&EXP_LOG;/@Y@m@d@H/ungrib_ens_#ENS_N#.log</cyclestr></join>
-      <native>&PART_DEBUG;</native>
-      <native>&PROJECT;</native>
-      <native>--export=ALL</native>
-      <native>--nodes=&WPS_NODES;</native>
+      <walltime>&WPS_WC;</walltime>
+      <partition>&PART_DEBUG;</partition>
+      <account>&PROJECT;</account>
+      <nodes>1:ppn=1</nodes>
       <native>--mem-per-cpu=&WPS_MEM;</native>
+      <native>--export=ALL</native>
       <envar>
         <name>CNST</name>
         <value>&WRF_CNST;</value>
@@ -152,16 +145,14 @@
 
     <task name="metgrid_ens_#ENS_N#" maxtries="12" cycledefs="forecast_cycles">
       <command>&DRIVERS;/wrf_metgrid.sh</command>
-      <cores>&WPS_PROC;</cores>
-      <nodesize>&WPS_NODESIZE;</nodesize>
-      <walltime>&WPS_WC;</walltime>
       <jobname><cyclestr>metgrid_ens_#ENS_N#_@Y@m@d@H</cyclestr></jobname>
       <join><cyclestr>&EXP_LOG;/@Y@m@d@H/metgrid_ens_#ENS_N#.log</cyclestr></join>
-      <native>&PART_DEBUG;</native>
-      <native>&PROJECT;</native>
-      <native>--export=ALL</native>
-      <native>--nodes=&WPS_NODES;</native>
+      <walltime>&WPS_WC;</walltime>
+      <partition>&PART_DEBUG;</partition>
+      <account>&PROJECT;</account>
+      <nodes>&WPS_NODES;:ppn=&WPS_PROC;</nodes>
       <native>--mem-per-cpu=&WPS_MEM;</native>
+      <native>--export=ALL</native>
       <envar>
         <name>CNST</name>
         <value>&WRF_CNST;</value>
@@ -225,16 +216,14 @@
 
     <task name="real_ens_#ENS_N#" maxtries="12" cycledefs="forecast_cycles">
       <command>&DRIVERS;/wrf_real.sh</command>
-      <cores>&REAL_PROC;</cores>
-      <nodesize>&WPS_NODESIZE;</nodesize>
-      <walltime>&WPS_WC;</walltime>
       <jobname><cyclestr>real_ens_#ENS_N#_@Y@m@d@H</cyclestr></jobname>
       <join><cyclestr>&EXP_LOG;/@Y@m@d@H/real_ens_#ENS_N#.log</cyclestr></join>
-      <native>&PART_DEBUG;</native>
-      <native>&PROJECT;</native>
+      <walltime>&WPS_WC;</walltime>
+      <partition>&PART_DEBUG;</partition>
+      <account>&PROJECT;</account>
+      <nodes>&WPS_NODES;:ppn=&WPS_PROC;</nodes>
+      <native>--mem-per-cpu=&WPS_MEM;</native>
       <native>--export=ALL</native>
-      <native>--nodes=&REAL_NODES;</native>
-      <native>--mem-per-cpu=&REAL_MEM;</native>
       <envar>
         <name>CNST</name>
         <value>&WRF_CNST;</value>
@@ -298,16 +287,14 @@
 
     <task name="wrf_ens_#ENS_N#" maxtries="12" cycledefs="forecast_cycles">
       <command>&DRIVERS;/wrf_model.sh</command>
-      <cores>&WRF_PROC;</cores>
-      <nodesize>&WRF_NODESIZE;</nodesize>
-      <walltime>&WRF_WC;</walltime>
       <jobname><cyclestr>wrf_ens_#ENS_N#_@Y@m@d@H</cyclestr></jobname>
       <join><cyclestr>&EXP_LOG;/@Y@m@d@H/wrf_ens_#ENS_N#.log</cyclestr></join>
-      <native>&PART_COMPU;</native>
-      <native>&PROJECT;</native>
-      <native>--export=ALL</native>
-      <native>--nodes=&WRF_NODES;</native>
+      <walltime>&WRF_WC;</walltime>
+      <partition>&PART_COMPU;</partition>
+      <account>&PROJECT;</account>
+      <nodes>&WRF_NODES;:ppn=&WRF_PROC;</nodes>
       <native>--mem-per-cpu=&WRF_MEM;</native>
+      <native>--export=ALL</native>
       <envar>
         <name>CNST</name>
         <value>&WRF_CNST;</value>

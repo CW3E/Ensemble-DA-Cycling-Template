@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <!DOCTYPE workflow
 [
-  <!-- GSI Observation-Analysis-Forecast Cycling Workflow -->
+  <!-- MPAS valid date ensemble workflow -->
 
   <!-- CONTROL FLOW NAME / TUNABLE SETTINGS -->
   <!ENTITY EXP_VRF      "2022122800"> <!-- Define the valid date YYYYMMDDHH for verification -->
@@ -52,30 +52,28 @@
   <!ENTITY SND_INT       "00"> <!-- Output interval for sounding files in HH, suppressed = 00 -->
   <!ENTITY BCKT_INT      "24"> <!-- Accumulation reset interval in HH, reset suppressed = 00 -->
   <!ENTITY RSTRT_INT     "24"> <!-- Output interval for restart files in HH, suppressed = 00 -->
-  <!ENTITY PIO_NUM       "0"> <!-- Quilting tasks per group, set NIO_TPG=0 for default TURN OFF QUILTING --> 
-  <!ENTITY PIO_STRIDE    "1"> <!-- Quilting number of groups -->
+  <!ENTITY PIO_NUM       "0"> <!-- Number of tasks devoted to IO, set to 0 for all tasks run IO --> 
+  <!ENTITY PIO_STRIDE    "1"> <!-- Parallel IO stride -->
   <!-- END MPAS SETTINGS -->
 
   <!-- JOB SETTINGS -->
-  <!ENTITY SCHED         "slurm"> <!-- Machine scheduler, note native scheduler commands in tasks below -->
-  <!ENTITY PROJECT       "--account=ddp181"> <!-- Project billing account -->
-  <!ENTITY PART_COMPU    "--partition=compute"> <!-- Slurm partition for standard computing -->
-  <!ENTITY PART_DEBUG    "--partition=debug">  <!-- Slurm partition for small jobs / rapid debugging -->
-  <!ENTITY MPIRUN        "mpirun"> <!-- MPI exec command to call multiprocess jobs with (machine and scheduler specific) -->
-  <!ENTITY WPS_MEM       "1750M"> <!-- WPS MEM per CPU argument for SLURM -->
-  <!ENTITY WPS_NODESIZE  "128"> <!-- WPS node size -->
-  <!ENTITY WPS_NODES     "1"> <!-- Number of nodes for WPS / REAL jobs -->
-  <!ENTITY WPS_WC        "00:30:00"> <!-- Wallclock limit for WPS cycle jobs -->
-  <!ENTITY REAL_PROC     "64"> <!-- WPS parallel / REAL number of procs (all serial jobs are hard-coded as 1) -->
-  <!ENTITY REAL_MEM      "1750M"> <!-- WPS MEM per CPU argument for SLURM -->
-  <!ENTITY REAL_NODESIZE "128"> <!-- REAL node size -->
-  <!ENTITY REAL_NODES    "1"> <!-- Number of nodes for WPS / REAL jobs -->
-  <!ENTITY REAL_WC       "00:30:00"> <!-- Wallclock limit for REAL jobs -->
-  <!ENTITY MPAS_PROC     "64"> <!-- MPAS number of procs -->
-  <!ENTITY MPAS_MEM      "1750M"> <!-- MPAS MEM per CPU argument for SLURM -->
-  <!ENTITY MPAS_NODESIZE "128"> <!-- MPAS node size -->
-  <!ENTITY MPAS_NODES    "1"> <!-- Number of nodes for MPAS jobs -->
-  <!ENTITY MPAS_WC       "00:30:00"> <!-- Wallclock limit for MPAS short-range cycling -->
+  <!ENTITY SCHED         "slurm"> <!-- System scheduler, note rocoto interpreter conventions under rocoto/lib/workflowmgr -->
+  <!ENTITY PROJECT       "ddp181"> <!-- Project billing account -->
+  <!ENTITY PART_COMPU    "debug"> <!-- Queue for standard computing -->
+  <!ENTITY PART_DEBUG    "debug">  <!-- Queue for small jobs / rapid debugging -->
+  <!ENTITY MPIRUN        "mpiexec"> <!-- MPI exec command -->
+  <!ENTITY WPS_NODES     "1"> <!-- Number of nodes for WPS jobs -->
+  <!ENTITY WPS_PROC      "1"> <!-- Number of procs for WPS jobs -->
+  <!ENTITY WPS_MEM       "1750M"> <!-- WPS MEM per CPU argument -->
+  <!ENTITY WPS_WC        "00:30:00"> <!-- Wallclock limit for WPS jobs -->
+  <!ENTITY INIT_PROC     "64"> <!-- init_atmosphere number of procs -->
+  <!ENTITY INIT_MEM      "1750M"> <!-- init_atmosphere MEM per CPU argument -->
+  <!ENTITY INIT_NODES    "1"> <!-- Number of nodes for init_atmosphere -->
+  <!ENTITY INIT_WC       "00:30:00"> <!-- Wallclock limit for init_atmosphere jobs -->
+  <!ENTITY MPAS_PROC     "64"> <!-- atmosphere_model number of procs -->
+  <!ENTITY MPAS_MEM      "1750M"> <!-- atmosphere_model MEM per CPU argument -->
+  <!ENTITY MPAS_NODES    "1"> <!-- Number of nodes for atmosphere_model jobs -->
+  <!ENTITY MPAS_WC       "00:30:00"> <!-- Wallclock limit for atmosphere_model -->
   <!-- END JOB SETTINGS -->
 ]>
 
@@ -90,16 +88,14 @@
     <var name="ENS_N">&MEM_LIST;</var>  
     <task name="ungrib_ens_#ENS_N#" maxtries="12" cycledefs="forecast_cycles">
       <command>&DRIVERS;/ungrib.sh</command>
-      <cores>1</cores>
-      <nodesize>&WPS_NODESIZE;</nodesize>
-      <walltime>&WPS_WC;</walltime>
       <jobname><cyclestr>ungrib_ens_#ENS_N#_@Y@m@d@H</cyclestr></jobname>
       <join><cyclestr>&EXP_LOG;/@Y@m@d@H/ungrib_ens_#ENS_N#.log</cyclestr></join>
-      <native>&PART_DEBUG;</native>
-      <native>&PROJECT;</native>
-      <native>--export=ALL</native>
-      <native>--nodes=&WPS_NODES;</native>
+      <walltime>&WPS_WC;</walltime>
+      <partition>&PART_DEBUG;</partition>
+      <account>&PROJECT;</account>
+      <nodes>&WPS_NODES;:ppn=&WPS_PROC;</nodes>
       <native>--mem-per-cpu=&WPS_MEM;</native>
+      <native>--export=ALL</native>
       <envar>
         <name>CNST</name>
         <value>&WRF_CNST;</value>
@@ -156,16 +152,14 @@
 
     <task name="mpas_ic_ens_#ENS_N#" maxtries="12" cycledefs="forecast_cycles">
       <command>&DRIVERS;/mpas_ic.sh</command>
-      <cores>&REAL_PROC;</cores>
-      <nodesize>&REAL_NODESIZE;</nodesize>
-      <walltime>&REAL_WC;</walltime>
       <jobname><cyclestr>mpas_ic_ens_#ENS_N#_@Y@m@d@H</cyclestr></jobname>
       <join><cyclestr>&EXP_LOG;/@Y@m@d@H/mpas_ic_ens_#ENS_N#.log</cyclestr></join>
-      <native>&PART_DEBUG;</native>
-      <native>&PROJECT;</native>
+      <walltime>&INIT_WC;</walltime>
+      <partition>&PART_DEBUG;</partition>
+      <account>&PROJECT;</account>
+      <nodes>&INIT_NODES;:ppn=&INIT_PROC;</nodes>
+      <native>--mem-per-cpu=&INIT_MEM;</native>
       <native>--export=ALL</native>
-      <native>--nodes=&REAL_NODES;</native>
-      <native>--mem-per-cpu=&REAL_MEM;</native>
       <envar>
         <name>CNST</name>
         <value>&MPAS_CNST;</value>
@@ -216,7 +210,7 @@
       </envar>
       <envar>
         <name>N_PROC</name>
-        <value>&REAL_PROC;</value>
+        <value>&INIT_PROC;</value>
       </envar>
       <envar>
         <name>PIO_NUM</name>
@@ -232,16 +226,14 @@
     </task>
     <task name="mpas_sfc_ens_#ENS_N#" maxtries="12" cycledefs="forecast_cycles">
       <command>&DRIVERS;/mpas_sfc.sh</command>
-      <cores>&REAL_PROC;</cores>
-      <nodesize>&REAL_NODESIZE;</nodesize>
-      <walltime>&REAL_WC;</walltime>
       <jobname><cyclestr>mpas_sfc_ens_#ENS_N#_@Y@m@d@H</cyclestr></jobname>
       <join><cyclestr>&EXP_LOG;/@Y@m@d@H/mpas_sfc_ens_#ENS_N#.log</cyclestr></join>
-      <native>&PART_DEBUG;</native>
-      <native>&PROJECT;</native>
+      <walltime>&INIT_WC;</walltime>
+      <partition>&PART_DEBUG;</partition>
+      <account>&PROJECT;</account>
+      <nodes>&INIT_NODES;:ppn=&INIT_PROC;</nodes>
+      <native>--mem-per-cpu=&INIT_MEM;</native>
       <native>--export=ALL</native>
-      <native>--nodes=&REAL_NODES;</native>
-      <native>--mem-per-cpu=&REAL_MEM;</native>
       <envar>
         <name>CNST</name>
         <value>&MPAS_CNST;</value>
@@ -292,7 +284,7 @@
       </envar>
       <envar>
         <name>N_PROC</name>
-        <value>&REAL_PROC;</value>
+        <value>&INIT_PROC;</value>
       </envar>
       <envar>
         <name>PIO_NUM</name>
@@ -308,16 +300,14 @@
     </task>
     <task name="mpas_model_ens_#ENS_N#" maxtries="12" cycledefs="forecast_cycles">
       <command>&DRIVERS;/mpas_model.sh</command>
-      <cores>&MPAS_PROC;</cores>
-      <nodesize>&MPAS_NODESIZE;</nodesize>
-      <walltime>&MPAS_WC;</walltime>
       <jobname><cyclestr>mpas_model_ens_#ENS_N#_@Y@m@d@H</cyclestr></jobname>
       <join><cyclestr>&EXP_LOG;/@Y@m@d@H/mpas_model_ens_#ENS_N#.log</cyclestr></join>
-      <native>&PART_DEBUG;</native>
-      <native>&PROJECT;</native>
-      <native>--export=ALL</native>
-      <native>--nodes=&MPAS_NODES;</native>
+      <walltime>&MPAS_WC;</walltime>
+      <partition>&PART_COMPU;</partition>
+      <account>&PROJECT;</account>
+      <nodes>&MPAS_NODES;:ppn=&MPAS_PROC;</nodes>
       <native>--mem-per-cpu=&MPAS_MEM;</native>
+      <native>--export=ALL</native>
       <envar>
         <name>CNST</name>
         <value>&MPAS_CNST;</value>

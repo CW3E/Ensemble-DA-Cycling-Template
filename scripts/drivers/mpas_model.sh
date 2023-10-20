@@ -522,58 +522,58 @@ fi
 ##################################################################################
 # Copy the atmosphere namelist / streams templates,
 # NOTE: THESE WILL BE MODIFIED DO NOT LINK TO THEM
-namelist_temp=${EXP_CNFG}/namelists/namelist.atmosphere.${DMN_NME}
-if [ ! -r ${namelist_temp} ]; then 
-  msg="atmosphere namelist template\n ${namelist_temp}\n is not readable or "
+namelist_tmp=${EXP_CNFG}/namelists/namelist.atmosphere.${DMN_NME}
+if [ ! -r ${namelist_tmp} ]; then 
+  msg="atmosphere namelist template\n ${namelist_tmp}\n is not readable or "
   msg+="does not exist.\n"
   printf "${msg}"
   exit 1
 else
-  cmd="cp -L ${namelist_temp} ./namelist.atmosphere"
+  cmd="cp -L ${namelist_tmp} ./namelist.atmosphere"
   printf "${cmd}\n"; eval "${cmd}"
 fi
 
-streams_temp=${EXP_CNFG}/streamlists/streams.atmosphere
-if [ ! -r ${streams_temp} ]; then 
-  msg="atmosphere streams template\n ${streams_temp}\n is not readable or "
+streams_tmp=${EXP_CNFG}/streamlists/streams.atmosphere
+if [ ! -r ${streams_tmp} ]; then 
+  msg="atmosphere streams template\n ${streams_tmp}\n is not readable or "
   msg+="does not exist.\n"
   printf "${msg}"
   exit 1
 else
-  cmd="cp -L ${streams_temp} ./streams.atmosphere"
+  cmd="cp -L ${streams_tmp} ./streams.atmosphere"
   printf "${cmd}\n"; eval "${cmd}"
 fi
 
-streamlist_out_temp=${EXP_CNFG}/streamlists/stream_list.atmosphere.output
-if [ ! -r ${streamlist_out_temp} ]; then 
-  msg="atmosphere stream_list.atmosphere.output\n ${streamlist_out_temp}\n"
+streamlist_out_tmp=${EXP_CNFG}/streamlists/stream_list.atmosphere.output
+if [ ! -r ${streamlist_out_tmp} ]; then 
+  msg="atmosphere stream_list.atmosphere.output\n ${streamlist_out_tmp}\n"
   msg+=" is not readable or does not exist.\n"
   printf "${msg}"
   exit 1
 else
-  cmd="cp -L ${streamlist_out_temp} ./stream_list.atmosphere.output"
+  cmd="cp -L ${streamlist_out_tmp} ./stream_list.atmosphere.output"
   printf "${cmd}\n"; eval "${cmd}"
 fi
 
-streamlist_sfc_temp=${EXP_CNFG}/streamlists/stream_list.atmosphere.surface
-if [ ! -r ${streamlist_sfc_temp} ]; then 
-  msg="atmosphere stream_list.atmosphere.surface\n ${streamlist_sfc_temp}\n"
+streamlist_sfc_tmp=${EXP_CNFG}/streamlists/stream_list.atmosphere.surface
+if [ ! -r ${streamlist_sfc_tmp} ]; then 
+  msg="atmosphere stream_list.atmosphere.surface\n ${streamlist_sfc_tmp}\n"
   msg+=" is not readable or does not exist.\n"
   printf "${msg}"
   exit 1
 else
-  cmd="cp -L ${streamlist_sfc_temp} ./stream_list.atmosphere.surface"
+  cmd="cp -L ${streamlist_sfc_tmp} ./stream_list.atmosphere.surface"
   printf "${cmd}\n"; eval "${cmd}"
 fi
 
-streamlist_diag_temp=${EXP_CNFG}/streamlists/stream_list.atmosphere.diagnostics
-if [ ! -r ${streamlist_diag_temp} ]; then 
-  msg="atmosphere stream_list.atmosphere.diagnostics\n ${streamlist_diag_temp}\n"
+streamlist_diag_tmp=${EXP_CNFG}/streamlists/stream_list.atmosphere.diagnostics
+if [ ! -r ${streamlist_diag_tmp} ]; then 
+  msg="atmosphere stream_list.atmosphere.diagnostics\n ${streamlist_diag_tmp}\n"
   msg+=" is not readable or does not exist.\n"
   printf "${msg}"
   exit 1
 else
-  cmd="cp -L ${streamlist_diag_temp} ./stream_list.atmosphere.diagnostics"
+  cmd="cp -L ${streamlist_diag_tmp} ./stream_list.atmosphere.diagnostics"
   printf "${cmd}\n"; eval "${cmd}"
 fi
 

@@ -2,9 +2,11 @@
 
 ## Description
 This is a template for running WRF-GSI-based / MPAS-JEDI-based ensemble DA twin experiments
-in an offline experiment. This repository is based on the work of Colin Grudizen,
+in an offline reforecast setting. This repository is based on the work of Colin Grudizen,
 Daniel Steinhoff, Matthew Simpson, Christopher Harrop, Caroline Papadopoulos,
-Patrick Mulrooney, Minghua Zheng, Ivette Hernandez Ba&ntilde;os and others.
+Patrick Mulrooney, Minghua Zheng, Ivette Hernandez Ba&ntilde;os,
+Corrine Deciampa, Allison Michaelis and others.
+
 Twin experiment workflows are currenlty in-development, with further integrations of
 templates from NCAR's [MPAS Workflow](https://github.com/NCAR/MPAS-Workflow) planned.
 Scripts in this repository were forked and re-written from examples from the CW3E
