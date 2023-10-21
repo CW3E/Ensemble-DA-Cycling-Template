@@ -6,3 +6,4 @@
 !archive/*
 !archive/**/*
 archive/**/*.swp
+archive/**/*.nc
