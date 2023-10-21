@@ -478,11 +478,14 @@ fi
 
 # Define list of preprocessed data and make links
 atmos_ic_root=${CYC_HME}/init_atmosphere_ic/ens_${memid}
-atmos_sfc_root=${CYC_HME}/init_atmosphere_sfc/ens_${memid}
 input_files=( 
              "${atmos_ic_root}/${DMN_NME}.init.nc"
-	     "${atmos_sfc_root}/${DMN_NME}.sfc_update.nc"
 	    )
+
+if [[ ${IF_SST_UPDT} = ${YES} ]]; then
+  atmos_sfc_root=${CYC_HME}/init_atmosphere_sfc/ens_${memid}
+  input_files+=( "${atmos_sfc_root}/${DMN_NME}.sfc_update.nc" )
+fi
 
 if [[ ${IF_RGNL} = ${YES} ]]; then 
   # define a sequence of all forecast hours with background interval spacing

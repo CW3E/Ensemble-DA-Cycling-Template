@@ -24,7 +24,7 @@
  truelat1          = 25,
  truelat2          = 50,
  stand_lon         = -125,
- geog_data_path    = '/expanse/lustre/projects/ddp181/cgrudzien/JEDI-MPAS-Common-Case/DATA/static_terrestrial/WPS_GEOG'
+ geog_data_path    = '/cw3e/mead/datasets/ncar/wrf/wps_geog/v4/WPS_GEOG_HIGH_RES'
 /
 
 &ungrib
