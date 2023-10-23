@@ -32,14 +32,11 @@ from datetime import timedelta
 ##################################################################################
 # SET GLOBAL PARAMETERS 
 ##################################################################################
-# directory of git clone
-USR_HME = '/cw3e/mead/projects/cwp106/scratch/GSI-WRF-Cycling-Template'
+STR_INDT = '    '
 
 ##################################################################################
 # UTILITY METHODS
 ##################################################################################
-
-STR_INDT = '    '
 
 def get_reqs(start_date, end_date, fcst_int, cycle_int, max_fcst):
     # generates requests based on script parameters
