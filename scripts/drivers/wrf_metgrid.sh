@@ -190,7 +190,8 @@ dmns=`seq -f "%02g" 1 ${MAX_DOM}`
 # CYC_HME  = Cycle YYYYMMDDHH named directory for cycling data containing
 #            bkg, ungrib, metgrid, real, wrf, wrfda, gsi, enkf
 # MPIRUN   = MPI multiprocessing evaluation call, machine specific
-# N_PROC   = The total number of processes to run metgrid.exe with MPI
+# N_NDES   = Total number of nodes
+# N_PROC   = The total number of processes-per-node
 #
 ##################################################################################
 
@@ -223,15 +224,27 @@ if [ ! ${MPIRUN} ]; then
   exit 1
 fi
 
+if [ ! ${N_NDES} ]; then
+  printf "ERROR: \${N_NDES} is not defined.\n"
+  exit 1
+elif [ ${N_NDES} -le 0 ]; then
+  msg="ERROR: The variable \${N_NDES} must be set to the number"
+  msg+=" of nodes to run metgrid.exe > 0.\n"
+  printf "${msg}"
+  exit 1
+fi
+
 if [ ! ${N_PROC} ]; then
   printf "ERROR: \${N_PROC} is not defined.\n"
   exit 1
 elif [ ${N_PROC} -le 0 ]; then
   msg="ERROR: The variable \${N_PROC} must be set to the number"
-  msg+=" of processors to run metgrid.exe.\n"
+  msg+=" of processes-per-node to run metgrid.exe > 0.\n"
   printf "${msg}"
   exit 1
 fi
+
+mpiprocs=$(( ${N_NDES} * ${N_PROC} ))
 
 ##################################################################################
 # Begin pre-metgrid setup
@@ -350,7 +363,7 @@ out_sd="'${strt_iso}','${strt_iso}','${strt_iso}'"
 out_ed="'${stop_iso}','${stop_iso}','${stop_iso}'"
 
 # Update interval in namelist
-(( data_int_sec = BKG_INT * 3600 ))
+data_int_sec=$(( ${BKG_INT} * 3600 ))
 
 # Update fg_name to name of background data
 if [ ${IF_ECMWF_ML} = ${YES} ]; then
@@ -385,9 +398,9 @@ printf "MAX_DOM  = ${MAX_DOM}\n"
 printf "\n"
 now=`date +%Y-%m-%d_%H_%M_%S`
 printf "metgrid started at ${now}.\n"
-cmd="${MPIRUN} -n ${N_PROC} ${metgrid_exe}"
+cmd="${MPIRUN} -n ${mpiprocs} ${metgrid_exe}"
 printf "${cmd}\n"
-${MPIRUN} -n ${N_PROC} ${metgrid_exe}
+${MPIRUN} -n ${mpiprocs} ${metgrid_exe}
 
 ##################################################################################
 # Run time error check

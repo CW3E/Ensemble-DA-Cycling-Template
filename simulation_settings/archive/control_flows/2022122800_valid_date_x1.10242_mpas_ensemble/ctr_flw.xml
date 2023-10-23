@@ -56,7 +56,7 @@
   <!ENTITY IF_SST_DIURN "No"> <!-- Diurnal updates to lower boundary conditions -->
   <!ENTITY IF_DEEPSOIL  "No"> <!-- Slowly varying deep soil temperatures -->
   <!ENTITY PIO_NUM      "0"> <!-- Number of tasks devoted to IO, set to 0 for all tasks run IO --> 
-  <!ENTITY PIO_STRIDE   "1"> <!-- Parallel IO stride -->
+  <!ENTITY PIO_STRD     "1"> <!-- Parallel IO stride -->
   <!-- END MPAS SETTINGS -->
 
   <!-- JOB SETTINGS -->
@@ -65,15 +65,15 @@
   <!ENTITY PART_COMPU   "debug"> <!-- Queue for standard computing -->
   <!ENTITY PART_DEBUG   "debug">  <!-- Queue for small jobs / rapid debugging -->
   <!ENTITY MPIRUN       "mpiexec"> <!-- MPI exec command -->
-  <!ENTITY WPS_MEM      "1750M"> <!-- ungrib MEM per CPU argument -->
+  <!ENTITY WPS_MEM      "1750M"> <!-- ungrib mem-per-cpu argument -->
   <!ENTITY WPS_WC       "00:30:00"> <!-- Wallclock limit for ungrib jobs -->
-  <!ENTITY INIT_PROC    "64"> <!-- init_atmosphere number of procs -->
-  <!ENTITY INIT_MEM     "1750M"> <!-- init_atmosphere MEM per CPU argument -->
-  <!ENTITY INIT_NODES   "1"> <!-- Number of nodes for init_atmosphere -->
+  <!ENTITY INIT_PROC    "64"> <!-- init_atmosphere number of procs-per-node -->
+  <!ENTITY INIT_MEM     "1750M"> <!-- init_atmosphere mem-per-cpu argument -->
+  <!ENTITY INIT_NDES   "1"> <!-- Number of nodes for init_atmosphere -->
   <!ENTITY INIT_WC      "00:30:00"> <!-- Wallclock limit for init_atmosphere jobs -->
-  <!ENTITY MPAS_PROC    "64"> <!-- atmosphere_model number of procs -->
-  <!ENTITY MPAS_MEM     "1750M"> <!-- atmosphere_model MEM per CPU argument -->
-  <!ENTITY MPAS_NODES   "1"> <!-- Number of nodes for atmosphere_model jobs -->
+  <!ENTITY MPAS_PROC    "64"> <!-- atmosphere_model number of procs-per-node -->
+  <!ENTITY MPAS_MEM     "1750M"> <!-- atmosphere_model mem-per-cpu argument -->
+  <!ENTITY MPAS_NDES   "1"> <!-- Number of nodes for atmosphere_model jobs -->
   <!ENTITY MPAS_WC      "00:30:00"> <!-- Wallclock limit for atmosphere_model -->
   <!-- END JOB SETTINGS -->
 ]>
@@ -158,7 +158,7 @@
       <walltime>&INIT_WC;</walltime>
       <partition>&PART_DEBUG;</partition>
       <account>&PROJECT;</account>
-      <nodes>&INIT_NODES;:ppn=&INIT_PROC;</nodes>
+      <nodes>&INIT_NDES;:ppn=&INIT_PROC;</nodes>
       <native>--mem-per-cpu=&INIT_MEM;</native>
       <native>--export=ALL</native>
       <envar>
@@ -210,6 +210,10 @@
         <value>&MPIRUN;</value>
       </envar>
       <envar>
+        <name>N_NDES</name>
+        <value>&INIT_NDES;</value>
+      </envar>
+      <envar>
         <name>N_PROC</name>
         <value>&INIT_PROC;</value>
       </envar>
@@ -218,8 +222,8 @@
         <value>&PIO_NUM;</value>
       </envar>
       <envar>
-        <name>PIO_STRIDE</name>
-        <value>&PIO_STRIDE;</value>
+        <name>PIO_STRD</name>
+        <value>&PIO_STRD;</value>
       </envar>
       <dependency> 
         <taskdep task="ungrib_ens_#ENS_N#" state="SUCCEEDED"/>
@@ -232,7 +236,7 @@
       <walltime>&INIT_WC;</walltime>
       <partition>&PART_DEBUG;</partition>
       <account>&PROJECT;</account>
-      <nodes>&INIT_NODES;:ppn=&INIT_PROC;</nodes>
+      <nodes>&INIT_NDES;:ppn=&INIT_PROC;</nodes>
       <native>--mem-per-cpu=&INIT_MEM;</native>
       <native>--export=ALL</native>
       <envar>
@@ -284,6 +288,10 @@
         <value>&MPIRUN;</value>
       </envar>
       <envar>
+        <name>N_NDES</name>
+        <value>&INIT_NDES;</value>
+      </envar>
+      <envar>
         <name>N_PROC</name>
         <value>&INIT_PROC;</value>
       </envar>
@@ -292,8 +300,8 @@
         <value>&PIO_NUM;</value>
       </envar>
       <envar>
-        <name>PIO_STRIDE</name>
-        <value>&PIO_STRIDE;</value>
+        <name>PIO_STRD</name>
+        <value>&PIO_STRD;</value>
       </envar>
       <dependency> 
         <taskdep task="mpas_ic_ens_#ENS_N#" state="SUCCEEDED"/>
@@ -306,7 +314,7 @@
       <walltime>&MPAS_WC;</walltime>
       <partition>&PART_COMPU;</partition>
       <account>&PROJECT;</account>
-      <nodes>&MPAS_NODES;:ppn=&MPAS_PROC;</nodes>
+      <nodes>&MPAS_NDES;:ppn=&MPAS_PROC;</nodes>
       <native>--mem-per-cpu=&MPAS_MEM;</native>
       <native>--export=ALL</native>
       <envar>
@@ -398,6 +406,10 @@
         <value>&MPIRUN;</value>
       </envar>
       <envar>
+        <name>N_NDES</name>
+        <value>&MPAS_NDES;</value>
+      </envar>
+      <envar>
         <name>N_PROC</name>
         <value>&MPAS_PROC;</value>
       </envar>
@@ -406,8 +418,8 @@
         <value>&PIO_NUM;</value>
       </envar>
       <envar>
-        <name>PIO_STRIDE</name>
-        <value>&PIO_STRIDE;</value>
+        <name>PIO_STRD</name>
+        <value>&PIO_STRD;</value>
       </envar>
       <dependency> 
         <taskdep task="mpas_sfc_ens_#ENS_N#" state="SUCCEEDED"/>

@@ -271,15 +271,16 @@ fi
 ##################################################################################
 # Below variables are defined in workflow variables
 #
-# WRF_ROOT   = Root directory of a clean WRF build WRF/run directory
-# EXP_CONFIG = Root directory containing sub-directories for namelists
-#              vtables, geogrid data, GSI fix files, etc.
-# CYC_HME    = Start time named directory for cycling data containing
-#              bkg, ungrib, metgrid, real, wrf, wrfda_bc, gsi, enkf
-# MPIRUN     = MPI Command to execute WRF
-# N_PROC     = The total number of processes to run wrf.exe with MPI
-# NIO_GROUPS = Number of Quilting groups -- only used for NIO_TPG > 0
-# NIO_TPG    = Quilting tasks per group, set=0 if no quilting IO is to be used
+# WRF_ROOT = Root directory of a clean WRF build WRF/run directory
+# EXP_CNFG = Root directory containing sub-directories for namelists
+#            vtables, geogrid data, GSI fix files, etc.
+# CYC_HME  = Start time named directory for cycling data containing
+#            bkg, ungrib, metgrid, real, wrf, wrfda_bc, gsi, enkf
+# MPIRUN   = MPI Command to execute WRF
+# N_NDES   = Total number of nodes
+# N_PROC   = The total number of processes-per-node
+# NIO_GRPS = Number of Quilting groups -- only used for NIO_TPG > 0
+# NIO_TPG  = Quilting tasks per group, set=0 if no quilting IO is to be used
 #
 ##################################################################################
 
@@ -295,7 +296,7 @@ if [ ! ${EXP_CNFG} ]; then
   printf "ERROR: \${EXP_CNFG} is not defined.\n"
   exit 1
 elif [ ! -d ${EXP_CNFG} ]; then
-  printf "ERROR: \${EXP_CONFIG} directory\n ${EXP_CONFIG}\n does not exist.\n"
+  printf "ERROR: \${EXP_CNFG} directory\n ${EXP_CNFG}\n does not exist.\n"
   exit 1
 fi
 
@@ -312,15 +313,27 @@ if [ ! ${MPIRUN} ]; then
   exit 1
 fi
 
-if [ ! ${N_PROC} ]; then
-  printf "ERROR: \${N_PROC} is not defined.\n"
+if [ ! ${N_NDES} ]; then
+  printf "ERROR: \${N_NDES} is not defined.\n"
   exit 1
-elif [ ! ${N_PROC} -gt 0 ]; then
-  msg="ERROR: The variable \${N_PROC} must be set to the number"
-  msg+=" of processors to run wrf.exe.\n"
+elif [ ${N_NDES} -le 0 ]; then
+  msg="ERROR: The variable \${N_NDES} must be set to the number"
+  msg+=" of nodes to run wrf.exe > 0.\n"
   printf "${msg}"
   exit 1
 fi
+
+if [ ! ${N_PROC} ]; then
+  printf "ERROR: \${N_PROC} is not defined.\n"
+  exit 1
+elif [ ${N_PROC} -le 0 ]; then
+  msg="ERROR: The variable \${N_PROC} must be set to the number"
+  msg+=" of processes-per-node to run wrf.exe > 0.\n"
+  printf "${msg}"
+  exit 1
+fi
+
+mpiprocs=$(( ${N_NDES} * ${N_PROC} ))
 
 ##################################################################################
 # Begin pre-WRF setup
@@ -523,14 +536,14 @@ strt_iso=`date +%Y-%m-%d_%H_%M_%S -d "${strt_dt}"`
 end_iso=`date +%Y-%m-%d_%H_%M_%S -d "${end_dt}"`
 
 # Update interval in namelist
-(( data_int_sec = BKG_INT * 3600 ))
+data_int_sec=$(( ${BKG_INT} * 3600 ))
 
 # update auxinput4 interval
-(( auxinput4_minutes = BKG_INT * 60 ))
+auxinput4_minutes=$(( ${BKG_INT} * 60 ))
 aux_out="${auxinput4_minutes}, ${auxinput4_minutes}, ${auxinput4_minutes}"
 
 # update history interval and aux2hist interval
-(( hist_int = ${WRFOUT_INT} * 60 ))
+hist_int=$(( ${WRFOUT_INT} * 60 ))
 out_hist="${hist_int}, ${hist_int}, ${hist_int}"
 
 # Update the restart setting in wrf namelist depending on switch
@@ -568,7 +581,7 @@ cat namelist.input \
   | sed "s/= RSTRT_INT,/= ${run_mins},/" \
   | sed "s/= IF_FEEDBACK,/= ${feedback},/"\
   | sed "s/= NIO_TPG,/= ${NIO_TPG},/" \
-  | sed "s/= NIO_GROUPS,/= ${NIO_GROUPS},/" \
+  | sed "s/= NIO_GRPS,/= ${NIO_GRPS},/" \
   > namelist.input.tmp
 mv namelist.input.tmp namelist.input
 
@@ -577,7 +590,7 @@ mv namelist.input.tmp namelist.input
 ##################################################################################
 # Print run parameters
 printf "\n"
-printf "EXP_CONFIG  = ${EXP_CONFIG}\n"
+printf "EXP_CNFG    = ${EXP_CNFG}\n"
 printf "MEMID       = ${MEMID}\n"
 printf "CYC_HME     = ${CYC_HME}\n"
 printf "STRT_DT     = ${strt_iso}\n"
@@ -591,9 +604,9 @@ printf "IF_FEEDBACK = ${IF_FEEDBACK}\n"
 printf
 now=`date +%Y-%m-%d_%H_%M_%S`
 printf "wrf started at ${now}.\n"
-cmd="${MPIRUN} -n ${N_PROC} ${wrf_exe}"
+cmd="${MPIRUN} -n ${mpiprocs} ${wrf_exe}"
 printf "${cmd}\n"
-${MPIRUN} -n ${N_PROC} ${wrf_exe}
+${MPIRUN} -n ${mpiprocs} ${wrf_exe}
 
 ##################################################################################
 # Run time error check
@@ -629,7 +642,7 @@ fi
 
 # Look for successful completion messages adjusted for quilting processes
 nsuccess=`cat ${rsldir}/rsl.* | awk '/SUCCESS COMPLETE WRF/' | wc -l`
-ntotal=$(( (N_PROC - NIO_GROUPS * NIO_TPG ) * 2 ))
+ntotal=$(( (${mpiprocs} - ${NIO_GRPS} * ${NIO_TPG} ) * 2 ))
 printf "Found ${nsuccess} of ${ntotal} completion messages.\n"
 if [ ${nsuccess} -ne ${ntotal} ]; then
   msg="ERROR: ${wrf_exe} did not complete successfully, missing completion "

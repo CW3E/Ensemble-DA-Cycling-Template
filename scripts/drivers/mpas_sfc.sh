@@ -132,15 +132,16 @@ fi
 ##################################################################################
 # Below variables are defined in workflow variables
 #
-# MPAS_ROOT  = Root directory of a clean MPAS build
-# EXP_CNFG   = Root directory containing sub-directories for namelists
-#              vtables, static data, etc.
-# CYC_HME    = Cycle YYYYMMDDHH named directory for cycling data containing
-#              bkg, init_atmosphere, mpas
-# MPIRUN     = MPI multiprocessing evaluation call, machine specific
-# N_PROC     = The total number of processes to run init_atmosphere with MPI
-# PIO_NUM    = Number of tasks to perform file I/O
-# PIO_STRIDE = Stride between file I/O tasks
+# MPAS_ROOT = Root directory of a clean MPAS build
+# EXP_CNFG  = Root directory containing sub-directories for namelists
+#             vtables, static data, etc.
+# CYC_HME   = Cycle YYYYMMDDHH named directory for cycling data containing
+#             bkg, init_atmosphere, mpas
+# MPIRUN    = MPI multiprocessing evaluation call, machine specific
+# N_NDES    = Total number of nodes
+# N_PROC    = The total number of processes per node
+# PIO_NUM   = Number of tasks to perform file I/O
+# PIO_STRD  = Stride between file I/O tasks
 #
 ##################################################################################
 
@@ -173,12 +174,22 @@ if [ ! ${MPIRUN} ]; then
   exit 1
 fi
 
+if [ ! ${N_NDES} ]; then
+  printf "ERROR: \${N_NDES} is not defined.\n"
+  exit 1
+elif [ ${N_NDES} -le 0 ]; then
+  msg="ERROR: The variable \${N_NDES} must be set to the number"
+  msg+=" of nodes to run init_atmosphere > 0.\n"
+  printf "${msg}"
+  exit 1
+fi
+
 if [ ! ${N_PROC} ]; then
   printf "ERROR: \${N_PROC} is not defined.\n"
   exit 1
 elif [ ${N_PROC} -le 0 ]; then
   msg="ERROR: The variable \${N_PROC} must be set to the number"
-  msg+=" of processors to run init_atmosphere.exe.\n"
+  msg+=" of processes-per-node to run init_atmosphere > 0.\n"
   printf "${msg}"
   exit 1
 fi
@@ -198,10 +209,12 @@ elif [ ${PIO_NUM} -gt ${N_PROC} ]; then
   exit 1
 fi
 
-if [ ! ${PIO_STRIDE} ]; then
-  printf "ERROR: \${PIO_STRIDE} is not defined.\n"
+if [ ! ${PIO_STRD} ]; then
+  printf "ERROR: \${PIO_STRD} is not defined.\n"
   exit 1
 fi
+
+mpiprocs=$(( ${N_NDES} * ${N_PROC} ))
 
 ##################################################################################
 # Begin pre-init_atmosphere setup
@@ -301,8 +314,8 @@ else
 fi
 
 # Check to make sure the graph partitioning file is available and link
-# NOTE: ${N_PROC} must match the number of MPI processes
-graph_part_name=${EXP_CNFG}/static_files/${DMN_NME}.graph.info.part.${N_PROC}
+# NOTE: ${mpiprocs} must match the number of MPI processes
+graph_part_name=${EXP_CNFG}/static_files/${DMN_NME}.graph.info.part.${mpiprocs}
 if [ ! -r "${graph_part_name}" ]; then
   printf "ERROR: Input file\n ${graph_part_name}\n is missing.\n"
   exit 1
@@ -343,7 +356,7 @@ strt_iso=`date +%Y-%m-%d_%H:%M:%S -d "${strt_dt}"`
 stop_iso=`date +%Y-%m-%d_%H:%M:%S -d "${stop_dt}"`
 
 # Update background data interval in namelist
-(( data_interval_sec = BKG_INT * 3600 ))
+data_interval_sec=$(( ${BKG_INT} * 3600 ))
 
 # Update the init_atmosphere namelist / streams for surface boundary conditions
 cat namelist.init_atmosphere \
@@ -359,7 +372,7 @@ cat namelist.init_atmosphere \
   | sed "s/= IF_INPUT_SST,/= true/" \
   | sed "s/= IF_FRAC_SEAICE,/= true/" \
   | sed "s/= PIO_NUM,/= ${PIO_NUM}/" \
-  | sed "s/= PIO_STRIDE,/= ${PIO_STRIDE}/" \
+  | sed "s/= PIO_STRD,/= ${PIO_STRD}/" \
   | sed "s/DMN_NME/${DMN_NME}/" \
   > namelist.init_atmosphere.tmp
 mv namelist.init_atmosphere.tmp namelist.init_atmosphere
@@ -386,9 +399,9 @@ printf "BKG_INT  = ${BKG_INT}\n"
 printf "\n"
 now=`date +%Y-%m-%d_%H_%M_%S`
 printf "init_atmosphere started at ${now}.\n"
-cmd="${MPIRUN} -n ${N_PROC} ${init_atmos_exe}"
+cmd="${MPIRUN} -n ${mpiprocs} ${init_atmos_exe}"
 printf "${cmd}\n"
-${MPIRUN} -n ${N_PROC} ${init_atmos_exe}
+${MPIRUN} -n ${mpiprocs} ${init_atmos_exe}
 
 ##################################################################################
 # Run time error check
@@ -425,7 +438,7 @@ done
 cmd="rm -f ${DMN_NME}.static.nc"
 printf "${cmd}\n"; eval "${cmd}"
 
-cmd="rm -f ${DMN_NME}.graph.info.part.${N_PROC}"
+cmd="rm -f ${DMN_NME}.graph.info.part.${mpiprocs}"
 printf "${cmd}\n"; eval "${cmd}"
 
 if [ ${error} -ne 0 ]; then

@@ -50,22 +50,22 @@
   <!ENTITY IF_SST_UPDT  "No"> <!-- This setting defines SST updates in simulation and is applied to both WRF and real.exe runs -->
   <!ENTITY IF_FEEDBACK  "No"> <!-- This setting defines Yes / No for nested domain 2-way coupling -->
   <!ENTITY NIO_TPG      "0"> <!-- Quilting tasks per group, set NIO_TPG=0 for default TURN OFF QUILTING --> 
-  <!ENTITY NIO_GROUPS   "4"> <!-- Quilting number of groups -->
+  <!ENTITY NIO_GRPS     "4"> <!-- Quilting number of groups -->
   <!-- END WRF SETTINGS -->
 
   <!-- JOB SETTINGS -->
   <!ENTITY SCHED        "slurm"> <!-- Machine scheduler, note native scheduler commands in tasks below -->
   <!ENTITY PROJECT      "ddp181"> <!-- Project billing account -->
-  <!ENTITY PART_COMPU   "debug"> <!-- Queue for standard computing -->
+  <!ENTITY PART_COMPU   "compute"> <!-- Queue for standard computing -->
   <!ENTITY PART_DEBUG   "debug">  <!-- Queue for small jobs / rapid debugging -->
   <!ENTITY MPIRUN       "mpiexec"> <!-- MPI exec command -->
-  <!ENTITY WPS_PROC     "128"> <!-- WPS parallel / REAL number of procs -->
-  <!ENTITY WPS_MEM      "1750M"> <!-- WPS MEM per CPU argument -->
-  <!ENTITY WPS_NODES    "2"> <!-- Number of nodes for WPS parallel / REAL jobs -->
+  <!ENTITY WPS_PROC     "128"> <!-- WPS parallel / REAL number of procs-per-node -->
+  <!ENTITY WPS_MEM      "1750M"> <!-- WPS mem-per-cpu argument -->
+  <!ENTITY WPS_NDES     "2"> <!-- Number of nodes for WPS parallel / REAL jobs -->
   <!ENTITY WPS_WC       "00:30:00"> <!-- Wallclock limit for WPS jobs -->
-  <!ENTITY WRF_PROC     "256"> <!-- WRF number of procs -->
-  <!ENTITY WRF_MEM      "1750M"> <!-- WRF MEM per CPU argument -->
-  <!ENTITY WRF_NODES    "2"> <!-- Number of nodes for WRF jobs -->
+  <!ENTITY WRF_PROC     "128"> <!-- WRF number of procs-per-node -->
+  <!ENTITY WRF_MEM      "1750M"> <!-- WRF mem-per-cpu argument -->
+  <!ENTITY WRF_NDES     "3"> <!-- Number of nodes for WRF jobs -->
   <!ENTITY WRF_WC       "00:30:00"> <!-- Wallclock limit for WRF -->
   <!-- END JOB SETTINGS -->
 ]>
@@ -150,7 +150,7 @@
       <walltime>&WPS_WC;</walltime>
       <partition>&PART_DEBUG;</partition>
       <account>&PROJECT;</account>
-      <nodes>&WPS_NODES;:ppn=&WPS_PROC;</nodes>
+      <nodes>&WPS_NDES;:ppn=&WPS_PROC;</nodes>
       <native>--mem-per-cpu=&WPS_MEM;</native>
       <native>--export=ALL</native>
       <envar>
@@ -206,6 +206,10 @@
         <value>&MPIRUN;</value>
       </envar>
       <envar>
+        <name>N_NDES</name>
+        <value>&WPS_NDES;</value>
+      </envar>
+      <envar>
         <name>N_PROC</name>
         <value>&WPS_PROC;</value>
       </envar>
@@ -221,7 +225,7 @@
       <walltime>&WPS_WC;</walltime>
       <partition>&PART_DEBUG;</partition>
       <account>&PROJECT;</account>
-      <nodes>&WPS_NODES;:ppn=&WPS_PROC;</nodes>
+      <nodes>&WPS_NDES;:ppn=&WPS_PROC;</nodes>
       <native>--mem-per-cpu=&WPS_MEM;</native>
       <native>--export=ALL</native>
       <envar>
@@ -277,6 +281,10 @@
         <value>&MPIRUN;</value>
       </envar>
       <envar>
+        <name>N_NDES</name>
+        <value>&WPS_NDES;</value>
+      </envar>
+      <envar>
         <name>N_PROC</name>
         <value>&WPS_PROC;</value>
       </envar>
@@ -292,7 +300,7 @@
       <walltime>&WRF_WC;</walltime>
       <partition>&PART_COMPU;</partition>
       <account>&PROJECT;</account>
-      <nodes>&WRF_NODES;:ppn=&WRF_PROC;</nodes>
+      <nodes>&WRF_NDES;:ppn=&WRF_PROC;</nodes>
       <native>--mem-per-cpu=&WRF_MEM;</native>
       <native>--export=ALL</native>
       <envar>
@@ -376,8 +384,12 @@
         <value>&WRF_PROC;</value>
       </envar>
       <envar>
-        <name>NIO_GROUPS</name>
-        <value>&NIO_GROUPS;</value>
+        <name>N_NDES</name>
+        <value>&WRF_NDES;</value>
+      </envar>
+      <envar>
+        <name>NIO_GRPS</name>
+        <value>&NIO_GRPS;</value>
       </envar>
       <envar>
         <name>NIO_TPG</name>

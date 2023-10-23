@@ -386,7 +386,7 @@ strt_iso=`date +%Y-%m-%d_%H_%M_%S -d "${strt_dt}"`
 stop_iso=`date +%Y-%m-%d_%H_%M_%S -d "${stop_dt}"`
 
 # Update interval in namelist
-(( data_int_sec = BKG_INT * 3600 ))
+data_int_sec=$(( ${BKG_INT} * 3600 ))
 
 # Update max_dom in namelist to dummy value
 # domains not needed for ungrib but throws error

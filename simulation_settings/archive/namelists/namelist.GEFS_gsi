@@ -167,5 +167,5 @@
 
 &namelist_quilt
  nio_tasks_per_group = NIO_TPG,
- nio_groups = NIO_GROUPS,
+ nio_groups = NIO_GRPS,
 /

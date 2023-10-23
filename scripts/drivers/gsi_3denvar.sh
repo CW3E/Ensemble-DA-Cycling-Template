@@ -219,7 +219,8 @@ fi
 #             obs files, etc.
 # ENS_ROOT  = Background ensemble located at ${ENS_ROOT}/ens_${ens_n}/wrfout* 
 # MPIRUN    = MPI Command to execute GSI
-# N_PROC    = Number of workers for MPI command to exectute on
+# N_NDES    = Total number of nodes
+# N_PROC    = The total number of processes per node
 #
 # Below variables are derived from control flow variables for convenience
 #
@@ -273,15 +274,27 @@ if [ ! ${MPIRUN} ]; then
   exit 1
 fi
 
+if [ ! ${N_NDES} ]; then
+  printf "ERROR: \${N_NDES} is not defined.\n"
+  exit 1
+elif [ ${N_NDES} -le 0 ]; then
+  msg="ERROR: The variable \${N_NDES} must be set to the number"
+  msg+=" of nodes to run GSI.\n"
+  printf "${msg}"
+  exit 1
+fi
+
 if [ ! ${N_PROC} ]; then
   printf "ERROR: \${N_PROC} is not defined.\n"
   exit 1
 elif [ ${N_PROC} -le 0 ]; then
   msg="ERROR: The variable \${N_PROC} must be set to the "
-  msg+="number of processors to run GSI > 0.\n"
+  msg+="number of processes-per-node to run GSI > 0.\n"
   printf "${msg}"
   exit 1
 fi
+
+mpiprocs=$(( ${N_NDES} * ${N_PROC} ))
 
 ##################################################################################
 # The following paths are relative to the control flow supplied root paths
@@ -405,7 +418,7 @@ for dmn in `seq -f "%02g" 1 ${max_dom}`; do
       else
         gsiobsfile+=(${line})      
       fi
-      (( line_indx += 1 ))
+      line_indx=$(( ${line_indx} + 1 ))
     done
 
     # loop over obs types
@@ -745,9 +758,9 @@ for dmn in `seq -f "%02g" 1 ${max_dom}`; do
     printf "\n"
     now=`date +%Y-%m-%d_%H_%M_%S`
     printf "gsi analysis started at ${now} on domain d${dmn}.\n"
-    cmd="${MPIRUN} -n ${N_PROC} ${GSI_EXE} > stdout.anl.${anl_iso} 2>&1"
+    cmd="${MPIRUN} -n ${mpiprocs} ${GSI_EXE} > stdout.anl.${anl_iso} 2>&1"
     printf "${cmd}\n"
-    ${MPIRUN} -n ${N_PROC} ${GSI_EXE} > stdout.anl.${anl_iso} 2>&1
+    ${MPIRUN} -n ${mpiprocs} ${GSI_EXE} > stdout.anl.${anl_iso} 2>&1
 
     ##################################################################################
     # Run time error check

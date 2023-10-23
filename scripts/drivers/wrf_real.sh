@@ -213,7 +213,8 @@ fi
 # CYC_HME  = Start time named directory for cycling data containing
 #            bkg, ungrib, metgrid, real, wrf, wrfda_bc, gsi, enkf
 # MPIRUN   = MPI multiprocessing evaluation call, machine specific
-# N_PROC   = The total number of processes to run real.exe with MPI
+# N_NDES   = Total number of nodes
+# N_PROC   = The total number of processes-per-node
 #
 ##################################################################################
 
@@ -246,15 +247,27 @@ if [ ! ${MPIRUN} ]; then
   exit 1
 fi
 
+if [ ! ${N_NDES} ]; then
+  printf "ERROR: \${N_NDES} is not defined.\n"
+  exit 1
+elif [ ${N_NDES} -le 0 ]; then
+  msg="ERROR: The variable \${N_NDES} must be set to the number"
+  msg+=" of nodes to run real.exe > 0.\n"
+  printf "${msg}"
+  exit 1
+fi
+
 if [ ! ${N_PROC} ]; then
   printf "ERROR: \${N_PROC} is not defined.\n"
   exit 1
 elif [ ${N_PROC} -le 0 ]; then
   msg="ERROR: The variable \${N_PROC} must be set to the number"
-  msg+=" of processors to run real.exe.\n"
+  msg+=" of processes-per-node to run real.exe > 0.\n"
   printf "${msg}"
   exit 1
 fi
+
+mpiprocs=$(( ${N_NDES} * ${N_PROC} ))
 
 ##################################################################################
 # Begin pre-real setup
@@ -364,10 +377,10 @@ strt_iso=`date +%Y-%m-%d_%H_%M_%S -d "${strt_dt}"`
 stop_iso=`date +%Y-%m-%d_%H_%M_%S -d "${stop_dt}"`
 
 # Update interval in namelist
-(( data_int_sec = BKG_INT * 3600 ))
+data_int_sec=$(( ${BKG_INT} * 3600 ))
 
 # update auxinput4 interval
-(( auxinput4_minutes = BKG_INT * 60 ))
+auxinput4_minutes=$(( ${BKG_INT} * 60 ))
 aux_out="${auxinput4_minutes}, ${auxinput4_minutes}, ${auxinput4_minutes}"
 
 # Update the wrf namelist (propagates settings to three domains)
@@ -413,9 +426,9 @@ printf "IF_SST_UPDT  = ${IF_SST_UPDT}\n"
 printf "\n"
 now=`date +%Y-%m-%d_%H_%M_%S`
 printf "real started at ${now}.\n"
-cmd="${MPIRUN} -n ${N_PROC} ${real_exe}"
+cmd="${MPIRUN} -n ${mpiprocs} ${real_exe}"
 printf "${cmd}\n"
-${MPIRUN} -n ${N_PROC} ${real_exe}
+${MPIRUN} -n ${mpiprocs} ${real_exe}
 
 ##################################################################################
 # Run time error check
@@ -453,7 +466,7 @@ fi
 
 # Look for successful completion messages in rsl files
 nsuccess=`cat ${rsldir}/rsl.* | awk '/SUCCESS COMPLETE REAL/' | wc -l`
-(( ntotal = N_PROC * 2 ))
+ntotal=$(( ${N_PROC} * 2 ))
 printf "Found ${nsuccess} of ${ntotal} completion messages.\n"
 if [ ${nsuccess} -ne ${ntotal} ]; then
   msg="ERROR:\n ${real_exe}\n did not complete sucessfully, missing "

@@ -54,7 +54,7 @@
 /
 &io
     config_pio_num_iotasks = PIO_NUM,
-    config_pio_stride = PIO_STRIDE,
+    config_pio_stride = PIO_STRD,
 /
 &decomposition
     config_block_decomp_file_prefix = 'DMN_NME.graph.info.part.' 
