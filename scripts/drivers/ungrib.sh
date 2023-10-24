@@ -195,7 +195,7 @@ elif [ ${BKG_DATA} = GEFS ]; then
     # all other are control forecast perturbations
     fnames="gep${memid}.t${bkg_strt_hh}z.pgrb*"
   fi
-  # GEFS comes in a/b files for each valid time
+  # GEFS comes in a/b files for each valid time, AWS 0p50 supports initialization
   n_files=$(( 2 * ${fcst_hrs} / ${BKG_INT} + 1 ))
 
 else

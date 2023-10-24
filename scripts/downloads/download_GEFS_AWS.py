@@ -46,30 +46,32 @@
 import os, sys, ssl
 import calendar
 import glob
-import pandas as pd
 from datetime import datetime as dt
 from datetime import timedelta
 
 ##################################################################################
 # SET GLOBAL PARAMETERS 
 ##################################################################################
-# starting date and zero hour of data
-STRT_DATE = '2022-12-28T00:00:00'
+# starting date and zero hour of data iso format
+STRT_DT = '2022-12-28T00:00:00'
 
-# final date and zero hour of data
-STOP_DATE = '2022-12-31T00:00:00'
+# final date and zero hour of data iso format
+STOP_DT = '2022-12-30T00:00:00'
+
+# number of hours between zero hours for forecast data
+INIT_INT = 24
+
+# min forecast hour
+FCST_MIN = 0
+
+# max forecast hour
+FCST_MAX = 6
 
 # interval of forecast data outputs after zero hour
 FCST_INT = 3
 
-# number of hours between zero hours for forecast data
-CYC_INT = 24
-
-# max forecast length in hours
-MAX_FCST = 48
-
 # root directory where date stamped sub-directories will collect data downloads
-DATA_ROOT = '/expanse/lustre/scratch/cgrudzien/temp_project/JEDI-MPAS-Common-Case/DATA/GEFS'
+DATA_ROOT = '/expanse/lustre/scratch/cgrudzien/temp_project/JEDI-MPAS-Common-Case/DATA/DeepDive/gribbed/GEFS'
 
 ##################################################################################
 # UTILITY METHODS
@@ -81,15 +83,50 @@ INDT = '    '
 # base aws anonymous request
 CMD = 'aws s3 cp --no-sign-request s3://noaa-gefs-pds/gefs.'
 
+# method for generating forecast start date / forecast hour lengths
+def fcst_dt_hr(strt_dt, stop_dt, init_int, fcst_min, fcst_max, fcst_int):
+    """ Generates lists of forecast initial times / forecast hours
+
+    strt_dt / stop_dt are datetime objects which are used to generate the range
+    of initial times.  init_int, fcst_min, fcst_max, fcst_int are all hour values
+    in integers, used to determin the interval between initial times, minimum
+    forecast hour, max forecast hour, and interval between forecast hour outputs
+    respectively."""
+
+    dates = []
+    fcsts = []
+    dt_range = stop_dt - strt_dt
+    hrs = dt_range.total_seconds() / 3600
+    fcst_steps = int( (fcst_max - fcst_min) / fcst_int)
+
+    if init_int == 0 or dt_range.total_seconds() == 0:
+        # for a zero initialization interval or start date equal end date,
+        # download forecasts only from strt_dt
+        dates.append(strt_dt)
+
+    else:
+        # define the zero hours for forecasts over range of cycle intervals
+        init_steps = int(hrs / init_int)
+        for i in range(init_steps + 1):
+            fcst_init = strt_dt + timedelta(hours=(i * init_int))
+            dates.append(fcst_init)
+
+    for i in range(fcst_min, fcst_max + fcst_int, fcst_int):
+        # define strings of forecast hours, padd to necessary size in scripts
+        fcsts.append(str(i))
+
+    return dates, fcsts
+
 ##################################################################################
 # Download data
 ##################################################################################
 # define date range to get data
-strt_dt = dt.fromisoformat(STRT_DATE)
-stop_dt = dt.fromisoformat(STOP_DATE)
+strt_dt = dt.fromisoformat(STRT_DT)
+stop_dt = dt.fromisoformat(STOP_DT)
 
 # obtain combinations
-date = pd.date_range(start=strt_dt, end=stop_dt, freq=CYC_INT).to_pydatetime()
+dates, fcsts = fcst_dt_hr(strt_dt, stop_dt,
+                          INIT_INT, FCST_MIN, FCST_MAX, FCST_INT)
 
 # make requests
 for date in dates:
@@ -99,7 +136,7 @@ for date in dates:
     down_dir = DATA_ROOT + '/' + date.strftime('%Y%m%d') + '/'
     os.system('mkdir -p ' + down_dir)
 
-    for fcst in fcst_reqs:
+    for fcst in fcsts:
         # the following are the two and three digit padding versions of the hours
         HH  = fcst.zfill(2)
         HHH = fcst.zfill(3)
