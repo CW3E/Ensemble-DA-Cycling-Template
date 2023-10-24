@@ -46,50 +46,53 @@
 import os, sys, ssl
 import calendar
 import glob
+import pandas as pd
 from datetime import datetime as dt
 from datetime import timedelta
-from download_utilities import STR_INDT, get_reqs
 
 ##################################################################################
 # SET GLOBAL PARAMETERS 
 ##################################################################################
 # starting date and zero hour of data
-START_DATE = '2022-12-28T00:00:00'
+STRT_DATE = '2022-12-28T00:00:00'
 
 # final date and zero hour of data
-END_DATE = '2022-12-31T00:00:00'
+STOP_DATE = '2022-12-31T00:00:00'
 
 # interval of forecast data outputs after zero hour
 FCST_INT = 3
 
 # number of hours between zero hours for forecast data
-CYCLE_INT = 24
+CYC_INT = 24
 
 # max forecast length in hours
 MAX_FCST = 48
 
 # root directory where date stamped sub-directories will collect data downloads
-DATA_ROOT = '/expanse/lustre/projects/ddp181/cgrudzien/JEDI-MPAS-Common-Case/DATA/GEFS'
+DATA_ROOT = '/expanse/lustre/scratch/cgrudzien/temp_project/JEDI-MPAS-Common-Case/DATA/GEFS'
 
 ##################################################################################
 # UTILITY METHODS
 ##################################################################################
 
+# standard string indentation
+INDT = '    '
+
+# base aws anonymous request
 CMD = 'aws s3 cp --no-sign-request s3://noaa-gefs-pds/gefs.'
 
 ##################################################################################
 # Download data
 ##################################################################################
 # define date range to get data
-start_date = dt.fromisoformat(START_DATE)
-end_date = dt.fromisoformat(END_DATE)
+strt_dt = dt.fromisoformat(STRT_DATE)
+stop_dt = dt.fromisoformat(STOP_DATE)
 
 # obtain combinations
-date_reqs, fcst_reqs = get_reqs(start_date, end_date, FCST_INT,
-                                CYCLE_INT, MAX_FCST)
+date = pd.date_range(start=strt_dt, end=stop_dt, freq=CYC_INT).to_pydatetime()
 
 # make requests
-for date in date_reqs:
+for date in dates:
     print('Downloading GEFS Date ' + date.strftime('%Y-%m-%d') + '\n')
     print('Zero Hour ' + date.strftime('%H') + '\n')
 
@@ -100,7 +103,7 @@ for date in date_reqs:
         # the following are the two and three digit padding versions of the hours
         HH  = fcst.zfill(2)
         HHH = fcst.zfill(3)
-        print(STR_INDT + 'Forecast Hour ' + HH + '\n')
+        print(INDT + 'Forecast Hour ' + HH + '\n')
         cmd = CMD + date.strftime('%Y%m%d') + '/' + date.strftime('%H') + ' ' +\
               down_dir + ' ' +\
               '--recursive ' +\
@@ -113,12 +116,12 @@ for date in date_reqs:
               '--exclude \'*gespr*\'' + ' ' +\
               '--exclude \'*0p25*\''
 
-        print(STR_INDT * 2 + 'Running command:\n')
-        print(STR_INDT * 3 + cmd + '\n')
+        print(INDT * 2 + 'Running command:\n')
+        print(INDT * 3 + cmd + '\n')
         os.system(cmd)
 
     # unpack data from nested directory structure, excluding the root
-    print(STR_INDT + 'Unpacking files from nested directories')
+    print(INDT + 'Unpacking files from nested directories')
     find_cmd = 'find ' + down_dir + ' -type f > file_list.txt'
 
     print(find_cmd)
@@ -126,7 +129,7 @@ for date in date_reqs:
               
     f = open('./file_list.txt', 'r')
 
-    print(STR_INDT * 2 + 'Unpacking nested directory structure into ' + down_dir)
+    print(INDT * 2 + 'Unpacking nested directory structure into ' + down_dir)
     for line in f:
         cmd = 'mv ' + line[:-1] + ' ' + down_dir
         os.system(cmd)
@@ -139,7 +142,7 @@ for date in date_reqs:
     os.system(find_cmd)
 
     f = open('./dir_list.txt', 'r')
-    print(STR_INDT * 2 + 'Removing empty nested directories')
+    print(INDT * 2 + 'Removing empty nested directories')
     line_list = f.readlines()
     line_list = line_list[-1:0:-1]
 

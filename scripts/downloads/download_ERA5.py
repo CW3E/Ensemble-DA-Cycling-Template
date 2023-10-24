@@ -14,14 +14,14 @@
 # 
 # The following arguments should be set in the SET PARAMETERS section:
 #
-#    AUTHS      -- List of authorization credentials for download access at
-#                  https://cds.climate.copernicus.eu/
-#    START_DATE -- Beginning date for data downloaded
-#    END_DATE   -- Inclusive end date for data downloaded
-#    DATE_INT   -- Maximum number of dates to combine to a single download file
-#    START_HOUR -- First hour in each day to pull data
-#    HOUR_INT   -- Interval on which to pull data throughout the day
-#    DATA_ROOT  -- Directory to which the combined grib files will be downloaded
+#    AUTHS     -- List of authorization credentials for download access at
+#                 https://cds.climate.copernicus.eu/
+#    STRT_DT   -- Beginning date for data downloaded
+#    STOP_DT   -- Inclusive end date for data downloaded
+#    DT_INT    -- Maximum number of dates to combine to a single download file
+#    STRT_HR   -- First hour in each day to pull data
+#    HR_INT    -- Interval on which to pull data throughout the day
+#    DATA_ROOT -- Directory to which the combined grib files will be downloaded
 #                  default behavior is to download to directory based on CALL
 #
 ##################################################################################
@@ -72,17 +72,17 @@ DATA_ROOT = '/cw3e/mead/projects/cwp106/scratch' +\
     '/DATA/ERA5/' + CALL + '/'
 
 # define the start and end year / month / day in YYYY-MM-DD formated string values
-START_DATE = '2019-02-08'
-END_DATE = '2019-02-08'
+STRT_DT = '2019-02-08'
+STOP_DT = '2019-02-08'
 
 # interval over which to combine days into single files for download, format Int
-DATE_INT = 1
+DT_INT = 1
 
 # first hour to get data, format Int
-START_HOUR = 11
+STRT_HR = 11
 
 # interval on which to get additional data
-HOUR_INT = 1
+HR_INT = 1
 
 ##################################################################################
 # UTILITY METHODS
@@ -204,26 +204,26 @@ def get_file(req, key, call):
     del req[5]
     req[0].info('Done')
 
-def get_reqs(start_date, end_date, interval, hours):
+def get_reqs(strt_dt, stop_dt, interval, hours):
     # generates requests based on script parameters, appending reqs with
     # [client, date0, date1, hours, output file, running download])
     reqs = []
-    dates_range = max([int((end_date - start_date).days) + 1])
+    dates_range = max([int((stop_dt - strt_dt).days) + 1])
 
     for n in range(0, dates_range, interval):
         # this will automatically save the last sequence of days less than or equal to
         # interval to a single file
         if n + interval >= dates_range:
-            d0 = (start_date + timedelta(n)).strftime('%Y-%m-%d')
-            d1 = end_date.strftime('%Y-%m-%d')
+            d0 = (strt_dt + timedelta(n)).strftime('%Y-%m-%d')
+            d1 = stop_dt.strftime('%Y-%m-%d')
             path = DATA_ROOT + '%s--%s_'%(d0, d1) + CALL + '.grib'
             reqs.append([None, d0, d1, hours, path, None])
             break
         else:
             # all other sequences of days are saved as adjacent time windows of
             # length interval
-            d0 = (start_date + timedelta(n)).strftime('%Y-%m-%d')
-            d1 = (start_date + timedelta(n + interval - 1)).strftime('%Y-%m-%d') 
+            d0 = (strt_dt + timedelta(n)).strftime('%Y-%m-%d')
+            d1 = (strt_dt + timedelta(n + interval - 1)).strftime('%Y-%m-%d') 
             path = DATA_ROOT + '%s--%s_'%(d0, d1) + CALL + '.grib'
             reqs.append([None, d0, d1, hours, path, None])
     
@@ -240,21 +240,21 @@ os.system('mkdir -p ' + DATA_ROOT)
 urllib3.disable_warnings()
 
 # define date range to get data
-start_date = date.fromisoformat(START_DATE)
-end_date = date.fromisoformat(END_DATE)
+strt_dt = date.fromisoformat(STRT_DT)
+stop_dt = date.fromisoformat(STOP_DT)
 
 # define all hours to download data
-hours = str(START_HOUR).zfill(2) + ':00:00'
-for i in range(START_HOUR + HOUR_INT, 24, HOUR_INT):
+hours = str(STRT_HR).zfill(2) + ':00:00'
+for i in range(STRT_HR + HR_INT, 24, HR_INT):
     hours += '/' + str(i).zfill(2) + ':00:00'
 
 # define all requests based on script parameters
-reqs = get_reqs(start_date, end_date, DATE_INT, hours)
+reqs = get_reqs(strt_dt, stop_dt, DT_INT, hours)
 
 # storage for outsanding requests
 outstanding_reqs = []
 
-print('Download date range: ' + START_DATE + ' -- ' + END_DATE)
+print('Download date range: ' + STRT_DT + ' -- ' + STOP_DT)
 print('Download hours ' + hours)
 print('Download directory ' + DATA_ROOT)
 print('Checking requests for duplicates')
