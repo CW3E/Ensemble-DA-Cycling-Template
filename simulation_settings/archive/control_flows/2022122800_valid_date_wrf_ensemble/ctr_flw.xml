@@ -39,7 +39,7 @@
   <!-- END CYCLING SETTINGS -->
 
   <!-- ENSEMBLE SETTINGS -->
-  <!ENTITY MEM_LIST     "00 01"> <!-- list of ensemble perturbation indices -->
+  <!ENTITY MEM_LIST     "00 01 02 03 04 05"> <!-- list of ensemble perturbation indices -->
   <!ENTITY WRF_ENS_DOM  "02"> <!-- Max domain for ensemble simulation -->
   <!ENTITY ENS_BKG_DATA "GEFS"> <!-- GFS and GEFS currently supported -->
   <!ENTITY ENS_BKG_INT  "03"> <!-- Data file frequency for ensemble simulation forcing in HH -->
@@ -66,7 +66,7 @@
   <!ENTITY WRF_PROC     "128"> <!-- WRF number of procs-per-node -->
   <!ENTITY WRF_MEM      "1750M"> <!-- WRF mem-per-cpu argument -->
   <!ENTITY WRF_NDES     "3"> <!-- Number of nodes for WRF jobs -->
-  <!ENTITY WRF_WC       "00:30:00"> <!-- Wallclock limit for WRF -->
+  <!ENTITY WRF_WC       "12:00:00"> <!-- Wallclock limit for WRF -->
   <!-- END JOB SETTINGS -->
 ]>
 
