@@ -14,8 +14,8 @@
   <!-- COMPUTER-DEPENDENT ITEMS -->
   <!ENTITY CLNE_ROOT    "/expanse/lustre/projects/ddp181/cgrudzien/JEDI-MPAS-Common-Case/Ensemble-DA-Cycling-Template"> <!-- Full path of framework git clone -->
   <!ENTITY SOFT_ROOT    "/expanse/lustre/projects/ddp181/cgrudzien/SOFT_ROOT"> <!-- Root directory of software stack executables -->
-  <!ENTITY DATA_ROOT    "/expanse/lustre/projects/ddp181/cgrudzien/JEDI-MPAS-Common-Case/DATA/&CSE_NME;"> <!-- Root directory of case study forcing data -->
-  <!ENTITY WORK_ROOT    "/expanse/lustre/projects/ddp181/cgrudzien/JEDI-MPAS-Common-Case/MPAS_Cycles/&EXP_NME;"> <!-- Root directory of /data/simulation_io -->
+  <!ENTITY DATA_ROOT    "/expanse/lustre/scratch/cgrudzien/temp_project/JEDI-MPAS-Common-Case/DATA/&CSE_NME;"> <!-- Root directory of case study forcing data -->
+  <!ENTITY WORK_ROOT    "/expanse/lustre/scratch/cgrudzien/temp_project/JEDI-MPAS-Common-Case/MPAS_Cycles/&EXP_NME;"> <!-- Root directory of /data/simulation_io -->
   <!-- END COMPUTER-DEPENDENT -->
 
   <!-- WORKFLOW SETTINGS  -->
@@ -62,8 +62,8 @@
   <!-- JOB SETTINGS -->
   <!ENTITY SCHED        "slurm"> <!-- System scheduler, note rocoto interpreter conventions under rocoto/lib/workflowmgr -->
   <!ENTITY PROJECT      "ddp181"> <!-- Project billing account -->
-  <!ENTITY PART_COMPU   "debug"> <!-- Queue for standard computing -->
-  <!ENTITY PART_DEBUG   "debug">  <!-- Queue for small jobs / rapid debugging -->
+  <!ENTITY PART_COMPU   "compute"> <!-- Queue for standard computing -->
+  <!ENTITY PART_DEBUG   "compute">  <!-- Queue for small jobs / rapid debugging -->
   <!ENTITY MPIRUN       "mpiexec"> <!-- MPI exec command -->
   <!ENTITY WPS_MEM      "1750M"> <!-- ungrib mem-per-cpu argument -->
   <!ENTITY WPS_WC       "00:30:00"> <!-- Wallclock limit for ungrib jobs -->
