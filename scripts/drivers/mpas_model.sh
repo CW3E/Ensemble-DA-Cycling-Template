@@ -480,7 +480,7 @@ printf "${cmd}\n"; eval "${cmd}"
 # Move existing log files to a subdir if there are any
 printf "Checking for pre-existing log files.\n"
 if [ -f log.atmosphere.0000.out ]; then
-  logdir=atmosphere_model_log.`ls -l --time-style=+%Y-%m-%d_%H_%M%_S log.out.0000 | cut -d" " -f 6`
+  logdir=atmosphere_model_log.`ls -l --time-style=+%Y-%m-%d_%H_%M%_S log.atmosphere.out.0000 | cut -d" " -f 6`
   mkdir ${logdir}
   printf "Moving pre-existing log files to ${logdir}.\n"
   cmd="mv log.* ${logdir}"
