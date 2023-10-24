@@ -466,7 +466,7 @@ fi
 
 # Look for successful completion messages in rsl files
 nsuccess=`cat ${rsldir}/rsl.* | awk '/SUCCESS COMPLETE REAL/' | wc -l`
-ntotal=$(( ${N_PROC} * 2 ))
+ntotal=$(( ${mpiprocs} * 2 ))
 printf "Found ${nsuccess} of ${ntotal} completion messages.\n"
 if [ ${nsuccess} -ne ${ntotal} ]; then
   msg="ERROR:\n ${real_exe}\n did not complete sucessfully, missing "
