@@ -200,12 +200,12 @@ if [ ! ${PIO_NUM} ]; then
 elif [ ${PIO_NUM} -lt 0 ]; then
   msg="ERROR: \${PIO_NUM} must be >= 0 for the number of IO tasks, with equal to"
   msg+=" 0 corresponding to all tasks performing IO.\n"
-  printf ${msg}
+  printf "${msg}"
   exit 1
 elif [ ${PIO_NUM} -gt ${N_PROC} ]; then
   msg="ERROR: \${PIO_NUM} must be <= \${NUM_PROC}, ${NUM_PROC}, the number of"
   msg+=" MPI processes.\n"
-  printf ${msg}
+  printf "${msg}"
   exit 1
 fi
 
