@@ -1,8 +1,10 @@
 #!/bin/bash
-#SBATCH -p shared
+#SBATCH --account=ddp181
 #SBATCH --nodes=1
-#SBATCH -t 120:00:00
-#SBATCH -J GSI-WRF-Cycling-Template
+#SBATCH --ntasks-per-node=1
+#SBATCH -p shared
+#SBATCH -t 48:00:00
+#SBATCH -J rocoto
 #SBATCH --export=ALL
 
 # run rocoto 

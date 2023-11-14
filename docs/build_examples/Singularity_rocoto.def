@@ -1,0 +1,86 @@
+Bootstrap: docker
+From: ubuntu:22.04 
+
+%labels
+    APPLICATION_NAME Rocoto_1.3.5 - Ubuntu 2022.04
+    APPLICATION_URL https://cw3e.ucsd.edu
+    APPLICATION_VERSION 1.0
+
+    AUTHOR_NAME Colin Grudzien
+    AUTHOR_EMAIL cgrudzien@ucsd.edu
+
+    CO_AUTHOR_NAME Patrick Mulrooney
+    CO_AUTHOR_EMAIL pmulrooney@ucsd.edu
+
+    CO_AUTHOR_NAME Jozette Conti
+    CO_AUTHOR_EMAIL jlconti@ucsd.edu
+
+    LAST_UPDATED 2023.11.14
+
+%setup
+
+%environment
+    # Define generic path for scheduler binary binds
+    # set -B path_to_sbatch:/sched:ro in exec binds to find commands
+    export PATH=/sched:${PATH}
+
+%post -c /bin/bash
+    # run verbose
+    set -x
+
+    printf "===========\n"
+    printf "Create minimal environment for the container installation\n"
+    apt-get update
+    apt-get -y install sed
+    apt-get -y install cat
+    apt-get -y install wget
+    apt-get -y install unzip
+    apt-get -y install gcc
+    apt-get -y install make
+    apt-get -y install ruby-full
+    apt-get -y install munge
+
+    printf "===========\n"
+    printf "===========\n"
+    printf "Prepare Rocoto develop installation\n"
+    mkdir -p /opt
+    cd /opt
+    wget https://github.com/christopherwharrop/rocoto/archive/refs/heads/develop.zip
+    unzip develop.zip
+    cd ./rocoto-develop
+    chmod +x INSTALL
+
+    printf "===========\n"
+    printf "===========\n"
+    printf "Run install"
+    ./INSTALL
+
+    printf "===========\n"
+    printf "===========\n"
+    printf "Automatically allow Rocoto boots in workflow\n"
+    cat /opt/rocoto-develop/lib/workflowmgr/workflowengine.rb \
+      | sed "408s/STDIN\.gets/'y'/" \
+      > /opt/rocoto-develop/lib/workflowmgr/workflowengine.tmp
+    mv /opt/rocoto-develop/lib/workflowmgr/workflowengine.tmp /opt/rocoto-develop/lib/workflowmgr/workflowengine.rb
+
+    printf "===========\n"
+    printf "===========\n"
+    printf "Add permissions to slurm (need to adjust for other systems schedulers? TBD)\n"
+    printf "slurm:x:450:450::/cm/local/apps/slurm:/bin/bash\n" >> /etc/passwd
+
+    printf "===========\n"
+    printf "===========\n"
+    printf "Cleaning environment\n"
+    rm /opt/develop.zip
+    apt-get remove cat
+    apt-get remove sed
+    apt-get remove wget
+    apt-get remove unzip
+
+    printf "===========\n"
+    printf "===========\n"
+    printf "Completed installation of Rocoto\n"
+%runscript
+    /bin/bash
+
+%test

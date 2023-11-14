@@ -37,11 +37,67 @@ from datetime import datetime as dt
 ##################################################################################
 # SET GLOBAL PARAMETERS
 ##################################################################################
-# directory path for root of git clone of GSI-WRF-Cycling-Template
-USR_HME = '/expanse/lustre/projects/ddp181/cgrudzien/JEDI-MPAS-Common-Case/Ensemble-DA-Cycling-Template'
+# standard string indentation
+INDT = '    '
 
-# directory for rocoto install
-RCT_HME = '/expanse/lustre/projects/ddp181/cgrudzien/SOFT_ROOT/rocoto'
+# file system root, used for path bind, ruby errors
+# ```
+# Read-only file system @ dir_s_mkdir ${FLE_ROOT}
+# ```
+# when file system is not mounted rw to singularity container environment
+FLE_ROOT = '/expanse'
+
+# scheduler module path
+SCHD = '/cm/shared/apps/slurm'
+
+# scheduler command binaries, container PATH is prepended with
+# ```
+# PATH=/sched:${PATH}
+# ```
+# so that SCHD_BIN can bind to /sched for arbitrar systems to find commands
+# fixes error
+# ```
+# WARNING: job submission failed: sh: 1: sbatch: not found
+# ```
+SCHD_BIN = SCHD + '/current/bin'
+
+# path to munge.socket.2 directory
+# binding this path to singularity mount fixes errors
+# ```
+# sbatch: error: If munged is up, restart with --num-threads=10
+# sbatch: error: Munge encode failed: Failed to access "/run/munge/munge.socket.2": No such file or directory
+# sbatch: error: slurm_send_node_msg: auth_g_create: REQUEST_SUBMIT_BATCH_JOB has authentication error
+# sbatch: error: Batch job submission failed: Protocol authentication error
+# ```
+MNG_RUN = '/run/munge'
+
+# directory path for root of git clone of Ensemble-DA-Cycling-Template
+USR_HME = '/expanse/lustre/projects/ddp181/cgrudzien/JEDI-MPAS-Common-Case/Ensemble-DA-Cycling-Template'
+print('Clone location:\n' + USR_HME)
+
+# path to .xml control flows 
+SETTINGS = USR_HME + '/simulation_settings'
+print('Settings directory:\n' + INDT + SETTINGS)
+
+# path to database
+DBS = USR_HME + '/workflow_status'
+print('Database directory:\n' + INDT + DBS)
+
+# path to rocoto singularity image
+RCT = '/expanse/lustre/projects/ddp181/cgrudzien/SOFT_ROOT/rocoto.sif'
+print('Rocoto image:\n' + INDT + RCT)
+
+# singularity exec command
+SNG_EXC = 'singularity exec -B ' +\
+          FLE_ROOT + ':' + FLE_ROOT + ':rw,' +\
+          SETTINGS + ':/settings:ro,' +\
+          DBS + ':/dbs:rw,' +\
+          SCHD + ':' + SCHD + ':ro,' +\
+          SCHD_BIN + ':/sched:ro,' +\
+          MNG_RUN + ':' + MNG_RUN + ':ro ' +\
+          RCT
+
+print('Singularity exec command:\n' + INDT + SNG_EXC)
 
 # Case study sub directories
 CSES = [
@@ -50,22 +106,13 @@ CSES = [
 
 # name of .xml workflows to execute and monitor WITHOUT the extension of file
 CTR_FLWS = [
-            '2022122800_valid_date_x20.835586.WestCoast_mpas_ensemble',
-            #'2022122800_valid_date_x1.10242_mpas_ensemble',
-            '2022122800_valid_date_wrf_ensemble',
+            #'2022122800_valid_date_x20.835586.WestCoast_mpas_ensemble',
+            '2022122800_valid_date_x1.10242_mpas_ensemble',
+            #'2022122800_valid_date_wrf_ensemble',
             #'first_forecast',
            ]
 
-END = dt(2024, 1, 1, 0)
-
-##################################################################################
-# Derived paths
-##################################################################################
-# path to .xml control flows 
-settings_dir =  USR_HME + '/simulation_settings'
-
-# path to database
-dbs_dir = USR_HME + '/workflow_status'
+END = dt(2023, 11, 9, 0)
 
 ##################################################################################
 # Rocoto utility commands
@@ -94,10 +141,11 @@ dbs_dir = USR_HME + '/workflow_status'
 def run_rocotorun():
     for cse in CSES:
         for ctr_flw in CTR_FLWS:
-            cmd = RCT_HME + '/bin/rocotorun -w ' +\
-                  settings_dir + '/' + cse + '/' + ctr_flw + '/ctr_flw.xml' +\
-                  ' -d ' + dbs_dir + '/' + cse + '-' + ctr_flw + '.store -v 10'  
+            cmd = SNG_EXC + ' /opt/rocoto-develop/bin/rocotorun -w ' +\
+                  '/settings/' + cse + '/' + ctr_flw + '/ctr_flw.xml' +\
+                  ' -d /dbs/' + cse + '-' + ctr_flw + '.store -v 10'  
 
+            print(cmd)
             os.system(cmd)
 
         # update workflow statuses after loops
@@ -106,11 +154,13 @@ def run_rocotorun():
 def run_rocotostat():
     for cse in CSES:
         for ctr_flw in CTR_FLWS:
-            cmd = RCT_HME + '/bin/rocotostat -w ' +\
-                  settings_dir + '/' + cse + '/' + ctr_flw + '/ctr_flw.xml' +\
-                  ' -d ' + dbs_dir + '/' + cse + '-' + ctr_flw + '.store -c all'+\
-                  ' > ' + dbs_dir + '/' + cse + '-' + ctr_flw + '_workflow_status.txt'
+            cmd = SNG_EXC + ' /opt/rocoto-develop/bin/rocotostat -w ' +\
+                  '/settings/' + cse + '/' + ctr_flw + '/ctr_flw.xml' +\
+                  ' -d /dbs/' + cse + '-' + ctr_flw + '.store -c all'+\
+                  ' > ' + DBS + '/' +\
+                  cse + '-' + ctr_flw + '_workflow_status.txt'
 
+            print(cmd)
             os.system(cmd) 
 
 def run_rocotoboot(cses, flows, cycles, tasks):
@@ -118,11 +168,12 @@ def run_rocotoboot(cses, flows, cycles, tasks):
         for ctr_flw in flows:
             for cycle in cycles:
                 for task in tasks:
-                    cmd = RCT_HME + '/bin/rocotoboot -w ' +\
-                          settings_dir + '/' + cse + '/' + ctr_flw + '/ctr_flw.xml' +\
-                          ' -d ' + dbs_dir + '/' + cse + '-' + ctr_flw + '.store' +\
+                    cmd = SNG_EXC + ' /opt/rocoto-develop/bin/rocotoboot -w ' +\
+                          '/settings/' + cse + '/' + ctr_flw + '/ctr_flw.xml' +\
+                          ' -d /dbs/' + cse + '-' + ctr_flw + '.store' +\
                           ' -c ' + cycle + ' -t ' + task
 
+                    print(cmd)
                     os.system(cmd) 
 
         # update workflow statuses after loops
@@ -133,11 +184,12 @@ def run_rocotorewind(cses, flows, cycles, tasks):
         for ctr_flw in flows:
             for cycle in cycles:
                 for task in tasks:
-                    cmd = RCT_HME + '/bin/rocotorewind -w ' +\
-                          settings_dir + '/' + cse + '/' + ctr_flw + '/ctr_flw.xml' +\
-                          ' -d ' + dbs_dir + '/' + cse + '-' + ctr_flw + '.store' +\
+                    cmd = SNG_EXC + ' /opt/rocoto-develop/bin/rocotorewind -w ' +\
+                          '/settings/' + cse + '/' + ctr_flw + '/ctr_flw.xml' +\
+                          ' -d /dbs/' + cse + '-' + ctr_flw + '.store' +\
                           ' -c ' + cycle + ' -t ' + task
 
+                    print(cmd)
                     os.system(cmd) 
 
         # update workflow statuses after loops
