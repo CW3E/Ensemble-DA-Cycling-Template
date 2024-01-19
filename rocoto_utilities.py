@@ -72,7 +72,7 @@ SCHD_BIN = SCHD + '/current/bin'
 MNG_RUN = '/run/munge'
 
 # directory path for root of git clone of Ensemble-DA-Cycling-Template
-USR_HME = '/expanse/lustre/projects/ddp181/cgrudzien/JEDI-MPAS-Common-Case/Ensemble-DA-Cycling-Template'
+USR_HME = '/expanse/nfs/cw3e/cwp157/cgrudzien/JEDI-MPAS-Common-Case/Ensemble-DA-Cycling-Template'
 print('Clone location:\n' + USR_HME)
 
 # path to .xml control flows 
@@ -84,7 +84,7 @@ DBS = USR_HME + '/workflow_status'
 print('Database directory:\n' + INDT + DBS)
 
 # path to rocoto singularity image
-RCT = '/expanse/lustre/projects/ddp181/cgrudzien/SOFT_ROOT/rocoto.sif'
+RCT = '/expanse/nfs/cw3e/cwp157/cgrudzien/JEDI-MPAS-Common-Case/SOFT_ROOT/rocoto.sif'
 print('Rocoto image:\n' + INDT + RCT)
 
 # singularity exec command
@@ -106,8 +106,8 @@ CSES = [
 
 # name of .xml workflows to execute and monitor WITHOUT the extension of file
 CTR_FLWS = [
-            #'2022122800_valid_date_x20.835586.WestCoast_mpas_ensemble',
-            '2022122800_valid_date_x1.10242_mpas_ensemble',
+            '2022122800_valid_date_x20.835586.WestCoast_mpas_ensemble',
+            #'2022122800_valid_date_x1.10242_mpas_ensemble',
             #'2022122800_valid_date_wrf_ensemble',
             #'first_forecast',
            ]

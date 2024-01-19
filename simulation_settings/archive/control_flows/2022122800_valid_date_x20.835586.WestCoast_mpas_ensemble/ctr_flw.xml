@@ -12,8 +12,8 @@
   <!-- END CONTROL FLOW NAME / TUNABLE SETTINGS -->
 
   <!-- COMPUTER-DEPENDENT ITEMS -->
-  <!ENTITY CLNE_ROOT    "/expanse/lustre/projects/ddp181/cgrudzien/JEDI-MPAS-Common-Case/Ensemble-DA-Cycling-Template"> <!-- Full path of framework git clone -->
-  <!ENTITY SOFT_ROOT    "/expanse/lustre/projects/ddp181/cgrudzien/SOFT_ROOT"> <!-- Root directory of software stack executables -->
+  <!ENTITY CLNE_ROOT    "/expanse/nfs/cw3e/cwp157/cgrudzien/JEDI-MPAS-Common-Case/Ensemble-DA-Cycling-Template"> <!-- Full path of framework git clone -->
+  <!ENTITY SOFT_ROOT    "/expanse/nfs/cw3e/cwp157/cgrudzien/JEDI-MPAS-Common-Case/SOFT_ROOT"> <!-- Root directory of software stack executables -->
   <!ENTITY DATA_ROOT    "/expanse/lustre/scratch/cgrudzien/temp_project/JEDI-MPAS-Common-Case/DATA/&CSE_NME;"> <!-- Root directory of case study forcing data -->
   <!ENTITY WORK_ROOT    "/expanse/lustre/scratch/cgrudzien/temp_project/JEDI-MPAS-Common-Case/SIMULATION_IO/MPAS_Cycles/&EXP_NME;"> <!-- Root directory of simulation_io -->
   <!-- END COMPUTER-DEPENDENT -->
@@ -36,7 +36,7 @@
 
   <!-- CYCLING SETTINGS  -->
   <!ENTITY CYC_STRT     "202212230000"> <!-- First initial time for a forecast -->
-  <!ENTITY CYC_STOP     "202212230000"> <!-- Last initial time for a forecast -->
+  <!ENTITY CYC_STOP     "202212270000"> <!-- Last initial time for a forecast -->
   <!ENTITY CYC_INT      "24"> <!-- Interval between cycle start times -->
   <!-- END CYCLING SETTINGS -->
 
@@ -50,7 +50,7 @@
   <!ENTITY HIST_INT     "03"> <!-- Output interval for history files in HH, suppressed = 00 -->
   <!ENTITY DIAG_INT     "03"> <!-- Output interval for diagnostic files in HH, suppressed = 00 -->
   <!ENTITY SND_INT      "00"> <!-- Output interval for sounding files in HH, suppressed = 00 -->
-  <!ENTITY BCKT_INT     "24"> <!-- Accumulation reset interval in HH, reset suppressed = 00 -->
+  <!ENTITY BCKT_INT     "00"> <!-- Accumulation reset interval in HH, reset suppressed = 00 -->
   <!ENTITY RSTRT_INT    "24"> <!-- Output interval for restart files in HH, suppressed = 00 -->
   <!ENTITY IF_SST_UPDT  "No"> <!-- Lower boundary condition updates from background data -->
   <!ENTITY IF_SST_DIURN "No"> <!-- Diurnal updates to lower boundary conditions -->
@@ -61,9 +61,9 @@
 
   <!-- JOB SETTINGS -->
   <!ENTITY SCHED        "slurm"> <!-- System scheduler, note rocoto interpreter conventions under rocoto/lib/workflowmgr -->
-  <!ENTITY PROJECT      "ddp181"> <!-- Project billing account -->
-  <!ENTITY PART_COMPU   "compute"> <!-- Queue for standard computing -->
-  <!ENTITY PART_DEBUG   "compute">  <!-- Queue for small jobs / rapid debugging -->
+  <!ENTITY PROJECT      "cwp157"> <!-- Project billing account -->
+  <!ENTITY PART_COMPU   "cw3e-compute"> <!-- Queue for standard computing -->
+  <!ENTITY PART_DEBUG   "cw3e-compute">  <!-- Queue for small jobs / rapid debugging -->
   <!ENTITY MPIRUN       "mpiexec"> <!-- MPI exec command -->
   <!ENTITY WPS_MEM      "1750M"> <!-- ungrib mem-per-cpu argument -->
   <!ENTITY WPS_WC       "00:30:00"> <!-- Wallclock limit for ungrib jobs -->
