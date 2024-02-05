@@ -38,9 +38,11 @@ module load netcdf-fortran/4.5.3
 module load netcdf-cxx/4.2
 module load hdf5/1.10.6
 module load parallel-netcdf/1.12.1
-export NETCDF=/home/cpapadop/Software/MPAS/NETCDF
-export PNETCDF=/home/cpapadop/Software/MPAS/NETCDF
-export PIO=/home/cpapadop/Software/MPAS/PIO/ParallelIO-pio2_5_8
+module load cmake/3.18.2
+export LIBS_DIR="/expanse/nfs/cw3e/cwp157/cgrudzien/JEDI-MPAS-Common-Case/SOFT_ROOT/MPAS/"
+export NETCDF=${LIBS_DIR}/NETCDF
+export PNETCDF=${LIBS_DIR}/NETCDF
+export PIO=${LIBS_DIR}/PIO/ParallelIO-pio2_5_8
 export MPAS_EXTERNAL_LIBS="-L${HDF5HOME}/lib -lhdf5_hl -lhdf5 -ldl -lz"
 export MPAS_EXTERNAL_INCLUDES="-I${HDF5HOME}/include"
 
