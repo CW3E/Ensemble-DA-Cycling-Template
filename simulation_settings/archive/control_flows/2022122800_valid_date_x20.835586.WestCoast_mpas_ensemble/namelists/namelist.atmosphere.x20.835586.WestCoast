@@ -42,7 +42,7 @@
     config_deepsoiltemp_update = IF_DEEPSOIL,
     config_radtlw_interval = '01:00:00'
     config_radtsw_interval = '01:00:00'
-    config_bucket_update = BCKT_INT,
+    config_bucket_update = 'none'
     config_physics_suite = 'convection_permitting'
 /
 &soundings

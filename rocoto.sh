@@ -7,5 +7,8 @@
 #SBATCH -J rocoto
 #SBATCH --export=ALL
 
+# module loads
+module load singularitypro/3.9
+
 # run rocoto 
 python -u rocoto_utilities.py

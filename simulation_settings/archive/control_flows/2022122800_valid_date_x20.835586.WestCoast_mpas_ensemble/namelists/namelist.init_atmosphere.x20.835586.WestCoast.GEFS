@@ -17,7 +17,7 @@
     config_nfgsoillevels = 4
 /
 &data_sources
-    config_geog_data_path = '/expanse/lustre/projects/ddp181/cgrudzien/JEDI-MPAS-Common-Case/DATA/static_terrestrial/mpas_static'
+    config_geog_data_path = '/expanse/lustre/scratch/cgrudzien/temp_project/JEDI-MPAS-Common-Case/DATA/static_terrestrial/mpas_static'
     config_met_prefix = 'BKG_DATA'
     config_sfc_prefix = 'BKG_DATA'
     config_fg_interval = FG_INT,
@@ -37,6 +37,7 @@
     config_nsm = 30
     config_tc_vertical_grid = true
     config_blend_bdy_terrain = false
+    IF_ZETA_LIST
 /
 &physics
     config_tsk_seaice_threshold = 100.000

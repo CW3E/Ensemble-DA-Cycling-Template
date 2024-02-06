@@ -56,7 +56,6 @@ fi
 # BKG_INT      = Interval of lbc input data in HH, required IF_RGNL = Yes
 # DIAG_INT     = Interval at which diagnostic fields are output (HH)
 # HIST_INT     = Interval at which model history fields are output (HH)
-# BCKT_INT     = Interval at which accumulation buckets are updated (HH)
 # SND_INT      = Interval at which soundings are made (HH)
 # RSTRT_INT    = Interval at which model restart files are output (HH)
 # IF_RSTRT     = If performing a restart run initialization (Yes / No)
@@ -171,20 +170,6 @@ elif [ ${HIST_INT} = 00 ]; then
 else
   hist_int="${HIST_INT}:00:00"
   printf "Model history is written out on ${hist_int} intervals.\n"
-fi
-
-if [ ! ${BCKT_INT} ]; then
-  printf "ERROR: \${BCKT_INT} is not defined.\n"
-  exit 1
-elif [ ${BCKT_INT} -lt 0 ]; then
-  printf "ERROR: \${BCKT_INT} must be HH >= 0 for the accumulation reset.\n"
-  exit 1
-elif [ ${BCKT_INT} = 00 ]; then
-  printf "Model accumulations are not reset for the model run.\n"
-  bckt_int="none"
-else
-  bckt_int="${BCKT_INT}:00:00"
-  printf "Accumulation buckets are reset on ${bckt_int} intervals.\n"
 fi
 
 if [ ! ${SND_INT} ]; then
@@ -612,7 +597,6 @@ cat namelist.atmosphere \
   | sed "s/= IF_SST_UPDT,/= ${if_sst_updt}/" \
   | sed "s/= IF_SST_DIURN,/= ${if_sst_diurn}/" \
   | sed "s/= IF_DEEPSOIL,/= ${if_deepsoil}/" \
-  | sed "s/= BCKT_INT,/= '${bckt_int}'/" \
   | sed "s/= SND_INT,/= '${snd_int}'/" \
   | sed "s/= PIO_NUM,/= ${PIO_NUM}/" \
   | sed "s/= PIO_STRD,/= ${PIO_STRD}/" \

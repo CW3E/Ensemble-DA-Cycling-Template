@@ -37,6 +37,7 @@
     config_nsm = 30
     config_tc_vertical_grid = true
     config_blend_bdy_terrain = false
+    IF_ZETA_LIST
 /
 &physics
     config_tsk_seaice_threshold = 100.000
