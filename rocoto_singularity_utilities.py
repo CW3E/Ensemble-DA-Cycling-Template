@@ -35,6 +35,40 @@ import time
 from datetime import datetime as dt
 
 ##################################################################################
+# SET ROCOTO SINGULARITY PARAMETERS
+##################################################################################
+# file system root, used for path bind, ruby errors
+# ```
+# Read-only file system @ dir_s_mkdir ${FLE_ROOT}
+# ```
+# when file system is not mounted rw to singularity container environment
+FLE_ROOT = '/expanse'
+
+# scheduler module path
+SCHD = '/cm/shared/apps/slurm'
+
+# scheduler command binaries, container PATH is prepended with
+# ```
+# PATH=/sched:${PATH}
+# ```
+# so that SCHD_BIN can bind to /sched for arbitrar systems to find commands
+# fixes error
+# ```
+# WARNING: job submission failed: sh: 1: sbatch: not found
+# ```
+SCHD_BIN = SCHD + '/current/bin'
+
+# path to munge.socket.2 directory
+# binding this path to singularity mount fixes errors
+# ```
+# sbatch: error: If munged is up, restart with --num-threads=10
+# sbatch: error: Munge encode failed: Failed to access "/run/munge/munge.socket.2": No such file or directory
+# sbatch: error: slurm_send_node_msg: auth_g_create: REQUEST_SUBMIT_BATCH_JOB has authentication error
+# sbatch: error: Batch job submission failed: Protocol authentication error
+# ```
+MNG_RUN = '/run/munge'
+
+##################################################################################
 # SET GLOBAL WORKFLOW PARAMETERS
 ##################################################################################
 # standard string indentation
@@ -53,8 +87,20 @@ DBS = USR_HME + '/workflow_status'
 print('Database directory:\n' + INDT + DBS)
 
 # path to rocoto singularity image
-RCT = '/expanse/nfs/cw3e/cwp157/cgrudzien/JEDI-MPAS-Common-Case/SOFT_ROOT/rocoto'
-print('Rocoto build path:\n' + INDT + RCT)
+RCT = '/expanse/nfs/cw3e/cwp157/cgrudzien/JEDI-MPAS-Common-Case/SOFT_ROOT/rocoto.sif'
+print('Rocoto image:\n' + INDT + RCT)
+
+# singularity exec command
+SNG_EXC = 'singularity exec -B ' +\
+          FLE_ROOT + ':' + FLE_ROOT + ':rw,' +\
+          SETTINGS + ':/settings:ro,' +\
+          DBS + ':/dbs:rw,' +\
+          SCHD + ':' + SCHD + ':ro,' +\
+          SCHD_BIN + ':/sched:ro,' +\
+          MNG_RUN + ':' + MNG_RUN + ':ro ' +\
+          RCT
+
+print('Singularity exec command:\n' + INDT + SNG_EXC)
 
 # Case study sub directories
 CSES = [
@@ -63,28 +109,20 @@ CSES = [
 
 # name of .xml workflows to execute and monitor WITHOUT the extension of file
 CTR_FLWS = [
-            #'2022122800_valid_date_x20.835586.WestCoast_mpas_ensemble',
-            '2022122800_valid_date_x1.10242_mpas_ensemble',
+            '2022122800_valid_date_x20.835586.WestCoast_mpas_ensemble',
+            #'2022122800_valid_date_x20.835586.WestWRFZetaLevels_mpas_ensemble',
+            #'2022122800_valid_date_x1.10242_mpas_ensemble',
             #'2022122800_valid_date_wrf_ensemble',
             #'first_forecast',
            ]
 
 # Set END to a specific date for running as a background process such as
 #
-#    nohup python -u rocoto_utilities.py &
+#    nohup python -u rocoto_singularity_utilities.py &
 #
 # with a specified end date.  If running on a scheduler, set this out to an
 # arbitrary far end date and let the wall clock limit terminate the process.
 END = dt(2025, 1, 1, 0)
-
-##################################################################################
-# Derived paths
-##################################################################################
-# path to .xml control flows 
-settings =  USR_HME + '/simulation_settings'
-
-# path to database
-dbs = USR_HME + '/workflow_status'
 
 ##################################################################################
 # Rocoto utility commands
@@ -113,9 +151,9 @@ dbs = USR_HME + '/workflow_status'
 def run_rocotorun():
     for cse in CSES:
         for ctr_flw in CTR_FLWS:
-            cmd = RCT + '/bin/rocotorun -w ' +\
-                  settings + '/' + cse + '/' + ctr_flw + '/ctr_flw.xml' +\
-                  ' -d ' + dbs + '/' + cse + '-' + ctr_flw + '.store -v 10'  
+            cmd = SNG_EXC + ' /opt/rocoto-develop/bin/rocotorun -w ' +\
+                  '/settings/' + cse + '/' + ctr_flw + '/ctr_flw.xml' +\
+                  ' -d /dbs/' + cse + '-' + ctr_flw + '.store -v 10'  
 
             print(cmd)
             os.system(cmd)
@@ -126,9 +164,9 @@ def run_rocotorun():
 def run_rocotostat():
     for cse in CSES:
         for ctr_flw in CTR_FLWS:
-            cmd = RCT + '/bin/rocotostat -w ' +\
-                  settings + '/' + cse + '/' + ctr_flw + '/ctr_flw.xml' +\
-                  ' -d ' + dbs + '/' + cse + '-' + ctr_flw + '.store -c all'+\
+            cmd = SNG_EXC + ' /opt/rocoto-develop/bin/rocotostat -w ' +\
+                  '/settings/' + cse + '/' + ctr_flw + '/ctr_flw.xml' +\
+                  ' -d /dbs/' + cse + '-' + ctr_flw + '.store -c all'+\
                   ' > ' + DBS + '/' +\
                   cse + '-' + ctr_flw + '_workflow_status.txt'
 
@@ -140,9 +178,9 @@ def run_rocotoboot(cses, flows, cycles, tasks):
         for ctr_flw in flows:
             for cycle in cycles:
                 for task in tasks:
-                    cmd = RCT + '/bin/rocotoboot -w ' +\
-                          settings + '/' + cse + '/' + ctr_flw + '/ctr_flw.xml' +\
-                          ' -d ' + dbs + '/' + cse + '-' + ctr_flw + '.store' +\
+                    cmd = SNG_EXC + ' /opt/rocoto-develop/bin/rocotoboot -w ' +\
+                          '/settings/' + cse + '/' + ctr_flw + '/ctr_flw.xml' +\
+                          ' -d /dbs/' + cse + '-' + ctr_flw + '.store' +\
                           ' -c ' + cycle + ' -t ' + task
 
                     print(cmd)
@@ -156,9 +194,9 @@ def run_rocotorewind(cses, flows, cycles, tasks):
         for ctr_flw in flows:
             for cycle in cycles:
                 for task in tasks:
-                    cmd = RCT + '/bin/rocotorewind -w ' +\
-                          settings + '/' + cse + '/' + ctr_flw + '/ctr_flw.xml' +\
-                          ' -d ' + dbs + '/' + cse + '-' + ctr_flw + '.store' +\
+                    cmd = SNG_EXC + ' /opt/rocoto-develop/bin/rocotorewind -w ' +\
+                          '/settings/' + cse + '/' + ctr_flw + '/ctr_flw.xml' +\
+                          ' -d /dbs/' + cse + '-' + ctr_flw + '.store' +\
                           ' -c ' + cycle + ' -t ' + task
 
                     print(cmd)
