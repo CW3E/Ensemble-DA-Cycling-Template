@@ -63,7 +63,7 @@
   <!ENTITY SCHED        "slurm"> <!-- System scheduler, note rocoto interpreter conventions under rocoto/lib/workflowmgr -->
   <!ENTITY PROJECT      "cwp157"> <!-- Project billing account -->
   <!ENTITY PART_COMPU   "cw3e-compute"> <!-- Queue for standard computing -->
-  <!ENTITY PART_DEBUG   "cw3e-compute">  <!-- Queue for small jobs / rapid debugging -->
+  <!ENTITY PART_DEBUG   "cw3e-shared">  <!-- Queue for small jobs / rapid debugging -->
   <!ENTITY MPIRUN       "mpiexec"> <!-- MPI exec command -->
   <!ENTITY WPS_MEM      "1750M"> <!-- ungrib mem-per-cpu argument -->
   <!ENTITY WPS_WC       "00:30:00"> <!-- Wallclock limit for ungrib jobs -->

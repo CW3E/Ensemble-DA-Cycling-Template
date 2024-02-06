@@ -11,8 +11,8 @@
   <!-- END CONTROL FLOW NAME / TUNABLE SETTINGS -->
 
   <!-- COMPUTER-DEPENDENT ITEMS -->
-  <!ENTITY CLNE_ROOT    "/expanse/lustre/projects/ddp181/cgrudzien/JEDI-MPAS-Common-Case/Ensemble-DA-Cycling-Template"> <!-- Full path of framework git clone -->
-  <!ENTITY SOFT_ROOT    "/expanse/lustre/projects/ddp181/cgrudzien/SOFT_ROOT"> <!-- Root directory of software stack executables -->
+  <!ENTITY CLNE_ROOT    "/expanse/nfs/cw3e/cwp157/cgrudzien/JEDI-MPAS-Common-Case/Ensemble-DA-Cycling-Template"> <!-- Full path of framework git clone -->
+  <!ENTITY SOFT_ROOT    "/expanse/nfs/cw3e/cwp157/cgrudzien/JEDI-MPAS-Common-Case/SOFT_ROOT"> <!-- Root directory of software stack executables -->
   <!ENTITY DATA_ROOT    "/expanse/lustre/scratch/cgrudzien/temp_project/JEDI-MPAS-Common-Case/DATA/&CSE_NME;"> <!-- Root directory of case study forcing data -->
   <!ENTITY WORK_ROOT    "/expanse/lustre/scratch/cgrudzien/temp_project/JEDI-MPAS-Common-Case/SIMULATION_IO/WRF_Cycles/&EXP_NME;"> <!-- Root directory of simulation_io -->
   <!-- END COMPUTER-DEPENDENT -->
@@ -39,7 +39,7 @@
   <!-- END CYCLING SETTINGS -->
 
   <!-- ENSEMBLE SETTINGS -->
-  <!ENTITY MEM_LIST     "00 01 02 03 04 05"> <!-- list of ensemble perturbation indices -->
+  <!ENTITY MEM_LIST     "00"> <!-- list of ensemble perturbation indices -->
   <!ENTITY WRF_ENS_DOM  "02"> <!-- Max domain for ensemble simulation -->
   <!ENTITY ENS_BKG_DATA "GEFS"> <!-- GFS and GEFS currently supported -->
   <!ENTITY ENS_BKG_INT  "03"> <!-- Data file frequency for ensemble simulation forcing in HH -->
@@ -55,9 +55,9 @@
 
   <!-- JOB SETTINGS -->
   <!ENTITY SCHED        "slurm"> <!-- Machine scheduler, note native scheduler commands in tasks below -->
-  <!ENTITY PROJECT      "ddp181"> <!-- Project billing account -->
-  <!ENTITY PART_COMPU   "compute"> <!-- Queue for standard computing -->
-  <!ENTITY PART_DEBUG   "compute">  <!-- Queue for small jobs / rapid debugging -->
+  <!ENTITY PROJECT      "cwp157"> <!-- Project billing account -->
+  <!ENTITY PART_COMPU   "cw3e-compute"> <!-- Queue for standard computing -->
+  <!ENTITY PART_DEBUG   "cw3e-shared">  <!-- Queue for small jobs / rapid debugging -->
   <!ENTITY MPIRUN       "mpiexec"> <!-- MPI exec command -->
   <!ENTITY WPS_PROC     "128"> <!-- WPS parallel / REAL number of procs-per-node -->
   <!ENTITY WPS_MEM      "1750M"> <!-- WPS mem-per-cpu argument -->
