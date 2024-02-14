@@ -109,6 +109,24 @@ fi
 # define the stop time based on forecast length control flow above
 stop_dt=`date -d "${strt_dt} ${fcst_hrs} hours"`
 
+if [[ ${IF_ZETA_LIST} = ${NO} ]]; then 
+  printf "Uses automatically generated zeta levels for vertical grid spacing.\n"
+  # define string replacement for the namelist
+  if_zeta_list=""
+elif [[ ${IF_ZETA_LIST} = ${YES} ]]; then
+  # define full path to zeta list
+  zeta_list=${EXP_CNFG}/namelists/zeta_list_${DMN_NME}.txt
+
+  # define string replacement for the namelist
+  if_zeta_list="config_specified_zeta_levels = `basename ${zeta_list}`"
+
+  printf "Uses explicitly defined zeta levels for vertical grid spacing in file\n"
+  printf "${zeta_list}\n"
+else
+  printf "\${IF_ZETA_LIST} must be set to 'Yes' or 'No' (case insensitive).\n"
+  exit 1
+fi
+
 if [ ! ${BKG_INT} ]; then
   printf "ERROR: \${BKG_INT} is not defined.\n"
   exit 1
@@ -264,7 +282,7 @@ cmd="rm -f ${DMN_NME}.graph.info.part.*"
 printf "${cmd}\n"; eval "${cmd}"
 
 # Remove any previous namelists and stream lists
-cmd="rm -f namelist.*; rm -f streams.*; rm -f stream_list.*"
+cmd="rm -f namelist.*; rm -f streams.*; rm -f stream_list.*; rm -f zeta_list*.txt"
 printf "${cmd}\n"; eval "${cmd}"
 
 # Move existing log files to a subdir if there are any
@@ -340,6 +358,18 @@ else
   printf "${cmd}\n"; eval "${cmd}"
 fi
 
+if [[ ${IF_ZETA_LIST} = ${YES} ]]; then
+  if [ ! -r ${zeta_list} ]; then 
+    msg="Vertical level list\n ${zeta_list}\n is not readable or "
+    msg+="does not exist.\n"
+    printf "${msg}"
+    exit 1
+  else
+    cmd="cp -L ${zeta_list} ./"
+    printf "${cmd}\n"; eval "${cmd}"
+  fi
+fi
+
 streams_tmp=${EXP_CNFG}/streamlists/streams.init_atmosphere
 if [ ! -r ${streams_tmp} ]; then 
   msg="init_atmosphere streams template\n ${streams_tmp}\n is not readable or "
@@ -368,6 +398,7 @@ cat namelist.init_atmosphere \
   | sed "s/= IF_STATIC_INTERP,/= false/" \
   | sed "s/= IF_NATIVE_GWD_STATIC,/= false/" \
   | sed "s/= IF_VERTICAL_GRID,/= false/" \
+  | sed "s/IF_ZETA_LIST/${if_zeta_list}/" \
   | sed "s/= IF_MET_INTERP,/= false/" \
   | sed "s/= IF_INPUT_SST,/= true/" \
   | sed "s/= IF_FRAC_SEAICE,/= true/" \
@@ -420,6 +451,11 @@ printf "${cmd}\n"; eval "${cmd}"
 
 cmd="mv streams.init_atmosphere ${log_dir}"
 printf "${cmd}\n"; eval "${cmd}"
+
+if [[ ${IF_ZETA_LIST} = ${YES} ]]; then
+  cmd="mv `basename ${zeta_list}` ${log_dir}"
+  printf "${cmd}\n"; eval "${cmd}"
+fi
 
 # Remove links to the init_atmos run files
 for file in ${init_run_files[@]}; do

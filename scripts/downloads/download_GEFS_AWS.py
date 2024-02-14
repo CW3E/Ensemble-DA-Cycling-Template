@@ -53,10 +53,10 @@ from datetime import timedelta
 # SET GLOBAL PARAMETERS 
 ##################################################################################
 # starting date and zero hour of data iso format
-STRT_DT = '2022-12-27T00:00:00'
+STRT_DT = '2023-01-06T00:00:00'
 
 # final date and zero hour of data iso format
-STOP_DT = '2022-12-27T00:00:00'
+STOP_DT = '2023-01-10T00:00:00'
 
 # number of hours between zero hours for forecast data
 INIT_INT = 24
@@ -65,7 +65,7 @@ INIT_INT = 24
 FCST_MIN = 0
 
 # max forecast hour
-FCST_MAX = 24
+FCST_MAX = 120
 
 # interval of forecast data outputs after zero hour
 FCST_INT = 3
