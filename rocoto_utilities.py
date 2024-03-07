@@ -31,60 +31,51 @@
 # Imports
 ##################################################################################
 import os
-import time
-from datetime import datetime as dt
+import glob
+import argparse
 
+import time
+from datetime import datetime as dt, timedelta
 ##################################################################################
-# SET GLOBAL WORKFLOW PARAMETERS
+# SET GLOBAL PARAMETERS
 ##################################################################################
-# standard string indentation
-INDT = '    '
+# Launches argparse to receive arguments
+parser = argparse.ArgumentParser(
+                    prog='RocotoUtilities', 
+                    description='', 
+                    epilog='')
+
+# Retrieves arguments from command line
+# This would usually be DeepDive
+parser.add_argument('cse_nme', help='Case study folder name.')
+
+# This would be in the format of validdate_gridname_casename
+parser.add_argument('exp_nme', help='Name of experiment sub-directory. Default runs all control flows in directory.')
 
 # directory path for root of git clone of Ensemble-DA-Cycling-Template
-USR_HME = '/expanse/nfs/cw3e/cwp157/cgrudzien/JEDI-MPAS-Common-Case/Ensemble-DA-Cycling-Template'
-print('Clone location:\n' + USR_HME)
+parser.add_argument('-c', '--clne-root', required=False, 
+        help='Optional, full path of framework git clone. Default set in code.', 
+        default='/expanse/nfs/cw3e/cwp157/cdeciampa/Ensemble-DA-Cycling-Template')
 
-# path to .xml control flows 
-SETTINGS = USR_HME + '/simulation_settings'
-print('Settings directory:\n' + INDT + SETTINGS)
+# directory for rocoto install
+parser.add_argument('-r', '--rct-nme', required=False, 
+        help='Optional, full path to rocoto install. Default set in code.', 
+        default='/expanse/nfs/cw3e/cwp157/cdeciampa/SOFT_ROOT/rocoto')
 
-# path to database
-DBS = USR_HME + '/workflow_status'
-print('Database directory:\n' + INDT + DBS)
+# Assigns supplied arguments as variables
+args = parser.parse_args()
 
-# path to rocoto singularity image
-RCT = '/expanse/nfs/cw3e/cwp157/cgrudzien/JEDI-MPAS-Common-Case/SOFT_ROOT/rocoto'
-print('Rocoto build path:\n' + INDT + RCT)
+# directory path for root of git clone of Ensemble-DA-Cycling-Template
+USR_HME = args.clne_root
 
-# Case study sub directories
-CSES = [
-        'DeepDive',
-       ]
+# directory for rocoto install
+RCT_HME = args.rct_nme
 
-# name of .xml workflows to execute and monitor WITHOUT the extension of file
-CTR_FLWS = [
-            #'2022122800_valid_date_x20.835586.WestCoast_mpas_ensemble',
-            '2022122800_valid_date_x1.10242_mpas_ensemble',
-            #'2022122800_valid_date_wrf_ensemble',
-            #'first_forecast',
-           ]
+# directory for case study name
+CSE_NME = args.cse_nme
 
-# Set END to a specific date for running as a background process such as
-#
-#    nohup python -u rocoto_utilities.py &
-#
-# with a specified end date.  If running on a scheduler, set this out to an
-# arbitrary far end date and let the wall clock limit terminate the process.
-END = dt(2025, 1, 1, 0)
-
-##################################################################################
-# Derived paths
-##################################################################################
-# path to .xml control flows 
-settings =  USR_HME + '/simulation_settings'
-
-# path to database
-dbs = USR_HME + '/workflow_status'
+# Experiment name
+EXP_NME = args.exp_nme
 
 ##################################################################################
 # Rocoto utility commands
@@ -110,72 +101,92 @@ dbs = USR_HME + '/workflow_status'
 #
 ##################################################################################
 
-def run_rocotorun():
-    for cse in CSES:
-        for ctr_flw in CTR_FLWS:
-            cmd = RCT + '/bin/rocotorun -w ' +\
-                  settings + '/' + cse + '/' + ctr_flw + '/ctr_flw.xml' +\
-                  ' -d ' + dbs + '/' + cse + '-' + ctr_flw + '.store -v 10'  
+class Rocoto:
+    def __init__(self, USR_HME, RCT_HME, CSE_NME, EXP_NME):
+        
+        # Assigns class variables
+        self.USR_HME = USR_HME
+        self.RCT_HME = RCT_HME
+        self.CSE_NME = CSE_NME
+        self.EXP_NME = EXP_NME
+        
+        # name of .xml workflows (ensembles) in case study sub directories
+        self.CTR_FLWS = glob.glob(f'{self.USR_HME}/**/{self.CSE_NME}/**/{self.EXP_NME}/**/ctr_flw.xml', recursive=True)
+        
+        # Raises exception if experiment name is wrong
+        if not self.CTR_FLWS:
+            raise ValueError(f'Supplied experiment directory does not exist: {self.EXP_NME}')
 
-            print(cmd)
+        # Defines where dbs dir is
+        self.dbs_dir = self.USR_HME+'/workflow_status'
+        
+    def run_rocotorun(self):
+        for ctr_path in self.CTR_FLWS:
+            # Gets case name from full .xml path
+            cse = self.CSE_NME
+            
+            # Gets ensemble/control flow name from full .xml path
+            ctr_flw = self.EXP_NME
+            
+            # Defines (most of) output command for rocotorun/rocotostat
+            stat_output = f'{self.dbs_dir}/{cse}-{ctr_flw}'
+        
+            # Rocotorun command
+            cmd = f'{self.RCT_HME}/bin/rocotorun -w {ctr_path} -d {stat_output}.store -v 10'
             os.system(cmd)
-
-        # update workflow statuses after loops
-        run_rocotostat()
-
-def run_rocotostat():
-    for cse in CSES:
-        for ctr_flw in CTR_FLWS:
-            cmd = RCT + '/bin/rocotostat -w ' +\
-                  settings + '/' + cse + '/' + ctr_flw + '/ctr_flw.xml' +\
-                  ' -d ' + dbs + '/' + cse + '-' + ctr_flw + '.store -c all'+\
-                  ' > ' + DBS + '/' +\
-                  cse + '-' + ctr_flw + '_workflow_status.txt'
-
-            print(cmd)
-            os.system(cmd) 
-
-def run_rocotoboot(cses, flows, cycles, tasks):
-    for cse in cses:
-        for ctr_flw in flows:
+    
+            # Rocotostat command (update workflow statuses each loop)
+            self.run_rocotostat(self.RCT_HME, ctr_path, stat_output)
+            
+    def run_rocotostat(self, RCT_HME, ctr_path, stat_output):
+            
+        # Rocotostat command
+        # -d used to be stat_output but was throwing a "dir not found" error
+        cmd = f'{RCT_HME}/bin/rocotostat -w {ctr_path} -d {stat_output}.store '\
+              f'-c all > {stat_output}_workflow_status.txt'
+        os.system(cmd)
+    
+    def run_rocoto_boot_rewind(self, RCT_HME, CTR_FLWS, cycles, tasks, boot_rewind):
+        """
+        Function that combines both rocotoboot and rocotorewind (cuts down
+        on one function).
+        
+        boot_rewind :: (str), only takes 'boot' or 'rewind', determines chosen rocoto
+                            command.
+        """
+        for ctr_path in CTR_FLWS:
+            cse = ctr_path.split('/')[-3]
+            ctr_flw = ctr_path.split('/')[-2]
+            stat_output = f'{self.dbs_dir}/{cse}-{ctr_flw}'
+            
             for cycle in cycles:
-                for task in tasks:
-                    cmd = RCT + '/bin/rocotoboot -w ' +\
-                          settings + '/' + cse + '/' + ctr_flw + '/ctr_flw.xml' +\
-                          ' -d ' + dbs + '/' + cse + '-' + ctr_flw + '.store' +\
-                          ' -c ' + cycle + ' -t ' + task
-
-                    print(cmd)
-                    os.system(cmd) 
-
-        # update workflow statuses after loops
-        run_rocotostat()
-
-def run_rocotorewind(cses, flows, cycles, tasks):
-    for cse in cses:
-        for ctr_flw in flows:
-            for cycle in cycles:
-                for task in tasks:
-                    cmd = RCT + '/bin/rocotorewind -w ' +\
-                          settings + '/' + cse + '/' + ctr_flw + '/ctr_flw.xml' +\
-                          ' -d ' + dbs + '/' + cse + '-' + ctr_flw + '.store' +\
-                          ' -c ' + cycle + ' -t ' + task
-
-                    print(cmd)
-                    os.system(cmd) 
-
-        # update workflow statuses after loops
-        run_rocotostat()
+                for tasks in tasks:
+                    if boot_rewind == 'boot':
+                        cmd = f'{RCT_HME}/bin/rocotoboot -w {ctr_path} -d {stat_output}.store -c {cycle} -t {task}'
+                    elif boot_rewind == 'rewind':
+                        cmd = f'{RCT_HME}/bin/rocotoboot -w {ctr_path} -d {stat_output}.store -c {cycle} -t {task}'
+                    else: raise ValueError('Must supply "boot" or "rewind" to `boot_rewind`.')
+                    
+                    # Submits command
+                    os.system(cmd)
+                    
+            # Rocotostat command (update workflow statuses each loop)
+            self.run_rocotostat(RCT_HME, ctr_path, stat_output)
 
 ##################################################################################
 # Execute the following lines as script
 ##################################################################################
 
+# Sets end date for tomorrow at midnight
+END = dt.combine(dt.now().date()+timedelta(1), dt.min.time())
+
+# monitor and advance the jobs
 if __name__ == '__main__':
-    # monitor and advance the jobs, will loop run_rocotorun() until END
+    # monitor and advance the jobs
     while (dt.now() < END):
-        run_rocotorun()
+        Rocoto(USR_HME, RCT_HME, CSE_NME, EXP_NME).run_rocotorun()
         time.sleep(60)
 
 ##################################################################################
 # end
+
