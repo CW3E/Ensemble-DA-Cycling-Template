@@ -1,0 +1,21 @@
+# Allow this file
+!.gitignore
+
+# Ignore all grid and partition files
+grid_files/*
+partition_files/*
+variable_tables/*
+
+# Well, except for the 2 relevant vtables (they're small)
+!variable_tables/Vtable.GEFS
+!variable_tables/Vtable.GFS
+
+# And two example partition files
+!partition_files/x20.835586.graph.info.part.768
+!partition_files/x6.999426.graph.info.part.768
+
+# Ignore files over 10MB in this directory (just good to know)
+grid_files/x20.835586.WWRF.grid.nc
+grid_files/x6.999426.WWRF.grid.nc
+partition_files/x20.835586.graph.info
+partition_files/x6.999426.graph.info

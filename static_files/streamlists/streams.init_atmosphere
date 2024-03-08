@@ -1,0 +1,27 @@
+<streams>
+<immutable_stream name="input"
+                  type="input"
+                  filename_template="DMN_NME.static.nc"
+                  input_interval="initial_only" />
+
+<immutable_stream name="output"
+                  type="output"
+                  filename_template="DMN_NME.init.nc"
+                  packages="initial_conds"
+                  output_interval="initial_only" />
+
+<immutable_stream name="surface"
+                  type="output"
+                  filename_template="DMN_NME.sfc_update.nc"
+                  filename_interval="none"
+                  packages="sfc_update"
+                  output_interval=SFC_INT, />
+
+<immutable_stream name="lbc"
+                  type="output"
+                  filename_template="DMN_NME.lbc.$Y-$M-$D_$h_$m_$s.nc"
+                  filename_interval="output_interval"
+                  packages="lbcs"
+                  output_interval=LBC_INT, />
+
+</streams>
