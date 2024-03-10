@@ -299,7 +299,7 @@ cmd="rm -f Vtable"
 printf "${cmd}\n"; eval "${cmd}"
 
 # Check to make sure the variable table is available
-vtable=${EXP_CNFG}/variable_tables/Vtable.${BKG_DATA}
+vtable=${VTABLES}/Vtable.${BKG_DATA}
 if [ ! -r ${vtable} ]; then
   msg="ERROR: Vtable at location\n ${vtable}\n is not readable or does not "
   msg+="exist.\n"
@@ -477,7 +477,7 @@ done
 # If ungribbing ECMWF model level data, calculate additional coefficients
 # NOTE: namelist.wps should account for the "PRES" file prefixes in fg_names
 if [ ${IF_ECMWF_ML} = ${YES} ]; then
-  cmd="ln -sf ${EXP_CNFG}/variable_tables/ecmwf_coeffs ."
+  cmd="ln -sf ${VTABLES}/ecmwf_coeffs ."
   printf "${cmd}\n"; eval "${cmd}"
   cmd="./util/calc_ecmwf_p.exe"
   printf "${cmd}\n"; eval "${cmd}"
