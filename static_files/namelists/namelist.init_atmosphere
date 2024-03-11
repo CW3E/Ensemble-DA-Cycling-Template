@@ -17,7 +17,7 @@
     config_nfgsoillevels = 4
 /
 &data_sources
-    config_geog_data_path = '/expanse/lustre/scratch/cdeciampa/temp_project/DATA/static_terrestrial/mpas_static'
+    config_geog_data_path = 'MPAS_GEOG'
     config_met_prefix = 'BKG_DATA'
     config_sfc_prefix = 'BKG_DATA'
     config_fg_interval = FG_INT,
@@ -36,8 +36,8 @@
     config_dzmin = 0.3
     config_nsm = 30
     config_tc_vertical_grid = true
-    config_specified_zeta_levels = zeta_levels.txt
     config_blend_bdy_terrain = false
+    IF_ZETA_LIST
 /
 &physics
     config_tsk_seaice_threshold = 100.000
