@@ -405,6 +405,7 @@ cat namelist.wps \
   | sed "s/= STOP_DT,/= ${stop_iso},/" \
   | sed "s/= INT_SEC,/= ${data_int_sec},/" \
   | sed "s/= MAX_DOM,/= ${MAX_DOM},/" \
+  | sed "s?WPS_GEOG?${WPS_GEOG}?" \
   | sed "s/= PREFIX,/= '${BKG_DATA}',/" \
   | sed "s/= FG_NAME,/= ${out_fg_name},/" \
   > namelist.wps.tmp
