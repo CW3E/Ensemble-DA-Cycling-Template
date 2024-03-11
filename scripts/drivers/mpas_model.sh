@@ -314,6 +314,7 @@ fi
 #              vtables, static data, etc.
 # CYC_HME    = Cycle YYYYMMDDHH named directory for cycling data containing
 #              bkg, init_atmosphere, atmosphere_model
+# CONFIG_DT  = Model timestep, calculated with 6 * finest model resolution
 # MPIRUN     = MPI multiprocessing evaluation call, machine specific
 # N_NDES     = Total number of nodes
 # N_PROC     = The total number of processes per node
@@ -587,6 +588,7 @@ data_interval_sec=$(( ${BKG_INT} * 3600 ))
 
 # Update the atmosphere namelist / streams for surface boundary conditions
 cat namelist.atmosphere \
+  | sed "s/= CONFIG_DT,/= ${CONFIG_DT}/" \
   | sed "s/= STRT_DT,/= '${strt_iso}'/" \
   | sed "s/= FCST_HRS,/= '${fcst_hrs}:00:00'/" \
   | sed "s/= IF_RGNL,/= ${if_rgnl}/" \
@@ -598,6 +600,7 @@ cat namelist.atmosphere \
   | sed "s/= IF_SST_DIURN,/= ${if_sst_diurn}/" \
   | sed "s/= IF_DEEPSOIL,/= ${if_deepsoil}/" \
   | sed "s/= SND_INT,/= '${snd_int}'/" \
+  | sed "s/= BCKT_INT,/= ${BCKT_INT}/" \
   | sed "s/= PIO_NUM,/= ${PIO_NUM}/" \
   | sed "s/= PIO_STRD,/= ${PIO_STRD}/" \
   | sed "s/DMN_NME/${DMN_NME}/" \
