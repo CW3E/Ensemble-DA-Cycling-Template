@@ -5,6 +5,7 @@ modifies ctr_flw.xml from template.
 """
 
 import os
+import glob
 import argparse
 import setup_ctr_flw as scf
 
@@ -12,7 +13,7 @@ def make_dir(path_str, overwrite=True):
     """
     Function to make or overwrite directories.
     """
-   
+    
     # Resets user's umask settings
     os.umask(0)
         
@@ -39,25 +40,35 @@ parser = argparse.ArgumentParser(
 parser.add_argument('cse_nme', help='Case study directory name.') # vertical_levels, for instance
 parser.add_argument('run_nme', help='Experiment within case study name.') # WWRFZetaLevels, for instance
 parser.add_argument('valid_date', help='Case study valid date in YYYYMMDDHH') # 2022122800, for instance
+parser.add_argument('-e', '--ensembles', type=int, required=False, default=1, 
+                    help='Number of ensembles')
+parser.add_argument('-f', '--forcing-src', required=False, default='GEFS', 
+                    help='Forcing data source (GEFS, GFS, etc.)')
+parser.add_argument('-m', '--mesh-pfx', required=False, default=['x20.835586', 'x6.999426'],
+                    help='Grid prefix name in format: xN.NNNNNN')
 parser.add_argument('-n', '--num-nodes', required=False, default=None,
                     help='Optional, number of nodes for running mpas_atmosphere.'\
                     '\nDefault set based on supplied mesh or two default meshes of 60-3km and 60-10km')
-parser.add_argument('-m', '--mesh-pfx', required=False, default=['x20.835586', 'x6.999426'],
-                    help='Grid prefix name in format: xN.NNNNNN')
-parser.add_argument('-e', '--ensembles', type=int, required=False, default=1, 
-                    help='Number of ensembles')
-parser.add_argument('-z', '--zeta-levels', required=False, default=None) # implement somehow?
+parser.add_argument('-z', '--zeta-levels', required=False, default=True)
+# TODO: add in print statement if path to zeta-levels isn't supplied
 
 # Assigns supplied arguments as variables
 args = parser.parse_args()
 case_name = args.cse_nme
 run_name = args.run_nme
 valid_date = args.valid_date
-mesh_prefix = args.mesh_pfx
+
 num_ensembles = args.ensembles
+forcing_src = args.forcing_src
+mesh_prefix = args.mesh_pfx
 num_nodes = args.num_nodes
-num_cores = os.cpu_count()
+num_cores = os.cpu_count() * 2 # 2 sockets on Expanse
 zeta_levels = args.zeta_levels
+
+# Checks to see if forcing_src is available
+if forcing_src.upper() not in ['GEFS', 'GFS']:
+    raise ValueError(f'Supplied --forcing-src {forcing_src} '\
+                     'not in available options: "GEFS" or "GFS".')
 
 # Checks for number of ensembles
 if num_ensembles == 0:
@@ -121,12 +132,17 @@ for i, exp in enumerate(config_names):
     partitions = num_nodes * num_cores
     
     # Modifies ctr_flw.xml template and outputs to config_dir
-    scf.edit_ctr_flw(ctr_flw_in, ctr_flw_out, MEM_LIST, num_nodes, timestep)
+    scf.edit_ctr_flw(ctr_flw_in, ctr_flw_out, MEM_LIST, num_nodes, timestep, forcing_src, zeta_levels)
 
     # Copies over relevant namelist and streamlist files
-    if not os.path.isfile(f'{config_dir}/namelists/namelist.init_atmosphere'):
+    if not os.path.isfile(f'{config_dir}/namelists/namelist.wps'):
+        cmd = f'cp {runs_dir}/static_files/namelists/namelist.wps '\
+                f'{config_dir}/namelists/namelist.wps'
+        os.system(cmd)
+    if not os.path.isfile(f'{config_dir}/namelists/namelist.init_atmosphere.{domain}.{forcing_src}'):
         cmd = f'cp {runs_dir}/static_files/namelists/namelist.init_atmosphere '\
-                f'{config_dir}/namelists/namelist.init_atmosphere.{domain}'
+                f'{config_dir}/namelists/namelist.init_atmosphere.{domain}.{forcing_src}'
+        os.system(cmd)
     if not os.path.isfile(f'{config_dir}/namelists/namelist.atmosphere'):
         cmd = f'cp {runs_dir}/static_files/namelists/namelist.atmosphere '\
                 f'{config_dir}/namelists/namelist.atmosphere.{domain}'
@@ -139,14 +155,24 @@ for i, exp in enumerate(config_names):
         cmd = f'cp {runs_dir}/static_files/streamlists/streams.atmosphere '\
                 f'{config_dir}/streamlists/'
         os.system(cmd)
-
-
+    for sl in glob.glob(f'{runs_dir}/static_files/streamlists/stream_list.atmosphere*'):
+        if not os.path.isfile(f'{config_dir}/streamlists/{sl.split("/")[-1]}'):
+            cmd = f'cp {runs_dir}/static_files/streamlists/{sl.split("/")[-1]} '\
+                    f'{config_dir}/streamlists/'
+            os.system(cmd)
 
     # Symbolically links mesh and partition files
-    if not os.path.islink(f'{config_dir}/static_files/{domain}.static.nc'):
-        cmd = f'ln -s {runs_dir}/static_files/grid_files/{grid}.WWRF.grid.nc '\
-                f'{config_dir}/static_files/{domain}.static.nc'
+    if not os.path.islink(f'{config_dir}/static_files/{domain}.grid.nc'):
+        cmd = f'ln -s {runs_dir}/static_files/grid_files/{grid}*.grid.nc '\
+                f'{config_dir}/static_files/{domain}.grid.nc'
         os.system(cmd)
+    if not os.path.islink(f'{config_dir}/static_files/{domain}.static.nc'):
+        if not os.path.isfile(glob.glob(f'{runs_dir}/static_files/grid_files/{grid}*.static.nc')[0]):
+            raise ValueError(f'Static file not found:\n{runs_dir}/static_files/grid_files/{grid}*.static.nc')
+        else:
+            cmd = f'ln -s {runs_dir}/static_files/grid_files/{grid}*.static.nc '\
+                    f'{config_dir}/static_files/{domain}.static.nc'
+            os.system(cmd)
     if not os.path.islink(f'{config_dir}/static_files/{domain}.graph.info'):
         cmd = f'ln -s {runs_dir}/static_files/partition_files/{grid}.graph.info '\
                 f'{config_dir}/static_files/{domain}.graph.info'
@@ -158,7 +184,7 @@ for i, exp in enumerate(config_names):
 
     # Copies over explicit vertical levels if the experiment calls for it
     # Eh, probably change this later to another indicator
-    if 'ZetaLevels' in exp:
+    if zeta_levels == True:
         if not os.path.isfile(f'{config_dir}/namelists/zeta_list_{domain}.txt'):
             cmd = f'cp {runs_dir}/static_files/namelists/WWRFZetaLevels.txt {config_dir}/namelists/zeta_list_{domain}.txt'
             os.system(cmd)

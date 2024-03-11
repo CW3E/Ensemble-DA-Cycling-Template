@@ -37,7 +37,7 @@ def get_dt_nodes(GRID_PFX, req_nodes=None):
 
     return config_dt, nnodes    
 
-def edit_ctr_flw(ctr_flw_in, ctr_flw_out, ensembles, nnodes, config_dt):
+def edit_ctr_flw(ctr_flw_in, ctr_flw_out, ensembles, nnodes, config_dt, forcing_src, zeta_levels):
     """
     Function to automate overwriting the ctr_flw.xml
     template.
@@ -48,7 +48,7 @@ def edit_ctr_flw(ctr_flw_in, ctr_flw_out, ensembles, nnodes, config_dt):
     EXP_VRF = ctr_flw_out.split('/')[-2].split('_')[0]
     GRID_PFX = '.'.join(ctr_flw_out.split('/')[-2].split('_')[3].split('.')[0:2])
     CSE_NME = ctr_flw_out.split('/')[-3]
-    RUN_NME = ctr_flw_out.split('/')[-2].split('_')[3].split('.')[-1]
+    RUN_NME = ctr_flw_out.split(f'{GRID_PFX}.')[-1].split('/')[0]
     USR_NME = ctr_flw_out.split('/')[5]
     
     with open(ctr_flw_in, mode='r') as f:
@@ -58,25 +58,29 @@ def edit_ctr_flw(ctr_flw_in, ctr_flw_out, ensembles, nnodes, config_dt):
         # Replaces experiment verification date
         contents = re.sub('(?<=ENTITY\sEXP_VRF\s{6}\")\d+(?=\"\>\s\<\!\-\- Define the valid date)', 
                           f'{EXP_VRF}', contents)
+
+        # Replaces case study name
+        contents = re.sub('(?<=ENTITY\sCSE_NME\s{6}\")[^\s+]*(?=\"\>\s\<\!\-\- Define the case study name)',
+                          f'{CSE_NME}', contents)
     
         # Replaces grid prefix
-        contents = re.sub('(?<=ENTITY\sGRID_PFX\s{5}\")\D\d+\.\d+(?=\"\>\s\<\!\-\- Mesh file prefix)', 
+        contents = re.sub('(?<=ENTITY\sGRID_PFX\s{5}\")[^\s+]*(?=\"\>\s\<\!\-\- Mesh file prefix)', 
                           f'{GRID_PFX}', contents)
     
-        # Replaces case study name
-        contents = re.sub('(?<=ENTITY\sRUN_NME\s{6}\")\D+(?=\"\>\s\<\!\-\- Define the run name)', 
+        # Replaces run name
+        contents = re.sub('(?<=ENTITY\sRUN_NME\s{6}\")[^\s+]*(?=\"\>\s\<\!\-\- Define the run name)', 
                           f'{RUN_NME}', contents)
     
         # Replaces username
-        contents = re.sub('(?<=ENTITY\sUSR_NME\s{6}\")\D+(?=\"\>\s\<\!\-\- Username, for generic)', 
+        contents = re.sub('(?<=ENTITY\sUSR_NME\s{6}\")[^\s+]*(?=\"\>\s\<\!\-\- Username, for generic)', 
                           f'{USR_NME}', contents)
     
         # Makes sure ensembles are set if ensemble in RUN_NME (done in setup_dirs.py)
         contents = re.sub('(?<=ENTITY\sMEM_LIST\s{5}\")[\d+\s+]*(?=\"\>\s\<\!\-\- list of ensemble)', 
                           ensembles, contents)
 
-        # Toggles on/off zeta levels setting if 'ZetaLevels' in run name
-        if 'ZetaLevels' in RUN_NME:
+        # Toggles on/off zeta levels setting if zeta_levels is toggled on
+        if zeta_levels == True:
             zlevs = 'Yes'
         else:
             zlevs = 'No'
@@ -90,17 +94,18 @@ def edit_ctr_flw(ctr_flw_in, ctr_flw_out, ensembles, nnodes, config_dt):
         data_root = re.search(re_srch, contents).group()
         data_root = re.sub('\&SCRATCH\_ROOT;', scratch_root, data_root)
         data_root = re.sub('\&CSE\_NME;', CSE_NME, data_root)
-        ENS_BKG_DATA = re.search('(?<=ENTITY\sENS_BKG_DATA\s{1}\")\D+(?=\"\>\s\<\!\-\- GFS and GEFS currently)', 
-                                 contents).group()
+        ENS_BKG_DATA = forcing_src
+        contents = re.sub('(?<=ENTITY\sENS_BKG_DATA\s{1}\")[^\s+]*(?=\"\>\s\<\!\-\- GFS and GEFS currently)', 
+                                 ENS_BKG_DATA, contents)
         data_folder = f'{data_root}/gribbed/{ENS_BKG_DATA}/{EXP_VRF[:-2]}'
-       
+
         # Eventually automate this to download forcing data based on EXP_VRF and ENS_BKG_DATA 
         if not os.path.isdir(data_folder):
             if not os.path.islink(data_folder):
                 raise ValueError(f'Forcing data folder does not exist:\n{data_folder}')
         elif len(os.listdir(data_folder)) == 0:
            raise ValueError(f'No forcing data in folder:\n{data_folder}')
-        
+            
         forcing_files = sorted(os.listdir(data_folder))
     
         # Grabs X-hourly forcing data frequency
@@ -128,7 +133,7 @@ def edit_ctr_flw(ctr_flw_in, ctr_flw_out, ensembles, nnodes, config_dt):
                              f'divisible by the diagnostic file output interval ({hist_int})')
     
         # Configures model timestep based on finest grid resolution
-        contents = re.sub('(?<=ENTITY\sCONFIG\_DT\s{5}\")\d+(?=\"\>\s\<\!\-\- Model timestep)', 
+        contents = re.sub('(?<=ENTITY\sCONFIG\_DT\s{4}\")[^\s+]*(?=\"\>\s\<\!\-\- Model timestep)', 
                           f'{config_dt}', contents)
     
         # Configures number of requested nodes based on number of grid cells

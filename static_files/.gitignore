@@ -1,6 +1,9 @@
 # Allow this file
 !.gitignore
 
+# Allow streamlist folder???
+!streamlists/stream_list*
+
 # Ignore all grid and partition files
 grid_files/*
 partition_files/*
