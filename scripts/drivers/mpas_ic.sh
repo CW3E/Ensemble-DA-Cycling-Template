@@ -264,16 +264,16 @@ for file in ${init_run_files[@]}; do
   printf "${cmd}\n"; eval "${cmd}"
 done
 
-# Remove any mpas static files following ${DMN_NME}.static.nc pattern
+# Remove any mpas static files
 cmd="rm -f *.static.nc"
 printf "${cmd}\n"; eval "${cmd}"
 
-# Remove any mpas init files following ${DMN_NME}.init.nc pattern
+# Remove any mpas init files
 cmd="rm -f *.init.nc"
 printf "${cmd}\n"; eval "${cmd}"
 
-# Remove any mpas partition files following ${DMN_NME}.graph.info.part.* pattern
-cmd="rm -f ${DMN_NME}.graph.info.part.*"
+# Remove any mpas partition files
+cmd="rm -f *.graph.info.part.*"
 printf "${cmd}\n"; eval "${cmd}"
 
 # Remove any previous namelists and stream lists
@@ -390,6 +390,7 @@ cat namelist.init_atmosphere \
   | sed "s/= INIT_CASE,/= 7/" \
   | sed "s/= STRT_DT,/= '${strt_iso}'/" \
   | sed "s/= STOP_DT,/= '${stop_iso}'/" \
+  | sed "s?MPAS_GEOG?${MPAS_GEOG}?" \
   | sed "s/BKG_DATA/${BKG_DATA}/" \
   | sed "s/= FG_INT,/= ${data_interval_sec}/" \
   | sed "s/= IF_STATIC_INTERP,/= false/" \
