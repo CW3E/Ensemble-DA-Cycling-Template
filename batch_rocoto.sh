@@ -8,4 +8,4 @@
 #SBATCH --export=ALL
 
 # run rocoto 
-python -u rocoto_utilities_corrine.py "$1" "$2"
+python -u rocoto_utilities.py "$1" "$2"
