@@ -427,8 +427,8 @@ for run_f in ${model_run_files[@]}; do
 done
 
 # Make links to the model physics files
-model_phys_files=${MPAS_ROOT}/src/core_atmosphere/physics/physics_wrf/files/* .
-for phys_f in ${model_run_files[@]}; do
+model_phys_files=(${MPAS_ROOT}/src/core_atmosphere/physics/physics_wrf/files/*)
+for phys_f in ${model_phys_files[@]}; do
   cmd="ln -sf ${phys_f} ."
   printf "${cmd}\n"; eval "${cmd}"
 done
