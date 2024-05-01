@@ -105,6 +105,7 @@ fi
 # STRT_DT     = Simulation start time in YYMMDDHH
 # BKG_STRT_DT = Background data simulation start time in YYMMDDHH
 # IF_DYN_LEN  = "Yes" or "No" switch to compute forecast length dynamically 
+# IF_RGNL     = "Yes" or "No" switch to require grib data for forecast boundary
 # FCST_HRS    = Total length of WRF forecast simulation in HH, IF_DYN_LEN=No
 # EXP_VRF     = Verfication time for calculating forecast hours, IF_DYN_LEN=Yes
 # BKG_INT     = Interval of background input data in HH
@@ -120,6 +121,7 @@ if [ ! ${MEMID} ]; then
 else
   # ensure padding to two digits is included in memid variable
   memid=`printf %02d $(( 10#${MEMID} ))`
+  printf "Running ungrib for ensemble member ${MEMID}.\n"
 fi
 
 if [ ${#STRT_DT} -ne 10 ]; then
@@ -132,7 +134,7 @@ else
 fi
 
 if [[ ${IF_DYN_LEN} = ${NO} ]]; then 
-  printf "Generating fixed length forecast forcing data.\n"
+  printf "Fixed length forecast.\n"
   if [ ! ${FCST_HRS} ]; then
     printf "ERROR: \${FCST_HRS} is not defined.\n"
     exit 1
@@ -141,7 +143,7 @@ if [[ ${IF_DYN_LEN} = ${NO} ]]; then
     fcst_hrs=`printf %03d $(( 10#${FCST_HRS} ))`
   fi
 elif [[ ${IF_DYN_LEN} = ${YES} ]]; then
-  printf "Generating forecast forcing data until experiment validation time.\n"
+  printf "Forecast runs until experiment validation time.\n"
   if [ ${#EXP_VRF} -ne 10 ]; then
     printf "ERROR: \${EXP_VRF}, ${EXP_VRF} is not in 'YYYMMDDHH' format.\n"
     exit 1
@@ -160,9 +162,6 @@ fi
 # define the stop time based on forecast length control flow above
 stop_dt=`date -d "${strt_dt} ${fcst_hrs} hours"`
 
-# define a sequence of all forecast hours with background interval spacing
-fcst_seq=`seq -f "%03g" 0 ${BKG_INT} ${fcst_hrs}`
-
 if [ ${#BKG_STRT_DT} -ne 10 ]; then
   printf "ERROR: \${BKG_STRT_DT}, '${BKG_STRT_DT}', is not in 'YYYYMMDDHH' format.\n"
   exit 1
@@ -170,6 +169,33 @@ else
   # define BKG_STRT_DT date string wihtout HH
   bkg_strt_dt=${BKG_STRT_DT:0:8}
   bkg_strt_hh=${BKG_STRT_DT:8:2}
+fi
+
+if [[ ${IF_RGNL} != ${YES} && ${IF_RGNL} != ${NO} ]]; then
+  printf "\${IF_RGNL} must be set to 'Yes' or 'No' (case insensitive).\n"
+  exit 1
+fi
+
+if [[ ${IF_SST_UPDT} != ${YES} && ${IF_SST_UPDT} != ${NO} ]]; then
+  printf "\${IF_SFC} must be set to 'Yes' or 'No' (case insensitive).\n"
+  exit 1
+fi
+
+if [[ ${IF_RGNL} = ${NO} && ${IF_SST_UPDT} = ${NO} ]]; then 
+  printf "Ungribbing only initial condition data data.\n"
+  # create a multiplier for the file count
+  rgnl=0
+
+  # define a sequence containing only the formatted initial conditions hour
+  fcst_seq=`seq -f "%03g" 0 1 0`
+
+elif [[ ${IF_RGNL} = ${YES} || ${IF_SST_UPDT} = ${YES} ]]; then
+  printf "Ungribbing data for initial and boundary conditions.\n"
+  # create a multiplier for the file count
+  rgnl=1
+
+  # define a sequence of all forecast hours with background interval spacing
+  fcst_seq=`seq -f "%03g" 0 ${BKG_INT} ${fcst_hrs}`
 fi
 
 if [ ! ${BKG_INT} ]; then
@@ -185,7 +211,7 @@ if [ ${BKG_DATA} = GFS ]; then
   fnames="gfs.0p25.${BKG_STRT_DT}.f*"
 
   # compute the number of input files to ungrib (incld. first/last times)
-  n_files=$(( ${fcst_hrs} / ${BKG_INT} + 1 ))
+  n_files=$(( (${fcst_hrs} / ${BKG_INT}) * ${rgnl} + 1 ))
 
 elif [ ${BKG_DATA} = GEFS ]; then
   if [ ${memid} = 00 ]; then
@@ -196,7 +222,7 @@ elif [ ${BKG_DATA} = GEFS ]; then
     fnames="gep${memid}.t${bkg_strt_hh}z.pgrb*"
   fi
   # GEFS comes in a/b files for each valid time, AWS 0p50 supports initialization
-  n_files=$(( 2 * ${fcst_hrs} / ${BKG_INT} + 1 ))
+  n_files=$(( (2 * ${fcst_hrs} / ${BKG_INT}) * ${rgnl} + 2 ))
 
 else
   msg="ERROR: \${BKG_DATA} must equal 'GFS' or 'GEFS'"

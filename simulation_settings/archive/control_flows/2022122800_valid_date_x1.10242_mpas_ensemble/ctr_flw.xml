@@ -35,13 +35,13 @@
   <!-- END SOFTWARE SETTINGS -->
 
   <!-- CYCLING SETTINGS  -->
-  <!ENTITY CYC_STRT     "202212230000"> <!-- First initial time for a forecast -->
+  <!ENTITY CYC_STRT     "202212270000"> <!-- First initial time for a forecast -->
   <!ENTITY CYC_STOP     "202212270000"> <!-- Last initial time for a forecast -->
   <!ENTITY CYC_INT      "24"> <!-- Interval between cycle start times -->
   <!-- END CYCLING SETTINGS -->
 
   <!-- ENSEMBLE SETTINGS  -->
-  <!ENTITY MEM_LIST     "00 01 02 03 04 05"> <!-- list of ensemble perturbation indices -->
+  <!ENTITY MEM_LIST     "00"> <!-- list of ensemble perturbation indices -->
   <!ENTITY ENS_BKG_DATA "GEFS"> <!-- GFS and GEFS currently supported -->
   <!ENTITY ENS_BKG_INT  "03"> <!-- Data file frequency for ensemble simulation forcing in HH -->
   <!-- END ENSEMBLE SETTINGS -->
@@ -51,6 +51,7 @@
   <!ENTITY DIAG_INT     "03"> <!-- Output interval for diagnostic files in HH, suppressed = 00 -->
   <!ENTITY SND_INT      "00"> <!-- Output interval for sounding files in HH, suppressed = 00 -->
   <!ENTITY RSTRT_INT    "24"> <!-- Output interval for restart files in HH, suppressed = 00 -->
+  <!ENTITY IF_RGNL      "No"> <!-- Lateral boundary condition updates from background data -->
   <!ENTITY IF_SST_UPDT  "No"> <!-- Lower boundary condition updates from background data -->
   <!ENTITY IF_SST_DIURN "No"> <!-- Diurnal updates to lower boundary conditions -->
   <!ENTITY IF_DEEPSOIL  "No"> <!-- Slowly varying deep soil temperatures -->
@@ -63,7 +64,7 @@
   <!ENTITY SCHED        "slurm"> <!-- System scheduler, note rocoto interpreter conventions under rocoto/lib/workflowmgr -->
   <!ENTITY PROJECT      "cwp157"> <!-- Project billing account -->
   <!ENTITY PART_COMPU   "cw3e-compute"> <!-- Queue for standard computing -->
-  <!ENTITY PART_DEBUG   "cw3e-compute">  <!-- Queue for small jobs / rapid debugging -->
+  <!ENTITY PART_DEBUG   "cw3e-shared">  <!-- Queue for small jobs / rapid debugging -->
   <!ENTITY MPIRUN       "mpiexec"> <!-- MPI exec command -->
   <!ENTITY WPS_MEM      "1750M"> <!-- ungrib mem-per-cpu argument -->
   <!ENTITY WPS_WC       "00:30:00"> <!-- Wallclock limit for ungrib jobs -->
@@ -116,6 +117,14 @@
       <envar>
         <name>IF_DYN_LEN</name>
         <value>Yes</value>
+      </envar>
+      <envar>
+        <name>IF_RGNL</name>
+        <value>&IF_RGNL;</value>
+      </envar>
+      <envar>
+        <name>IF_SST_UPDT</name>
+        <value>&IF_SST_UPDT;</value>
       </envar>
       <envar>
         <name>EXP_VRF</name>
@@ -194,10 +203,6 @@
         <value>&ENS_BKG_DATA;</value>
       </envar>
       <envar>
-        <name>BKG_INT</name>
-        <value>&ENS_BKG_INT;</value>
-      </envar>
-      <envar>
         <name>MPAS_ROOT</name>
         <value>&MPAS_ROOT;</value>
       </envar>
@@ -233,88 +238,7 @@
         <taskdep task="ungrib_ens_#ENS_N#" state="SUCCEEDED"/>
       </dependency>
     </task>
-    <task name="mpas_sfc_ens_#ENS_N#" maxtries="12" cycledefs="forecast_cycles">
-      <command>&DRIVERS;/mpas_sfc.sh</command>
-      <jobname><cyclestr>mpas_sfc_ens_#ENS_N#_@Y@m@d@H</cyclestr></jobname>
-      <join><cyclestr>&EXP_LOG;/@Y@m@d@H/mpas_sfc_ens_#ENS_N#.log</cyclestr></join>
-      <walltime>&INIT_WC;</walltime>
-      <partition>&PART_DEBUG;</partition>
-      <account>&PROJECT;</account>
-      <nodes>&INIT_NDES;:ppn=&INIT_PROC;</nodes>
-      <native>--mem-per-cpu=&INIT_MEM;</native>
-      <native>--export=ALL</native>
-      <envar>
-        <name>CNST</name>
-        <value>&MPAS_CNST;</value>
-      </envar>
-      <envar>
-        <name>DMN_NME</name>
-        <value>&DMN_NME;</value>
-      </envar>
-      <envar>
-         <name>MEMID</name>
-         <value>#ENS_N#</value>
-      </envar>
-      <envar>
-        <name>STRT_DT</name>
-        <value><cyclestr>@Y@m@d@H</cyclestr></value>
-      </envar>
-      <envar>
-        <name>IF_DYN_LEN</name>
-        <value>Yes</value>
-      </envar>
-      <envar>
-        <name>IF_ZETA_LIST</name>
-        <value>&IF_ZETA_LIST;</value>
-      </envar>
-      <envar>
-        <name>EXP_VRF</name>
-        <value>&EXP_VRF;</value>
-      </envar>
-      <envar>
-        <name>BKG_DATA</name>
-        <value>&ENS_BKG_DATA;</value>
-      </envar>
-      <envar>
-        <name>BKG_INT</name>
-        <value>&ENS_BKG_INT;</value>
-      </envar>
-      <envar>
-        <name>MPAS_ROOT</name>
-        <value>&MPAS_ROOT;</value>
-      </envar>
-      <envar>
-        <name>EXP_CNFG</name>
-        <value>&EXP_CNFG;</value>
-      </envar>
-      <envar>
-        <name>CYC_HME</name>
-        <value><cyclestr>&WORK_ROOT;/@Y@m@d@H</cyclestr></value>
-      </envar>
-      <envar>
-        <name>MPIRUN</name>
-        <value>&MPIRUN;</value>
-      </envar>
-      <envar>
-        <name>N_NDES</name>
-        <value>&INIT_NDES;</value>
-      </envar>
-      <envar>
-        <name>N_PROC</name>
-        <value>&INIT_PROC;</value>
-      </envar>
-      <envar>
-        <name>PIO_NUM</name>
-        <value>&PIO_NUM;</value>
-      </envar>
-      <envar>
-        <name>PIO_STRD</name>
-        <value>&PIO_STRD;</value>
-      </envar>
-      <dependency> 
-        <taskdep task="mpas_ic_ens_#ENS_N#" state="SUCCEEDED"/>
-      </dependency>
-    </task>
+
     <task name="mpas_model_ens_#ENS_N#" maxtries="12" cycledefs="forecast_cycles">
       <command>&DRIVERS;/mpas_model.sh</command>
       <jobname><cyclestr>mpas_model_ens_#ENS_N#_@Y@m@d@H</cyclestr></jobname>
@@ -351,7 +275,7 @@
       </envar>
       <envar>
         <name>IF_RGNL</name>
-        <value>No</value>
+        <value>&IF_RGNL;</value>
       </envar>
       <envar>
         <name>DIAG_INT</name>
@@ -426,7 +350,7 @@
         <value>&PIO_STRD;</value>
       </envar>
       <dependency> 
-        <taskdep task="mpas_sfc_ens_#ENS_N#" state="SUCCEEDED"/>
+        <taskdep task="mpas_ic_ens_#ENS_N#" state="SUCCEEDED"/>
       </dependency>
     </task>
   </metatask>

@@ -52,7 +52,6 @@ fi
 # IF_DYN_LEN = If to compute forecast length dynamically (Yes / No)
 # FCST_HRS   = Total length of MPAS forecast simulation in HH, IF_DYN_LEN=No
 # EXP_VRF    = Verfication time for calculating forecast hours, IF_DYN_LEN=Yes
-# BKG_INT    = Interval of input data in HH
 # BKG_DATA   = String case variable for supported inputs: GFS, GEFS currently
 #
 ##################################################################################
@@ -60,6 +59,8 @@ fi
 if [ ! ${DMN_NME} ]; then
   printf "ERROR: \${DMN_NME} is not defined.\n"
   exit 1
+else
+  printf "MPAS domain name is ${DMN_NME}.\n"
 fi
 
 if [ ! ${MEMID} ]; then
@@ -68,6 +69,7 @@ if [ ! ${MEMID} ]; then
 else
   # ensure padding to two digits is included
   memid=`printf %02d $(( 10#${MEMID} ))`
+  printf "Running init_atmosphere for ensemble member ${MEMID}.\n"
 fi
 
 if [ ${#STRT_DT} -ne 10 ]; then
@@ -126,22 +128,13 @@ else
   exit 1
 fi
 
-if [ ! ${BKG_INT} ]; then
-  printf "ERROR: \${BKG_INT} is not defined.\n"
-  exit 1
-elif [ ${BKG_INT} -le 0 ]; then
-  printf "ERROR: \${BKG_INT} must be HH > 0 for the frequency of data inputs.\n"
-  exit 1
-fi
-
-# define a sequence of all forecast hours with background interval spacing
-fcst_seq=`seq -f "%03g" 0 ${BKG_INT} ${fcst_len}`
-
 if [[ ${BKG_DATA} != GFS && ${BKG_DATA} != GEFS ]]; then
   msg="ERROR: \${BKG_DATA} must equal 'GFS' or 'GEFS'"
   msg+=" as currently supported inputs.\n"
   printf "${msg}"
   exit 1
+else
+  printf "Background data is ${BKG_DATA}.\n"
 fi
 
 ##################################################################################
@@ -293,11 +286,9 @@ else
 fi
 
 # Remove pre-existing ungrib case data
-for fcst in ${fcst_seq[@]}; do
-  filename="${BKG_DATA}:`date +%Y-%m-%d_%H -d "${strt_dt} ${fcst} hours"`"
-  cmd="rm -f ./${filename}"
-  printf "${cmd}\n"; eval "${cmd}"
-done
+filename="${BKG_DATA}:`date +%Y-%m-%d_%H -d "${strt_dt} 0 hours"`"
+cmd="rm -f ./${filename}"
+printf "${cmd}\n"; eval "${cmd}"
 
 # Link case ungrib data from ungrib root
 ungrib_root=${CYC_HME}/ungrib/ens_${memid}
@@ -305,16 +296,14 @@ if [ ! -d ${ungrib_root} ]; then
   printf "ERROR: \${ungrib_root} directory\n ${ungrib_root}\n does not exist.\n"
   exit 1
 else
-  for fcst in ${fcst_seq[@]}; do
-    filename="${ungrib_root}/${BKG_DATA}:`date +%Y-%m-%d_%H -d "${strt_dt} ${fcst} hours"`"
-    if [ ! -s ${filename} ]; then
-      printf "ERROR: ${filename} is missing.\n"
-      exit 1
-    else
-      cmd="ln -sfr ${filename} ."
-      printf "${cmd}\n"; eval "${cmd}"
-    fi
-  done
+  filename="${ungrib_root}/${BKG_DATA}:`date +%Y-%m-%d_%H -d "${strt_dt} 0 hours"`"
+  if [ ! -s ${filename} ]; then
+    printf "ERROR: ${filename} is missing.\n"
+    exit 1
+  else
+    cmd="ln -sfr ${filename} ."
+    printf "${cmd}\n"; eval "${cmd}"
+  fi
 fi
 
 # Check to make sure the static terrestrial input file is available and link
@@ -382,16 +371,13 @@ fi
 strt_iso=`date +%Y-%m-%d_%H:%M:%S -d "${strt_dt}"`
 stop_iso=`date +%Y-%m-%d_%H:%M:%S -d "${stop_dt}"`
 
-# Update background data interval in namelist
-data_interval_sec=$(( ${BKG_INT} * 3600 ))
-
 # Update the init_atmosphere namelist / streams for real initial conditions
 cat namelist.init_atmosphere \
   | sed "s/= INIT_CASE,/= 7/" \
   | sed "s/= STRT_DT,/= '${strt_iso}'/" \
   | sed "s/= STOP_DT,/= '${stop_iso}'/" \
   | sed "s/BKG_DATA/${BKG_DATA}/" \
-  | sed "s/= FG_INT,/= ${data_interval_sec}/" \
+  | sed "s/= FG_INT,/= 0/" \
   | sed "s/= IF_STATIC_INTERP,/= false/" \
   | sed "s/= IF_NATIVE_GWD_STATIC,/= false/" \
   | sed "s/= IF_VERTICAL_GRID,/= true/" \
@@ -407,8 +393,8 @@ mv namelist.init_atmosphere.tmp namelist.init_atmosphere
 
 cat streams.init_atmosphere \
   | sed "s/DMN_NME/${DMN_NME}/" \
-  | sed "s/=SFC_INT,/=\"${BKG_INT}:00:00\"/" \
-  | sed "s/=LBC_INT,/=\"${BKG_INT}:00:00\"/" \
+  | sed "s/=SFC_INT,/=\"00:00:00\"/" \
+  | sed "s/=LBC_INT,/=\"00:00:00\"/" \
   > streams.init_atmosphere.tmp
 mv streams.init_atmosphere.tmp streams.init_atmosphere
 
@@ -423,7 +409,7 @@ printf "MEMID    = ${MEMID}\n"
 printf "CYC_HME  = ${CYC_HME}\n"
 printf "STRT_DT  = ${strt_iso}\n"
 printf "STOP_DT  = ${stop_iso}\n"
-printf "BKG_INT  = ${BKG_INT}\n"
+printf "BKG_DATA = ${BKG_DATA}\n"
 printf "\n"
 now=`date +%Y-%m-%d_%H_%M_%S`
 printf "init_atmpshere started at ${now}.\n"
@@ -461,11 +447,9 @@ for file in ${init_run_files[@]}; do
 done
 
 # remove links to ungrib data
-for fcst in ${fcst_seq[@]}; do
-  filename="${BKG_DATA}:`date +%Y-%m-%d_%H -d "${strt_dt} ${fcst} hours"`"
-  cmd="rm -f ${filename}"
-  printf "${cmd}\n"; eval "${cmd}"
-done
+filename="${BKG_DATA}:`date +%Y-%m-%d_%H -d "${strt_dt} 0 hours"`"
+cmd="rm -f ${filename}"
+printf "${cmd}\n"; eval "${cmd}"
 
 # remove links to static and partition data
 cmd="rm -f ${DMN_NME}.static.nc"

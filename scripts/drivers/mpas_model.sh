@@ -71,6 +71,8 @@ fi
 if [ ! ${DMN_NME} ]; then
   printf "ERROR: \${DMN_NME} is not defined.\n"
   exit 1
+else
+  printf "MPAS domain name is ${DMN_NME}.\n"
 fi
 
 if [ ! ${MEMID} ]; then
@@ -79,6 +81,7 @@ if [ ! ${MEMID} ]; then
 else
   # ensure padding to two digits is included
   memid=`printf %02d $(( 10#${MEMID} ))`
+  printf "Running atmosphere_model for ensemble member ${MEMID}.\n"
 fi
 
 if [ ${#STRT_DT} -ne 10 ]; then
@@ -476,9 +479,7 @@ fi
 
 # Define list of preprocessed data and make links
 atmos_ic_root=${CYC_HME}/init_atmosphere_ic/ens_${memid}
-input_files=( 
-             "${atmos_ic_root}/${DMN_NME}.init.nc"
-	    )
+input_files=( "${atmos_ic_root}/${DMN_NME}.init.nc" )
 
 if [[ ${IF_SST_UPDT} = ${YES} ]]; then
   atmos_sfc_root=${CYC_HME}/init_atmosphere_sfc/ens_${memid}

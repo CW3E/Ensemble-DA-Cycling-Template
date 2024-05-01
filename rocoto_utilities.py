@@ -63,10 +63,9 @@ CSES = [
 
 # name of .xml workflows to execute and monitor WITHOUT the extension of file
 CTR_FLWS = [
-            #'2022122800_valid_date_x20.835586.WestCoast_mpas_ensemble',
             '2022122800_valid_date_x1.10242_mpas_ensemble',
+            #'2022122800_valid_date_x1.10242_mpas_ensemble_lower_bnd',
             #'2022122800_valid_date_wrf_ensemble',
-            #'first_forecast',
            ]
 
 # Set END to a specific date for running as a background process such as

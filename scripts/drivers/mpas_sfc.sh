@@ -61,6 +61,8 @@ fi
 if [ ! ${DMN_NME} ]; then
   printf "ERROR: \${DMN_NME} is not defined.\n"
   exit 1
+else
+  printf "MPAS domain name is ${DMN_NME}.\n"
 fi
 
 if [ ! ${MEMID} ]; then
@@ -69,6 +71,7 @@ if [ ! ${MEMID} ]; then
 else
   # ensure padding to two digits is included
   memid=`printf %02d $(( 10#${MEMID} ))`
+  printf "Running init_atmosphere for ensemble member ${MEMID}.\n"
 fi
 
 if [ ${#STRT_DT} -ne 10 ]; then
@@ -133,6 +136,8 @@ if [ ! ${BKG_INT} ]; then
 elif [ ${BKG_INT} -le 0 ]; then
   printf "ERROR: \${BKG_INT} must be HH > 0 for the frequency of data inputs.\n"
   exit 1
+else
+  printf "Background data forcing interval is ${BKG_INT}\n"
 fi
 
 # define a sequence of all forecast hours with background interval spacing
@@ -143,6 +148,8 @@ if [[ ${BKG_DATA} != GFS && ${BKG_DATA} != GEFS ]]; then
   msg+=" as currently supported inputs.\n"
   printf "${msg}"
   exit 1
+else
+  printf "Background data is ${BKG_DATA}.\n"
 fi
 
 ##################################################################################
@@ -426,6 +433,7 @@ printf "MEMID    = ${MEMID}\n"
 printf "CYC_HME  = ${CYC_HME}\n"
 printf "STRT_DT  = ${strt_iso}\n"
 printf "STOP_DT  = ${stop_iso}\n"
+printf "BKG_DATA = ${BKG_DATA}\n"
 printf "BKG_INT  = ${BKG_INT}\n"
 printf "\n"
 now=`date +%Y-%m-%d_%H_%M_%S`

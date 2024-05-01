@@ -120,6 +120,7 @@ if [ ! ${MEMID}  ]; then
 else
   # ensure padding to two digits is included
   memid=`printf %02d $(( 10#${MEMID} ))`
+  printf "Running real for ensemble member ${MEMID}.\n"
 fi
 
 if [ ${#STRT_DT} -ne 10 ]; then
@@ -163,19 +164,23 @@ stop_dt=`date -d "${strt_dt} ${fcst_hrs} hours"`
 # define a sequence of all forecast hours with background interval spacing
 fcst_seq=`seq -f "%03g" 0 ${BKG_INT} ${fcst_hrs}`
 
+if [[ ${BKG_DATA} != GFS && ${BKG_DATA} != GEFS ]]; then
+  msg="ERROR: \${BKG_DATA} must equal 'GFS' or 'GEFS'"
+  msg+=" as currently supported inputs.\n"
+  printf "${msg}"
+  exit 1
+else
+  printf "Background data is ${BKG_DATA}.\n"
+fi
+
 if [ ! ${BKG_INT} ]; then
   printf "ERROR: \${BKG_INT} is not defined.\n"
   exit 1
 elif [ ${BKG_INT} -le 0 ]; then
   printf "ERROR: \${BKG_INT} must be HH > 0 for the frequency of data inputs.\n"
   exit 1
-fi
-
-if [[ ${BKG_DATA} != GFS && ${BKG_DATA} != GEFS ]]; then
-  msg="ERROR: \${BKG_DATA} must equal 'GFS' or 'GEFS'"
-  msg+=" as currently supported inputs.\n"
-  printf "${msg}"
-  exit 1
+else
+  printf "Background data forcing interval is ${BKG_INT}\n"
 fi
 
 if [ ${#MAX_DOM} -ne 2 ]; then
@@ -186,6 +191,8 @@ elif [ ${MAX_DOM} -le 00 ]; then
   msg+="domain index > 00.\n"
   printf "${msg}"
   exit 1
+else
+  printf "The maximum simulation domain for WRF is d${MAX_DOM}.\n"
 fi
 
 # define a sequence of all domains in padded syntax
@@ -419,8 +426,8 @@ printf "MEMID        = ${MEMID}\n"
 printf "CYC_HME      = ${CYC_HME}\n"
 printf "STRT_DT      = ${strt_iso}\n"
 printf "STOP_DT      = ${stop_iso}\n"
-printf "BKG_INT      = ${BKG_INT}\n"
 printf "BKG_DATA     = ${BKG_DATA}\n"
+printf "BKG_INT      = ${BKG_INT}\n"
 printf "MAX_DOM      = ${MAX_DOM}\n"
 printf "IF_SST_UPDT  = ${IF_SST_UPDT}\n"
 printf "\n"
