@@ -72,10 +72,10 @@ From: ubuntu:22.04
     printf "===========\n"
     printf "Cleaning environment\n"
     rm /opt/develop.zip
-    apt-get remove cat
-    apt-get remove sed
-    apt-get remove wget
-    apt-get remove unzip
+    apt-get -y remove cat
+    apt-get -y remove sed
+    apt-get -y remove wget
+    apt-get -y remove unzip
 
     printf "===========\n"
     printf "===========\n"

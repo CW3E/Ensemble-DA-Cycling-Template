@@ -47,11 +47,19 @@
 # Using GMT time zone for time computations
 export TZ="GMT"
 
-# defines expanse environment
+# Root directory for software compiles
+export SOFT_ROOT=/expanse/nfs/cw3e/cwp157/cgrudzien/JEDI-MPAS-Common-Case/SOFT_ROOT
+
+# Paths to library dependencies
+export NETCDF=${SOFT_ROOT}/NETCDF
+export PNETCDF=${SOFT_ROOT}/NETCDF
+export PIO=${SOFT_ROOT}/ParallelIO-pio2_5_8
+export MPAS_DIR=${SOFT_ROOT}/MPAS-Model
+export LD_LIBRARY_PATH=${PIO}/lib:${LD_LIBRARY_PATH}
+
+# Defines expanse environment with intel compilers
 module purge
 module restore
-
-# intel
 module load cpu/0.15.4
 module load intel/19.1.1.217
 module load intel-mpi/2019.8.254
@@ -60,15 +68,7 @@ module load netcdf-fortran/4.5.3
 module load netcdf-cxx/4.2
 module load hdf5/1.10.6
 module load parallel-netcdf/1.12.1
-
-export NETCDF="/expanse/lustre/projects/ddp181/cpapadop/WRF_CODE/WRF-4.5/NETCDF"
-export HDF5="/cm/shared/apps/spack/cpu/opt/spack/linux-centos8-zen2/intel-19.1.1.217/hdf5-1.10.6-v7kfafsb4rv7yds3i3zr4ym24q62veef"
-# for quilting
-export NETCDFPAR=${NETCDF}
-
-# set up libs
-export LD_LIBRARY_PATH=${NETCDF}/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}
-export PATH=${NETCDF}/bin:${PATH}
+module load cmake/3.18.2
 
 # create variables for namelist templates / switches
 CYCLING=[Cc][Yy][Cc][Ll][Ii][Nn][Gg]
@@ -78,3 +78,6 @@ RESTART=[Rr][Ee][Ss][Tt][Aa][Rr][Tt]
 REALEXE=[Rr][Ee][Aa][Ll][Ee][Xx][Ee]
 NO=[Nn][Oo]
 YES=[Yy][Ee][Ss]
+
+# Defines YYYYMMDDHH iso regular expression
+export ISO_RE=^[0-9]{10}$

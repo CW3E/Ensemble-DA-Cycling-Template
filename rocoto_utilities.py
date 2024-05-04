@@ -77,14 +77,17 @@ print('Rocoto build path:\n' + INDT + RCT)
 
 # Case study sub directories
 CSES = [
-        'DeepDive',
+        'EnsembleForecastTest',
        ]
 
 # name of .xml workflows to execute and monitor WITHOUT the extension of file
 CTR_FLWS = [
-            '2022122800_valid_date_x1.10242_mpas_ensemble',
-            #'2022122800_valid_date_x1.10242_mpas_ensemble_lower_bnd',
-            #'2022122800_valid_date_wrf_ensemble',
+            '2022122800_valid_date_x1.10242',
+            #'2022122800_valid_date_x1.10242_lwr_bnd',
+            #'2022122800_valid_date_wrf_9',
+            #'2022122800_valid_date_wrf_9-3',
+            #'2022122800_valid_date_x20.835586.WestWRFZetaLevels_mpas_ensemble',
+            #'2022122800_valid_date_x6.999426.WestWRFZetaLevels_mpas_ensemble',
            ]
 
 # Set END to a specific date for running as a background process such as

@@ -47,7 +47,17 @@
 # Using GMT time zone for time computations
 export TZ="GMT"
 
-# defines expanse environment with intel compilers
+# Root directory for software compiles
+export SOFT_ROOT=/expanse/nfs/cw3e/cwp157/cgrudzien/JEDI-MPAS-Common-Case/SOFT_ROOT
+
+# Paths to library dependencies
+export NETCDF=${SOFT_ROOT}/NETCDF
+export PNETCDF=${SOFT_ROOT}/NETCDF
+export PIO=${SOFT_ROOT}/ParallelIO-pio2_5_8
+export MPAS_DIR=${SOFT_ROOT}/MPAS-Model
+export LD_LIBRARY_PATH=${PIO}/lib:${LD_LIBRARY_PATH}
+
+# Defines expanse environment with intel compilers
 module purge
 module restore
 module load cpu/0.15.4
@@ -59,14 +69,8 @@ module load netcdf-cxx/4.2
 module load hdf5/1.10.6
 module load parallel-netcdf/1.12.1
 module load cmake/3.18.2
-export LIBS_DIR="/expanse/nfs/cw3e/cwp157/cgrudzien/JEDI-MPAS-Common-Case/SOFT_ROOT/MPAS/"
-export NETCDF=${LIBS_DIR}/NETCDF
-export PNETCDF=${LIBS_DIR}/NETCDF
-export PIO=${LIBS_DIR}/PIO/ParallelIO-pio2_5_8
-export MPAS_EXTERNAL_LIBS="-L${HDF5HOME}/lib -lhdf5_hl -lhdf5 -ldl -lz"
-export MPAS_EXTERNAL_INCLUDES="-I${HDF5HOME}/include"
 
-# create variables for namelist templates / switches
+# Create variables for namelist templates / switches
 CYCLING=[Cc][Yy][Cc][Ll][Ii][Nn][Gg]
 LATERAL=[Ll][Aa][Tt][Ee][Rr][Aa][Ll]
 LOWER=[Ll][Oo][Ww][Ee][Rr]
@@ -74,3 +78,6 @@ RESTART=[Rr][Ee][Ss][Tt][Aa][Rr][Tt]
 REALEXE=[Rr][Ee][Aa][Ll][Ee][Xx][Ee]
 NO=[Nn][Oo]
 YES=[Yy][Ee][Ss]
+
+# Defines YYYYMMDDHH iso regular expression
+export ISO_RE=^[0-9]{10}$

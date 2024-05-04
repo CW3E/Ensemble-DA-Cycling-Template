@@ -266,8 +266,7 @@ fi
 #             vtables, geogrid data, GSI fix files, etc.
 # CYC_HME   = Cycle YYYYMMDDHH named directory for cycling data containing
 #             bkg, ungrib, metgrid, real, wrf, wrfda, gsi, enkf
-# DATA_ROOT = Directory for all forcing data files, including grib files,
-#             obs files, etc.
+# GRIB_ROOT = Directory for grib files, sub-directories organized by BKG_DATA name
 #
 ##################################################################################
 
@@ -300,11 +299,11 @@ if [ ! -d ${CYC_HME} ]; then
   exit 1
 fi
 
-if [ ! ${DATA_ROOT} ]; then
-  printf "ERROR: \${DATA_ROOT} is not defined.\n"
+if [ ! ${GRIB_ROOT} ]; then
+  printf "ERROR: \${GRIB_ROOT} is not defined.\n"
   exit 1
-elif [ ! -d ${DATA_ROOT} ]; then
-  printf "ERROR: \${DATA_ROOT} directory\n ${DATA_ROOT}\n does not exist.\n"
+elif [ ! -d ${GRIB_ROOT} ]; then
+  printf "ERROR: \${GRIB_ROOT} directory\n ${GRIB_ROOT}\n does not exist.\n"
   exit 1
 fi
 
@@ -397,7 +396,7 @@ cmd="rm -f namelist.wps"
 printf "${cmd}\n"; eval "${cmd}"
 
 # check to make sure the grib_dataroot exists and is non-empty
-grib_dataroot=${DATA_ROOT}/gribbed/${BKG_DATA}/${bkg_strt_dt}
+grib_dataroot=${GRIB_ROOT}/${BKG_DATA}/${bkg_strt_dt}
 if [ ! -d ${grib_dataroot} ]; then
   printf "ERROR: the directory\n ${grib_dataroot}\n does not exist.\n"
   exit 1

@@ -131,8 +131,8 @@ fi
 # MAX_DOM     = Max number of domains to use in namelist settings
 # DOWN_DOM    = First domain index to downscale ICs from d01, set parameter
 #               less than MAX_DOM if downscaling to be used
-# WRFOUT_INT  = Interval of wrfout in HH
-# CYC_INT     = Interval in HH on which DA is cycled in a cycling control flow
+# HIST_INT    = Interval of wrfout in HH
+# CYC_INC     = Increment in HH on which to link outputs to next cycle
 # WRF_IC      = Defines where to source WRF initial and boundary conditions from
 #                 WRF_IC = REALEXE : ICs / BCs from CYC_HME/real
 #                 WRF_IC = CYCLING : ICs / BCs from GSI / WRFDA analysis
@@ -243,21 +243,38 @@ else
   printf "The first nested downscaled domain for WRF is d${DOWN_DOM}.\n"
 fi
 
-if [ ${#WRFOUT_INT} -ne 2 ]; then
-  printf "ERROR: \${WRFOUT_INT} is not in HH format.\n"
+if [ ${#HIST_INT} -ne 2 ]; then
+  printf "ERROR: \${HIST_INT} is not in HH format.\n"
   exit 1
-elif [ ! ${WRFOUT_INT} -gt 00 ]; then
-  printf "ERROR: \${WRFOUT_INT} must be an integer for the max WRF domain index > 0.\n"
+elif [ ! ${HIST_INT} -gt 00 ]; then
+  printf "ERROR: \${HIST_INT} must be HH > 0 for the frequency of data inputs.\n"
   exit 1
 else
-  printf "The WRF history interval is ${WRFOUT_INT} hours.\n"
+  printf "The WRF history interval is ${HIST_INT} hours.\n"
+  # define a sequence of all forecast hours with background interval spacing
+  hist_seq=`seq -f "%03g" 0 ${HIST_INT} ${fcst_hrs}`
 fi
 
-if [ ${#CYC_INT} -ne 2 ]; then
-  printf "ERROR: \${CYC_INT}, ${CYC_INT}, is not in 'HH' format.\n"
+if [ ${#RSTRT_INT} -ne 2 ]; then
+  printf "ERROR: \${RSTRT_INT} is not in HH format.\n"
   exit 1
-elif [ ${CYC_INT} -le 0 ]; then
-  printf "ERROR: \${CYC_INT} must be an integer for the number of cycle hours > 0.\n"
+elif [ ${RSTRT_INT} -lt 00 ]; then
+  printf "ERROR: \${RSTRT_INT} must be HH >= 0 for the frequency of data inputs.\n"
+  exit 1
+elif [ ${RSTRT_INT} -gt 00 ]; then
+  printf "The WRF restart interval is ${RSTRT_INT} hours.\n"
+  # define a sequence of all forecast hours with background interval spacing
+  rstrt_seq=`seq -f "%03g" 0 ${RSTRT_INT} ${fcst_hrs}`
+else
+  # define an empty list
+  rstrt_seq=()
+fi
+
+if [ ${#CYC_INC} -ne 2 ]; then
+  printf "ERROR: \${CYC_INC}, ${CYC_INC}, is not in 'HH' format.\n"
+  exit 1
+elif [ ${CYC_INC} -lt 0 ]; then
+  printf "ERROR: \${CYC_INC} must be an integer for the number of cycle hours >= 0.\n"
 fi
 
 if [[ ${WRF_IC} = ${REALEXE} ]]; then
@@ -573,9 +590,12 @@ data_int_sec=$(( ${BKG_INT} * 3600 ))
 auxinput4_minutes=$(( ${BKG_INT} * 60 ))
 aux_out="${auxinput4_minutes}, ${auxinput4_minutes}, ${auxinput4_minutes}"
 
-# update history interval and aux2hist interval
-hist_int=$(( ${WRFOUT_INT} * 60 ))
+# update history interval and aux2hist interval in minutes
+hist_int=$(( ${HIST_INT} * 60 ))
 out_hist="${hist_int}, ${hist_int}, ${hist_int}"
+
+# update history interval and aux2hist interval in minutes
+rstrt_int=$(( ${RSTRT_INT} * 60 ))
 
 # Update the restart setting in wrf namelist depending on switch
 if [[ ${WRF_IC} = ${RESTART} ]]; then
@@ -583,10 +603,6 @@ if [[ ${WRF_IC} = ${RESTART} ]]; then
 else
   wrf_restart=".false."
 fi
-
-# Update the restart interval in wrf namelist to the end of the fcst_hrs
-fcst_hrs=`printf $(( 10#${fcst_hrs} ))`
-run_mins=$(( ${fcst_hrs} * 60 ))
 
 # Update the wrf namelist (propagates settings to three domains)
 cat namelist.input \
@@ -609,7 +625,7 @@ cat namelist.input \
   | sed "s/= AUXHIST2_INT,/= ${out_hist},/" \
   | sed "s/= HIST_INT,/= ${out_hist},/" \
   | sed "s/= RSTRT,/= ${wrf_restart},/" \
-  | sed "s/= RSTRT_INT,/= ${run_mins},/" \
+  | sed "s/= RSTRT_INT,/= ${rstrt_int},/" \
   | sed "s/= IF_FEEDBACK,/= ${feedback},/"\
   | sed "s/= NIO_TPG,/= ${NIO_TPG},/" \
   | sed "s/= NIO_GRPS,/= ${NIO_GRPS},/" \
@@ -626,7 +642,7 @@ printf "MEMID       = ${MEMID}\n"
 printf "CYC_HME     = ${CYC_HME}\n"
 printf "STRT_DT     = ${strt_iso}\n"
 printf "STOP_DT     = ${end_iso}\n"
-printf "WRFOUT_INT  = ${WRFOUT_INT}\n"
+printf "HIST_INT  = ${HIST_INT}\n"
 printf "BKG_DATA    = ${BKG_DATA}\n"
 printf "MAX_DOM     = ${MAX_DOM}\n"
 printf "WRF_IC      = ${WRF_IC}\n"
@@ -685,24 +701,26 @@ if [ ${nsuccess} -ne ${ntotal} ]; then
   printf "${msg}"
 fi
 
-# ensure that the bkg directory exists in next ${CYC_HME}
-dt_str=`date +%Y%m%d%H -d "${cyc_dt} ${CYC_INT} hours"`
-new_bkg=${dt_str}/bkg/ens_${memid}
-cmd="mkdir -p ${CYC_HME}/../${new_bkg}"
-printf "${cmd}\n"; eval "${cmd}"
+if [ ${CYC_INC} -gt 0 ]; then
+  # ensure that the bkg directory exists in next ${CYC_HME}
+  dt_str=`date +%Y%m%d%H -d "${cyc_dt} ${CYC_INC} hours"`
+  new_bkg=${dt_str}/bkg/ens_${memid}
+  cmd="mkdir -p ${CYC_HME}/../${new_bkg}"
+  printf "${cmd}\n"; eval "${cmd}"
+fi
 
-# Check for all wrfout files on WRFOUT_INT and link files to
+# Check for all wrfout files on HIST_INT and link files to
 # the appropriate bkg directory
 error=0
 for dmn in ${dmns[@]}; do
-  for fcst in `seq -f "%03g" 0 ${WRFOUT_INT} ${fcst_hrs}`; do
+  for fcst in ${hist_seq[@]}; do
     dt_str=`date +%Y-%m-%d_%H_%M_%S -d "${strt_dt} ${fcst} hours"`
     if [ ! -s wrfout_d${dmn}_${dt_str} ]; then
       msg="ERROR:\n ${wrf_exe}\n failed to complete, wrfout_d${dmn}_${dt_str} "
       msg+="is missing or empty.\n"
       printf "${msg}"
       error=1
-    else
+    elif [ ${CYC_INC} -gt 0 ]; then
       cmd="ln -sfr wrfout_d${dmn}_${dt_str} ${CYC_HME}/../${new_bkg}"
       printf "${cmd}\n"; eval "${cmd}"
 
@@ -714,28 +732,29 @@ for dmn in ${dmns[@]}; do
       fi
     fi
   done
-  # Check for all wrfrst files for each domain at end of forecast and link files to
-  # the appropriate bkg directory
-  dt_str=`date +%Y-%m-%d_%H_%M_%S -d "${strt_dt} ${fcst_hrs} hours"`
-  if [ ! -s wrfrst_d${dmn}_${dt_str} ]; then
-    msg="ERROR:\n ${wrf_exe}\n failed to complete, wrfrst_d${dmn}_${dt_str} is "
-    msg+="missing or empty.\n"
-    printf "${msg}"
-    error=1
-  else
-    cmd="ln -sfr wrfrst_d${dmn}_${dt_str} ${CYC_HME}/../${new_bkg}"
-    printf "${cmd}\n"; eval "${cmd}"
-
-    # if performing a restart run, link the outputs back to the original
-    # run directory for sake of easy post-processing
-    if [[ ${WRF_IC} = ${RESTART} ]]; then
-      cmd="ln -sfr wrfrst_d${dmn}_${dt_str} ${wrf_in_root}"
+  for fcst in ${rstrt_seq[@]}; do
+    # Check for all wrfrst files for each domain at 
+    # the appropriate bkg directory
+    dt_str=`date +%Y-%m-%d_%H_%M_%S -d "${strt_dt} ${fcst} hours"`
+    if [ ! -s wrfrst_d${dmn}_${dt_str} ]; then
+      msg="ERROR:\n ${wrf_exe}\n failed to complete, wrfrst_d${dmn}_${dt_str} is "
+      msg+="missing or empty.\n"
+      printf "${msg}"
+      error=1
+    elif [ ${CYC_INC} -gt 0 ]; then
+      cmd="ln -sfr wrfrst_d${dmn}_${dt_str} ${CYC_HME}/../${new_bkg}"
       printf "${cmd}\n"; eval "${cmd}"
+
+      # if performing a restart run, link the outputs back to the original
+      # run directory for sake of easy post-processing
+      if [[ ${WRF_IC} = ${RESTART} ]]; then
+        cmd="ln -sfr wrfrst_d${dmn}_${dt_str} ${wrf_in_root}"
+        printf "${cmd}\n"; eval "${cmd}"
+      fi
     fi
-  fi
-  if [ ${error} = 1 ]; then
-    exit 1	
-  fi
+    if [ ${error} = 1 ]; then
+      exit 1	
+    fi
 done
 
 printf "wrf.sh completed successfully at `date +%Y-%m-%d_%H_%M_%S`.\n"

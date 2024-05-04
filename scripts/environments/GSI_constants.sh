@@ -67,3 +67,6 @@ LAPACK_PATH="/share/apps/compute/lapack"
 # Yes / No case insensitive switch
 YES=[Yy][Ee][Ss]
 NO=[Nn][Oo]
+
+# Defines YYYYMMDDHH iso regular expression
+export ISO_RE=^[0-9]{10}$
