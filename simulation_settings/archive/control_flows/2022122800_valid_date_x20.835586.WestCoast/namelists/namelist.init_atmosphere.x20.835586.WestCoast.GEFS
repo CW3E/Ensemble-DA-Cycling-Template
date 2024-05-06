@@ -1,0 +1,62 @@
+&nhyd_model
+    config_init_case = INIT_CASE,
+    config_start_time = STRT_DT,
+    config_stop_time = STOP_DT,
+    config_theta_adv_order = 3
+    config_coef_3rd_order = 0.25
+    config_interface_projection = 'linear_interpolation'
+/
+&dimensions
+    config_nvertlevels = 59
+    config_nsoillevels = 4
+    !! GEFS setting AWS pre 2021 !!
+    !config_nfglevels = 27,
+    !! GEFS setting AWS 2021 on !!
+    config_nfglevels = 32,
+    !! Default value, works for GFS, GEFS and ERA5 !!
+    config_nfgsoillevels = 4
+/
+&data_sources
+    config_geog_data_path = '/expanse/lustre/scratch/cgrudzien/temp_project/JEDI-MPAS-Common-Case/DATA/static_terrestrial/mpas_static'
+    config_met_prefix = 'BKG_DATA'
+    config_sfc_prefix = 'BKG_DATA'
+    config_fg_interval = FG_INT,
+    config_landuse_data = 'MODIFIED_IGBP_MODIS_NOAH'
+    config_topo_data = 'GMTED2010'
+    config_vegfrac_data = 'MODIS'
+    config_albedo_data = 'MODIS'
+    config_maxsnowalbedo_data = 'MODIS'
+    config_supersample_factor = 3
+    config_use_spechumd = false
+/
+&vertical_grid
+    config_ztop = 30000.0
+    config_nsmterrain = 1
+    config_smooth_surfaces = true
+    config_dzmin = 0.3
+    config_nsm = 30
+    config_tc_vertical_grid = true
+    config_blend_bdy_terrain = false
+    IF_ZETA_LIST
+/
+&physics
+    config_tsk_seaice_threshold = 100.000
+/
+&interpolation_control
+    config_extrap_airtemp = 'lapse-rate'
+/
+&preproc_stages
+    config_static_interp = IF_STATIC_INTERP,
+    config_native_gwd_static = IF_NATIVE_GWD_STATIC,
+    config_vertical_grid = IF_VERTICAL_GRID,
+    config_met_interp = IF_MET_INTERP,
+    config_input_sst = IF_INPUT_SST,
+    config_frac_seaice = IF_FRAC_SEAICE,
+/
+&io
+    config_pio_num_iotasks = PIO_NUM,
+    config_pio_stride = PIO_STRD,
+/
+&decomposition
+    config_block_decomp_file_prefix = 'DMN_NME.graph.info.part.' 
+/

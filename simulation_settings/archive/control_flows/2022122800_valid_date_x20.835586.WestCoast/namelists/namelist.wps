@@ -1,0 +1,14 @@
+&share
+ wrf_core          = 'ARW',
+ max_dom           = MAX_DOM,
+ start_date        = STRT_DT,
+ end_date          = STOP_DT,
+ interval_seconds  = INT_SEC,
+ io_form_geogrid   = 2,
+ debug_level       = 0,
+/
+
+&ungrib
+ out_format        = 'WPS',
+ prefix            = PREFIX,
+/
