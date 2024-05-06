@@ -264,7 +264,7 @@ elif [ ${RSTRT_INT} -lt 00 ]; then
 elif [ ${RSTRT_INT} -gt 00 ]; then
   printf "The WRF restart interval is ${RSTRT_INT} hours.\n"
   # define a sequence of all forecast hours with background interval spacing
-  rstrt_seq=`seq -f "%03g" 0 ${RSTRT_INT} ${fcst_hrs}`
+  rstrt_seq=`seq -f "%03g" ${RESTRT_INT} ${RSTRT_INT} ${fcst_hrs}`
 else
   # define an empty list
   rstrt_seq=()
@@ -732,29 +732,32 @@ for dmn in ${dmns[@]}; do
       fi
     fi
   done
-  for fcst in ${rstrt_seq[@]}; do
-    # Check for all wrfrst files for each domain at 
-    # the appropriate bkg directory
-    dt_str=`date +%Y-%m-%d_%H_%M_%S -d "${strt_dt} ${fcst} hours"`
-    if [ ! -s wrfrst_d${dmn}_${dt_str} ]; then
-      msg="ERROR:\n ${wrf_exe}\n failed to complete, wrfrst_d${dmn}_${dt_str} is "
-      msg+="missing or empty.\n"
-      printf "${msg}"
-      error=1
-    elif [ ${CYC_INC} -gt 0 ]; then
-      cmd="ln -sfr wrfrst_d${dmn}_${dt_str} ${CYC_HME}/../${new_bkg}"
-      printf "${cmd}\n"; eval "${cmd}"
-
-      # if performing a restart run, link the outputs back to the original
-      # run directory for sake of easy post-processing
-      if [[ ${WRF_IC} = ${RESTART} ]]; then
-        cmd="ln -sfr wrfrst_d${dmn}_${dt_str} ${wrf_in_root}"
+  if [ ${RSTRT_IN} -gt 0 ]; then
+    for fcst in ${rstrt_seq[@]}; do
+      # Check for all wrfrst files for each domain at 
+      # the appropriate bkg directory
+      dt_str=`date +%Y-%m-%d_%H_%M_%S -d "${strt_dt} ${fcst} hours"`
+      if [ ! -s wrfrst_d${dmn}_${dt_str} ]; then
+        msg="ERROR:\n ${wrf_exe}\n failed to complete, wrfrst_d${dmn}_${dt_str} is "
+        msg+="missing or empty.\n"
+        printf "${msg}"
+        error=1
+      elif [ ${CYC_INC} -gt 0 ]; then
+        cmd="ln -sfr wrfrst_d${dmn}_${dt_str} ${CYC_HME}/../${new_bkg}"
         printf "${cmd}\n"; eval "${cmd}"
+
+        # if performing a restart run, link the outputs back to the original
+        # run directory for sake of easy post-processing
+        if [[ ${WRF_IC} = ${RESTART} ]]; then
+          cmd="ln -sfr wrfrst_d${dmn}_${dt_str} ${wrf_in_root}"
+          printf "${cmd}\n"; eval "${cmd}"
+        fi
       fi
-    fi
-    if [ ${error} = 1 ]; then
-      exit 1	
-    fi
+      if [ ${error} = 1 ]; then
+        exit 1	
+      fi
+    done
+  fi
 done
 
 printf "wrf.sh completed successfully at `date +%Y-%m-%d_%H_%M_%S`.\n"
