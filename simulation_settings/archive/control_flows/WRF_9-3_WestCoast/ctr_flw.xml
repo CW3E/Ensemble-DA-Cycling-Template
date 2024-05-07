@@ -5,8 +5,9 @@
 
   <!-- CONTROL FLOW NAME / TUNABLE SETTINGS -->
   <!ENTITY EXP_VRF     "2022122800"> <!-- Define the valid date YYYYMMDDHH for verification -->
-  <!ENTITY CSE_NME     "EnsembleForecastTest"> <!-- Define the name of case study / experiment group -->
-  <!ENTITY CNFG_NME    "&EXP_VRF;_valid_date_wrf-9-3"> <!-- Configuration name including tunable parameters -->
+  <!ENTITY DMN_NME     "9-3_WestCoast"> <!-- Define the WRF domain / nest name -->
+  <!ENTITY CSE_NME     "&EXP_VRF;_valid_date"> <!-- Define the name of case study / experiment group -->
+  <!ENTITY CNFG_NME    "WRF_&DMN_NME;"> <!-- Configuration name including tunable parameters -->
   <!ENTITY EXP_NME     "&CSE_NME;/&CNFG_NME;"> <!-- Experiment logs and data are defined in the case / configuration nested structure -->
   <!-- END CONTROL FLOW NAME / TUNABLE SETTINGS -->
 
@@ -49,7 +50,7 @@
 
   <!-- WRF SETTINGS -->
   <!ENTITY HIST_INT     "03"> <!-- Output interval for wrfout files in HH -->
-  <!ENTITY RSTRT_INT    "12"> <!-- Output interval for wrfout files in HH -->
+  <!ENTITY RSTRT_INT    "00"> <!-- Output interval for wrfout files in HH -->
   <!ENTITY IF_SST_UPDT  "No"> <!-- This setting defines SST updates in simulation and is applied to both WRF and real.exe runs -->
   <!ENTITY IF_FEEDBACK  "No"> <!-- This setting defines Yes / No for nested domain 2-way coupling -->
   <!ENTITY NIO_TPG      "0"> <!-- Quilting tasks per group, set NIO_TPG=0 for default TURN OFF QUILTING --> 

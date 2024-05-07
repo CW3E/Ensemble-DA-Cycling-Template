@@ -5,9 +5,9 @@
 
   <!-- CONTROL FLOW NAME / TUNABLE SETTINGS -->
   <!ENTITY EXP_VRF      "2022122800"> <!-- Define the valid date YYYYMMDDHH for verification -->
-  <!ENTITY DMN_NME      "x1.10242"> <!-- Define the MPAS mesh / refinement name -->
-  <!ENTITY CSE_NME      "EnsembleForecastTest"> <!-- Define the name of case study / experiment group -->
-  <!ENTITY CNFG_NME     "&EXP_VRF;_valid_date_&DMN_NME;"> <!-- Configuration name including tunable parameters -->
+  <!ENTITY DMN_NME      "240-U"> <!-- Define the MPAS mesh / refinement name -->
+  <!ENTITY CSE_NME      "&EXP_VRF;_valid_date"> <!-- Define the name of case study / experiment group -->
+  <!ENTITY CNFG_NME     "MPAS_&DMN_NME;"> <!-- Configuration name including tunable parameters -->
   <!ENTITY EXP_NME      "&CSE_NME;/&CNFG_NME;"> <!-- Experiment logs and data are defined in the case / configuration nested structure -->
   <!-- END CONTROL FLOW NAME / TUNABLE SETTINGS -->
 

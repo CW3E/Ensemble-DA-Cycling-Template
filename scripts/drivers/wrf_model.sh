@@ -732,7 +732,7 @@ for dmn in ${dmns[@]}; do
       fi
     fi
   done
-  if [ ${RSTRT_IN} -gt 0 ]; then
+  if [ ${RSTRT_INT} -gt 0 ]; then
     for fcst in ${rstrt_seq[@]}; do
       # Check for all wrfrst files for each domain at 
       # the appropriate bkg directory
