@@ -14,7 +14,7 @@
 # compile script for compiling PIO2_5_8  
 
 # Root directory for software compiles
-export SOFT_ROOT=/expanse/nfs/cw3e/cwp157/cgrudzien/JEDI-MPAS-Common-Case/SOFT_ROOT
+export SOFT_ROOT=/expanse/nfs/cw3e/cwp168/SOFT_ROOT
 export CC=mpiicc
 export FC=mpiifort
 export NETCDF=${SOFT_ROOT}/NETCDF

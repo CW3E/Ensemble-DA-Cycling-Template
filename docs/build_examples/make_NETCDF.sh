@@ -2,12 +2,12 @@
 
 # Original code by Caroline Papadopoulos 01/18/2024
 # Updated CJG 2024-05-02
+
 # Root directory for NETCDF dir
-SOFT_ROOT=/expanse/nfs/cw3e/cwp157/cgrudzien/JEDI-MPAS-Common-Case/SOFT_ROOT
-NETCDF=${SOFT_ROOT}/NETCDF
+NETCDF_DIR=/expanse/nfs/cw3e/cwp168/SOFT_ROOT/NETCDF
 
 printf "NETCDF lib / includ / bin will be created at \n"
-printf "    ${NETCDF}"
+printf "    ${NETCDF_DIR}"
 
 # netcdf and intel
 module load cpu/0.15.4
@@ -29,11 +29,11 @@ module list
 #PARALLEL_NETCDFHOME=/cm/shared/apps/spack/cpu/opt/spack/linux-centos8-zen2/intel-19.1.1.217/parallel-netcdf-1.12.1-wjjrfim5hzh65zfjur7crkf43qjx5deb
 
 for directory in lib include bin; do
-  mkdir -p ${NETCDF}/${directory}
+  mkdir -p ${NETCDF_DIR}/${directory}
   for netcdf_ver in ${NETCDF_CHOME} ${NETCDF_FORTRANHOME} ${NETCDF_CXXHOME} ${PARALLEL_NETCDFHOME} ; do
     if [ -d ${netcdf_ver}/${directory} ]; then
       for cur_file in $(ls ${netcdf_ver}/${directory}); do
-        cmd="ln -sf ${netcdf_ver}/${directory}/${cur_file} ${NETCDF}/${directory}"
+        cmd="ln -sf ${netcdf_ver}/${directory}/${cur_file} ${NETCDF_DIR}/${directory}"
         printf "${cmd}\n"; eval "${cmd}"
       done
     fi

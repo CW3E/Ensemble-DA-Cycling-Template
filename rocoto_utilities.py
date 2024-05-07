@@ -60,7 +60,7 @@ from datetime import datetime as dt
 INDT = '    '
 
 # directory path for root of git clone of Ensemble-DA-Cycling-Template
-USR_HME = '/expanse/nfs/cw3e/cwp157/cgrudzien/JEDI-MPAS-Common-Case/Ensemble-DA-Cycling-Template'
+USR_HME = '/expanse/nfs/cw3e/cwp168/Ensemble-DA-Cycling-Template'
 print('Clone location:\n' + USR_HME)
 
 # path to .xml control flows 
@@ -72,7 +72,7 @@ DBS = USR_HME + '/workflow_status'
 print('Database directory:\n' + INDT + DBS)
 
 # path to rocoto singularity image
-RCT = '/expanse/nfs/cw3e/cwp157/cgrudzien/JEDI-MPAS-Common-Case/SOFT_ROOT/rocoto'
+RCT = '/expanse/nfs/cw3e/cwp168/SOFT_ROOT/rocoto'
 print('Rocoto build path:\n' + INDT + RCT)
 
 # Case study sub directories

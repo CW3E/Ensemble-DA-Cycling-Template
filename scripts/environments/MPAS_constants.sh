@@ -48,7 +48,7 @@
 export TZ="GMT"
 
 # Root directory for software compiles
-export SOFT_ROOT=/expanse/nfs/cw3e/cwp157/cgrudzien/JEDI-MPAS-Common-Case/SOFT_ROOT
+export SOFT_ROOT=/expanse/nfs/cw3e/cwp168/SOFT_ROOT
 
 # Paths to library dependencies
 export NETCDF=${SOFT_ROOT}/NETCDF
