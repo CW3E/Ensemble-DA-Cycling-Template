@@ -5,5 +5,10 @@
 !archive
 !archive/*
 !archive/**/*
+!static
+!static/*
+!static/**/*
 archive/**/*.swp
 archive/**/*.nc
+static/**/*.swp
+static/**/*.nc
