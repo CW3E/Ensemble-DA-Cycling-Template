@@ -121,6 +121,7 @@ fi
 ##################################################################################
 # Options below are defined in workflow variables 
 #
+# EXP_NME     = Case study / config short name directory structure
 # MEMID       = Ensemble ID index, 00 for control, i > 00 for perturbation
 # STRT_DT     = Simulation start time in YYMMDDHH
 # IF_DYN_LEN  = "Yes" or "No" switch to compute forecast length dynamically 
@@ -142,6 +143,15 @@ fi
 #
 ##################################################################################
 
+if [ ! ${EXP_NME} ]; then
+  printf "ERROR: Case study / config short name \${EXP_NME} is not defined.\n"
+  exit 1
+else
+  IFS="/" read -ra exp_nme <<< ${EXP_NME}
+  printf "Setting up configuration:\n    ${exp_nme[1]}\n"
+  printf "for:\n    ${exp_nme[0]}\n case study.\n"
+fi
+
 if [ ! ${MEMID}  ]; then
   printf "ERROR: \${MEMID} is not defined.\n"
   exit 1
@@ -151,7 +161,7 @@ else
   printf "Running WRF for ensemble member ${MEMID}.\n"
 fi
 
-if [ ${#STRT_DT} -ne 10 ]; then
+if [[ ! ${STRT_DT} =~ ${ISO_RE} ]]; then
   printf "ERROR: \${STRT_DT}, ${STRT_DT}, is not in 'YYYYMMDDHH' format.\n"
   exit 1
 else
@@ -160,7 +170,7 @@ else
   strt_dt=`date -d "${strt_dt}"`
 fi
 
-if [ ${#CYC_DT} -ne 10 ]; then
+if [[ ! ${CYC_DT} =~ ${ISO_RE} ]]; then
   printf "ERROR: \${CYC_DT}, ${CYC_DT}, is not in 'YYYYMMDDHH' format.\n"
   exit 1
 else
@@ -181,7 +191,7 @@ if [[ ${IF_DYN_LEN} = ${NO} ]]; then
   fi
 elif [[ ${IF_DYN_LEN} = ${YES} ]]; then
   printf "Forecast runs until data until experiment validation time.\n"
-  if [ ${#EXP_VRF} -ne 10 ]; then
+  if [[ ! ${EXP_VRF} =~ ${ISO_RE} ]]; then
     printf "ERROR: \${EXP_VRF}, ${EXP_VRF}, is not in 'YYYMMDDHH' format.\n"
     exit 1
   else
@@ -320,10 +330,8 @@ fi
 # Below variables are defined in workflow variables
 #
 # WRF_ROOT = Root directory of a clean WRF build WRF/run directory
-# EXP_CNFG = Root directory containing sub-directories for namelists
-#            vtables, geogrid data, GSI fix files, etc.
-# CYC_HME  = Start time named directory for cycling data containing
-#            bkg, ungrib, metgrid, real, wrf, wrfda_bc, gsi, enkf
+# CNFG_ROOT = Root directory containing simulation settings
+# CYC_HME   = Cycle YYYYMMDDHH named directory for cycling data
 # MPIRUN   = MPI Command to execute WRF
 # N_NDES   = Total number of nodes
 # N_PROC   = The total number of processes-per-node
@@ -340,11 +348,11 @@ elif [ ! -d ${WRF_ROOT} ]; then
   exit 1
 fi
 
-if [ ! ${EXP_CNFG} ]; then
-  printf "ERROR: \${EXP_CNFG} is not defined.\n"
+if [ ! ${CNFG_ROOT} ]; then
+  printf "ERROR: \${CNFG_ROOT} is not defined.\n"
   exit 1
-elif [ ! -d ${EXP_CNFG} ]; then
-  printf "ERROR: \${EXP_CNFG} directory\n ${EXP_CNFG}\n does not exist.\n"
+elif [ ! -d ${CNFG_ROOT} ]; then
+  printf "ERROR: \${CNFG_ROOT} directory\n ${CNFG_ROOT}\n does not exist.\n"
   exit 1
 fi
 
@@ -388,6 +396,7 @@ mpiprocs=$(( ${N_NDES} * ${N_PROC} ))
 ##################################################################################
 # The following paths are relative to workflow supplied root paths
 #
+# cnfg_dir      = Full path to simulation files directory derived from CNFG_ROOT
 # work_root     = Working directory where WRF runs
 # wrf_in_root   = Directory of previous wrf run for restart runs
 # wrf_run_files = All file contents of clean WRF/run directory
@@ -396,6 +405,12 @@ mpiprocs=$(( ${N_NDES} * ${N_PROC} ))
 # wrf_exe       = Path and name of working executable
 #
 ##################################################################################
+cnfg_dir=${CNFG_ROOT}/${EXP_NME}
+if [ ! -d ${cnfg_dir} ]; then
+  printf "ERROR: simulation settings directory\n ${cnfg_dir}\n does not exist.\n"
+  exit 1
+fi
+
 # define work root and change directories
 if [[ ${WRF_IC} = ${RESTART} ]]; then
   work_root=${CYC_HME}/wrfrst/ens_${memid}	
@@ -554,7 +569,7 @@ fi
 #  Build WRF namelist
 ##################################################################################
 # Copy the wrf namelist template, NOTE: THIS WILL BE MODIFIED DO NOT LINK TO IT
-namelist_temp=${EXP_CNFG}/namelists/namelist.${BKG_DATA}
+namelist_temp=${cnfg_dir}/namelists/namelist.${BKG_DATA}
 if [ ! -r ${namelist_temp} ]; then 
   msg="WRF namelist template\n ${namelist_temp}\n is not readable or "
   msg+="does not exist.\n"
@@ -637,7 +652,7 @@ mv namelist.input.tmp namelist.input
 ##################################################################################
 # Print run parameters
 printf "\n"
-printf "EXP_CNFG    = ${EXP_CNFG}\n"
+printf "EXP_NME     = ${EXP_NME}\n"
 printf "MEMID       = ${MEMID}\n"
 printf "CYC_HME     = ${CYC_HME}\n"
 printf "STRT_DT     = ${strt_iso}\n"

@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --account=cwp157
+#SBATCH --account=cwp168
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1
 #SBATCH -p cw3e-shared

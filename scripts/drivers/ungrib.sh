@@ -122,6 +122,7 @@ fi
 # Options below are defined in workflow variables
 #
 # MEMID       = Ensemble ID index, 00 for control, i > 0 for perturbation
+# EXP_NME     = Case study / config short name directory structure
 # STRT_DT     = Simulation start time in YYMMDDHH
 # BKG_STRT_DT = Background data simulation start time in YYMMDDHH
 # IF_DYN_LEN  = "Yes" or "No" switch to compute forecast length dynamically 
@@ -135,6 +136,15 @@ fi
 #
 ##################################################################################
 
+if [ ! ${EXP_NME} ]; then
+  printf "ERROR: Case study / config short name \${EXP_NME} is not defined.\n"
+  exit 1
+else
+  IFS="/" read -ra exp_nme <<< ${EXP_NME}
+  printf "Setting up configuration:\n    ${exp_nme[1]}\n"
+  printf "for:\n    ${exp_nme[0]}\n case study.\n"
+fi
+
 if [ ! ${MEMID} ]; then
   printf "ERROR: ensemble index \${MEMID} is not defined.\n"
   exit 1
@@ -144,7 +154,7 @@ else
   printf "Running ungrib for ensemble member ${MEMID}.\n"
 fi
 
-if [ ${#STRT_DT} -ne 10 ]; then
+if [[ ! ${STRT_DT} =~ ${ISO_RE} ]]; then
   printf "ERROR: \${STRT_DT}, ${STRT_DT}, is not in 'YYYYMMDDHH' format.\n"
   exit 1
 else
@@ -164,7 +174,7 @@ if [[ ${IF_DYN_LEN} = ${NO} ]]; then
   fi
 elif [[ ${IF_DYN_LEN} = ${YES} ]]; then
   printf "Forecast runs until experiment validation time.\n"
-  if [ ${#EXP_VRF} -ne 10 ]; then
+  if [[ ! ${EXP_VRF} =~ ${ISO_RE} ]]; then
     printf "ERROR: \${EXP_VRF}, ${EXP_VRF} is not in 'YYYMMDDHH' format.\n"
     exit 1
   else
@@ -182,7 +192,7 @@ fi
 # define the stop time based on forecast length control flow above
 stop_dt=`date -d "${strt_dt} ${fcst_hrs} hours"`
 
-if [ ${#BKG_STRT_DT} -ne 10 ]; then
+if [[ ! ${BKG_STRT_DT} =~ ${ISO_RE} ]]; then
   printf "ERROR: \${BKG_STRT_DT}, '${BKG_STRT_DT}', is not in 'YYYYMMDDHH' format.\n"
   exit 1
 else
@@ -262,10 +272,8 @@ fi
 # Below variables are defined in workflow variables
 #
 # WPS_ROOT  = Root directory of clean WPS build
-# EXP_CNFG  = Root directory containing sub-directories for namelists
-#             vtables, geogrid data, GSI fix files, etc.
-# CYC_HME   = Cycle YYYYMMDDHH named directory for cycling data containing
-#             bkg, ungrib, metgrid, real, wrf, wrfda, gsi, enkf
+# CNFG_ROOT = Root directory containing simulation settings
+# CYC_HME   = Cycle YYYYMMDDHH named directory for cycling data
 # GRIB_ROOT = Directory for grib files, sub-directories organized by BKG_DATA name
 #
 ##################################################################################
@@ -278,11 +286,11 @@ elif [ ! -d ${WPS_ROOT} ]; then
   exit 1
 fi
 
-if [ ! ${EXP_CNFG} ]; then
-  printf "ERROR: \${EXP_CNFG} is not defined.\n"
+if [ ! ${CNFG_ROOT} ]; then
+  printf "ERROR: \${CNFG_ROOT} is not defined.\n"
   exit 1
-elif [ ! -d ${EXP_CNFG} ]; then
-  printf "ERROR: \${EXP_CNFG} directory\n ${EXP_CNFG}\n does not exist.\n"
+elif [ ! -d ${CNFG_ROOT} ]; then
+  printf "ERROR: \${CNFG_ROOT} directory\n ${CNFG_ROOT}\n does not exist.\n"
   exit 1
 fi
 
@@ -312,14 +320,21 @@ fi
 ##################################################################################
 # The following paths are relative to workflow supplied root paths
 #
-# work_root     = Working directory where ungrib_exe runs and outputs
+# cnfg_dir      = Full path to simulation files directory derived from CNFG_ROOT
+# work_root     = Work directory where ungrib_exe runs and outputs
 # wps_run_files = All file contents of clean WPS directory
 #                 namelists and input data will be linked from other sources
 # ungrib_exe    = Path and name of working executable
 # vtable        = Path and name of variable table
-# grib_dataroot = Path to the raw data to be processed
+# grib_data     = Path to the raw data to be processed
 #
 ##################################################################################
+cnfg_dir=${CNFG_ROOT}/${EXP_NME}
+if [ ! -d ${cnfg_dir} ]; then
+  printf "ERROR: simulation settings directory\n ${cnfg_dir}\n does not exist.\n"
+  exit 1
+fi
+
 # define work root and change directories
 work_root=${CYC_HME}/ungrib/ens_${memid}
 cmd="mkdir -p ${work_root}; cd ${work_root}"
@@ -344,7 +359,7 @@ cmd="rm -f Vtable"
 printf "${cmd}\n"; eval "${cmd}"
 
 # Check to make sure the variable table is available
-vtable=${EXP_CNFG}/variable_tables/Vtable.${BKG_DATA}
+vtable=${CNFG_ROOT}/static/variable_tables/Vtable.${BKG_DATA}
 if [ ! -r ${vtable} ]; then
   msg="ERROR: Vtable at location\n ${vtable}\n is not readable or does not "
   msg+="exist.\n"
@@ -395,19 +410,19 @@ fi
 cmd="rm -f namelist.wps"
 printf "${cmd}\n"; eval "${cmd}"
 
-# check to make sure the grib_dataroot exists and is non-empty
-grib_dataroot=${GRIB_ROOT}/${BKG_DATA}/${bkg_strt_dt}
-if [ ! -d ${grib_dataroot} ]; then
-  printf "ERROR: the directory\n ${grib_dataroot}\n does not exist.\n"
+# check to make sure the grib_data exists and is non-empty
+grib_data=${GRIB_ROOT}/${BKG_DATA}/${bkg_strt_dt}
+if [ ! -d ${grib_data} ]; then
+  printf "ERROR: the directory\n ${grib_data}\n does not exist.\n"
   exit 1
-elif [ `ls -l ${grib_dataroot}/${fnames} | wc -l` -lt ${n_files} ]; then
-  msg="ERROR: grib data directory\n ${grib_dataroot}\n is "
+elif [ `ls -l ${grib_data}/${fnames} | wc -l` -lt ${n_files} ]; then
+  msg="ERROR: grib data directory\n ${grib_data}\n is "
   msg+="missing bkg input files.\n"
   printf "${msg}"
   exit 1
 else
   # link the grib data to the working directory
-  cmd="./link_grib.csh ${grib_dataroot}/${fnames}"
+  cmd="./link_grib.csh ${grib_data}/${fnames}"
   printf "${cmd}\n"; eval "${cmd}"
 fi
 
@@ -415,7 +430,7 @@ fi
 #  Build WPS namelist
 ##################################################################################
 # Copy the wps namelist template, NOTE: THIS WILL BE MODIFIED DO NOT LINK TO IT
-namelist_temp=${EXP_CNFG}/namelists/namelist.wps
+namelist_temp=${cnfg_dir}/namelists/namelist.wps
 if [ ! -r ${namelist_temp} ]; then 
   msg="WPS namelist template\n ${namelist_temp}\n is not readable or "
   msg+="does not exist.\n"
@@ -460,7 +475,7 @@ mv namelist.wps.tmp namelist.wps
 ##################################################################################
 # Print run parameters
 printf "\n"
-printf "EXP_CNFG    = ${EXP_CNFG}\n"
+printf "EXP_NME     = ${EXP_NME}\n"
 printf "MEMID       = ${MEMID}\n"
 printf "CYC_HME     = ${CYC_HME}\n"
 printf "STRT_DT     = ${strt_iso}\n"
@@ -522,7 +537,7 @@ done
 # If ungribbing ECMWF model level data, calculate additional coefficients
 # NOTE: namelist.wps should account for the "PRES" file prefixes in fg_names
 if [ ${IF_ECMWF_ML} = ${YES} ]; then
-  cmd="ln -sf ${EXP_CNFG}/variable_tables/ecmwf_coeffs ."
+  cmd="ln -sf ${CNFG_ROOT}/static/variable_tables/ecmwf_coeffs ."
   printf "${cmd}\n"; eval "${cmd}"
   cmd="./util/calc_ecmwf_p.exe"
   printf "${cmd}\n"; eval "${cmd}"

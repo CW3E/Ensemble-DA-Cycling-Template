@@ -5,23 +5,23 @@
 
   <!-- CONTROL FLOW NAME / TUNABLE SETTINGS -->
   <!ENTITY EXP_VRF     "2022122800"> <!-- Define the valid date YYYYMMDDHH for verification -->
-  <!ENTITY DMN_NME     "9_WestCoast"> <!-- Define the WRF domain / nest name -->
+  <!ENTITY DMN_NME     "9-3_WestCoast"> <!-- Define the WRF domain / nest name -->
   <!ENTITY CSE_NME     "&EXP_VRF;_valid_date"> <!-- Define the name of case study / experiment group -->
   <!ENTITY CNFG_NME    "WRF_&DMN_NME;"> <!-- Configuration name including tunable parameters -->
   <!ENTITY EXP_NME     "&CSE_NME;/&CNFG_NME;"> <!-- Experiment logs and data are defined in the case / configuration nested structure -->
   <!-- END CONTROL FLOW NAME / TUNABLE SETTINGS -->
 
   <!-- COMPUTER-DEPENDENT ITEMS -->
-  <!ENTITY CLNE_ROOT    "/expanse/nfs/cw3e/cwp157/cgrudzien/JEDI-MPAS-Common-Case/Ensemble-DA-Cycling-Template"> <!-- Full path of framework git clone -->
-  <!ENTITY SOFT_ROOT    "/expanse/nfs/cw3e/cwp157/cgrudzien/JEDI-MPAS-Common-Case/SOFT_ROOT"> <!-- Root directory of software stack executables -->
-  <!ENTITY DATA_ROOT    "/expanse/lustre/scratch/cgrudzien/temp_project/JEDI-MPAS-Common-Case/DATA"> <!-- Root directory of simulation forcing data -->
+  <!ENTITY CLNE_ROOT    "/expanse/nfs/cw3e/cwp168/Ensemble-DA-Cycling-Template"> <!-- Full path of framework git clone -->
+  <!ENTITY SOFT_ROOT    "/expanse/nfs/cw3e/cwp168/SOFT_ROOT"> <!-- Root directory of software stack executables -->
+  <!ENTITY DATA_ROOT    "/expanse/nfs/cw3e/cwp168/DATA"> <!-- Root directory of simulation forcing data -->
   <!ENTITY GRIB_ROOT    "&DATA_ROOT;/GRIB"> <!-- Root directory of grib data data -->
-  <!ENTITY WORK_ROOT    "/expanse/lustre/scratch/cgrudzien/temp_project/JEDI-MPAS-Common-Case/SIMULATION_IO/&EXP_NME;"> <!-- Root directory of simulation_io -->
+  <!ENTITY WORK_ROOT    "/expanse/lustre/scratch/cgrudzien/temp_project/cwp168/SIMULATION_IO/&EXP_NME;"> <!-- Root directory of simulation_io -->
   <!-- END COMPUTER-DEPENDENT -->
 
   <!-- WORKFLOW SETTINGS -->
   <!ENTITY EXP_LOG      "&CLNE_ROOT;/logs/&EXP_NME;"> <!-- Root directory of workflow task logs -->
-  <!ENTITY EXP_CNFG     "&CLNE_ROOT;/simulation_settings/&EXP_NME;"> <!-- Root directory of experiment configuration files -->
+  <!ENTITY CNFG_ROOT    "&CLNE_ROOT;/simulation_settings"> <!-- Root directory of experiment configuration files -->
   <!ENTITY SCRIPTS      "&CLNE_ROOT;/scripts"> <!-- Root directory of workflow framework scripts -->
   <!ENTITY DRIVERS      "&SCRIPTS;/drivers"> <!-- Root directory of task driver scripts -->
   <!ENTITY UTILITY      "&SCRIPTS;/utilities"> <!-- Root directory of utility scripts for hacking rocoto to work -->
@@ -29,8 +29,8 @@
   <!-- END WORKFLOW SETTINGS -->
 
   <!-- SOFTWARE SETTINGS -->
-  <!ENTITY WPS_ROOT     "&SOFT_ROOT;/WRF_4.5/WPS"> <!-- Root directory of WPS clean build -->
-  <!ENTITY WRF_ROOT     "&SOFT_ROOT;/WRF_4.5/WRF"> <!-- Root directory of WRF clean build -->
+  <!ENTITY WPS_ROOT     "&SOFT_ROOT;/WPS"> <!-- Root directory of WPS clean build -->
+  <!ENTITY WRF_ROOT     "&SOFT_ROOT;/WRF"> <!-- Root directory of WRF clean build -->
   <!ENTITY WRF_CNST     "&ENVRNMTS;/WRF_constants.sh"> <!-- Full path to WRF software environment sourced file -->
   <!-- END SOFTWARE SETTINGS -->
 
@@ -42,7 +42,7 @@
 
   <!-- ENSEMBLE SETTINGS -->
   <!ENTITY MEM_LIST     "00"> <!-- list of ensemble perturbation indices -->
-  <!ENTITY WRF_ENS_DOM  "01"> <!-- Max domain for ensemble simulation -->
+  <!ENTITY WRF_ENS_DOM  "02"> <!-- Max domain for ensemble simulation -->
   <!ENTITY DOWN_DOM     "02"> <!-- First domain index to have ICs downscaled from parent's initial conditions (>01) -->
   <!ENTITY ENS_BKG_DATA "GEFS"> <!-- GFS and GEFS currently supported -->
   <!ENTITY ENS_BKG_INT  "03"> <!-- Data file frequency for ensemble simulation forcing in HH -->
@@ -50,7 +50,7 @@
 
   <!-- WRF SETTINGS -->
   <!ENTITY HIST_INT     "03"> <!-- Output interval for wrfout files in HH -->
-  <!ENTITY RSTRT_INT    "12"> <!-- Output interval for wrfout files in HH -->
+  <!ENTITY RSTRT_INT    "24"> <!-- Output interval for wrfout files in HH -->
   <!ENTITY IF_SST_UPDT  "No"> <!-- This setting defines SST updates in simulation and is applied to both WRF and real.exe runs -->
   <!ENTITY IF_FEEDBACK  "No"> <!-- This setting defines Yes / No for nested domain 2-way coupling -->
   <!ENTITY NIO_TPG      "0"> <!-- Quilting tasks per group, set NIO_TPG=0 for default TURN OFF QUILTING --> 
@@ -59,11 +59,11 @@
 
   <!-- JOB SETTINGS -->
   <!ENTITY SCHED        "slurm"> <!-- Machine scheduler, note native scheduler commands in tasks below -->
-  <!ENTITY PROJECT      "cwp157"> <!-- Project billing account -->
+  <!ENTITY PROJECT      "cwp168"> <!-- Project billing account -->
   <!ENTITY PART_CMP     "cw3e-compute"> <!-- Compute queue for standard mpi jobs -->
   <!ENTITY PART_DBG     "cw3e-compute">  <!-- Debug queue for small / rapid parallel jobs -->
   <!ENTITY PART_SRL     "cw3e-shared">  <!-- Serial queue for non-mpi jobs -->
-  <!ENTITY MPIRUN       "mpiexec"> <!-- MPI exec command -->
+  <!ENTITY MPIRUN       "mpiexec"> <!-- MPI command -->
   <!ENTITY GRIB_MEM     "1750M"> <!-- ungrib mem-per-cpu argument -->
   <!ENTITY GRIB_WC      "00:30:00"> <!-- Wallclock limit for ungrib jobs -->
   <!ENTITY WPS_PROC     "128"> <!-- WPS parallel / REAL number of procs-per-node -->
@@ -73,7 +73,7 @@
   <!ENTITY WRF_PROC     "128"> <!-- WRF number of procs-per-node -->
   <!ENTITY WRF_MEM      "1750M"> <!-- WRF mem-per-cpu argument -->
   <!ENTITY WRF_NDES     "3"> <!-- Number of nodes for WRF jobs -->
-  <!ENTITY WRF_WC       "2:00:00"> <!-- Wallclock limit for WRF -->
+  <!ENTITY WRF_WC       "4:00:00"> <!-- Wallclock limit for WRF -->
   <!-- END JOB SETTINGS -->
 ]>
 
@@ -99,6 +99,10 @@
       <envar>
         <name>CNST</name>
         <value>&WRF_CNST;</value>
+      </envar>
+      <envar>
+        <name>EXP_NME</name>
+        <value>&EXP_NME;</value>
       </envar>
       <envar>
          <name>MEMID</name>
@@ -145,8 +149,8 @@
         <value>&WPS_ROOT;</value>
       </envar>
       <envar>
-        <name>EXP_CNFG</name>
-        <value>&EXP_CNFG;</value>
+        <name>CNFG_ROOT</name>
+        <value>&CNFG_ROOT;</value>
       </envar>
       <envar>
         <name>CYC_HME</name>
@@ -171,6 +175,10 @@
       <envar>
         <name>CNST</name>
         <value>&WRF_CNST;</value>
+      </envar>
+      <envar>
+        <name>EXP_NME</name>
+        <value>&EXP_NME;</value>
       </envar>
       <envar>
          <name>MEMID</name>
@@ -209,8 +217,8 @@
         <value>&WPS_ROOT;</value>
       </envar>
       <envar>
-        <name>EXP_CNFG</name>
-        <value>&EXP_CNFG;</value>
+        <name>CNFG_ROOT</name>
+        <value>&CNFG_ROOT;</value>
       </envar>
       <envar>
         <name>CYC_HME</name>
@@ -246,6 +254,10 @@
       <envar>
         <name>CNST</name>
         <value>&WRF_CNST;</value>
+      </envar>
+      <envar>
+        <name>EXP_NME</name>
+        <value>&EXP_NME;</value>
       </envar>
       <envar>
          <name>MEMID</name>
@@ -284,8 +296,8 @@
         <value>&WRF_ROOT;</value>
       </envar>
       <envar>
-        <name>EXP_CNFG</name>
-        <value>&EXP_CNFG;</value>
+        <name>CNFG_ROOT</name>
+        <value>&CNFG_ROOT;</value>
       </envar>
       <envar>
         <name>CYC_HME</name>
@@ -321,6 +333,10 @@
       <envar>
         <name>CNST</name>
         <value>&WRF_CNST;</value>
+      </envar>
+      <envar>
+        <name>EXP_NME</name>
+        <value>&EXP_NME;</value>
       </envar>
       <envar>
          <name>MEMID</name>
@@ -387,8 +403,8 @@
         <value>&WRF_ROOT;</value>
       </envar>
       <envar>
-        <name>EXP_CNFG</name>
-        <value>&EXP_CNFG;</value>
+        <name>CNFG_ROOT</name>
+        <value>&CNFG_ROOT;</value>
       </envar>
       <envar>
         <name>CYC_HME</name>

@@ -121,16 +121,26 @@ fi
 ##################################################################################
 # Options below are defined in workflow variables
 #
+# EXP_NME    = Case study / config short name directory structure
 # MEMID      = Ensemble ID index, 00 for control, i > 0 for perturbation
 # STRT_DT    = Simulation start time in YYMMDDHH
 # IF_DYN_LEN = "Yes" or "No" switch to compute forecast length dynamically 
 # FCST_HRS   = Total length of WRF forecast simulation in HH, IF_DYN_LEN=No
 # EXP_VRF    = Verfication time for calculating forecast hours, IF_DYN_LEN=Yes
-# BKG_DATA    = String case variable for supported inputs: GFS, GEFS currently
+# BKG_DATA   = String case variable for supported inputs: GFS, GEFS currently
 # BKG_INT    = Interval of input data in HH
 # MAX_DOM    = Max number of domains to use in namelist settings
 #
 ##################################################################################
+
+if [ ! ${EXP_NME} ]; then
+  printf "ERROR: Case study / config short name \${EXP_NME} is not defined.\n"
+  exit 1
+else
+  IFS="/" read -ra exp_nme <<< ${EXP_NME}
+  printf "Setting up configuration:\n    ${exp_nme[1]}\n"
+  printf "for:\n    ${exp_nme[0]}\n case study.\n"
+fi
 
 if [ ! ${MEMID} ]; then
   printf "ERROR: \${MEMID} is not defined.\n"
@@ -141,7 +151,7 @@ else
   printf "Running metgrid for ensemble member ${MEMID}.\n"
 fi
 
-if [ ${#STRT_DT} -ne 10 ]; then
+if [[ ! ${STRT_DT} =~ ${ISO_RE} ]]; then
   printf "ERROR: \${STRT_DT}, '${STRT_DT}', is not in 'YYYYMMDDHH' format.\n"
   exit 1
 else
@@ -161,7 +171,7 @@ if [[ ${IF_DYN_LEN} = ${NO} ]]; then
   fi
 elif [[ ${IF_DYN_LEN} = ${YES} ]]; then
   printf "Generating forecast forcing data until experiment validation time.\n"
-  if [ ${#EXP_VRF} -ne 10 ]; then
+  if [[ ! ${EXP_VRF} =~ ${ISO_RE} ]]; then
     printf "ERROR: \${EXP_VRF}, ${EXP_VRF} is not in 'YYYMMDDHH' format.\n"
     exit 1
   else
@@ -217,14 +227,12 @@ dmns=`seq -f "%02g" 1 ${MAX_DOM}`
 ##################################################################################
 # Below variables are defined in workflow variables
 #
-# WPS_ROOT = Root directory of a clean WPS build
-# EXP_CNFG = Root directory containing sub-directories for namelists
-#            vtables, geogrid data, GSI fix files, etc.
-# CYC_HME  = Cycle YYYYMMDDHH named directory for cycling data containing
-#            bkg, ungrib, metgrid, real, wrf, wrfda, gsi, enkf
-# MPIRUN   = MPI multiprocessing evaluation call, machine specific
-# N_NDES   = Total number of nodes
-# N_PROC   = The total number of processes-per-node
+# WPS_ROOT  = Root directory of a clean WPS build
+# CNFG_ROOT = Root directory containing simulation settings
+# CYC_HME   = Cycle YYYYMMDDHH named directory for cycling data
+# MPIRUN    = MPI multiprocessing evaluation call, machine specific
+# N_NDES    = Total number of nodes
+# N_PROC    = The total number of processes-per-node
 #
 ##################################################################################
 
@@ -236,11 +244,11 @@ elif [ ! -d ${WPS_ROOT} ]; then
   exit 1
 fi
 
-if [ ! ${EXP_CNFG} ]; then
-  printf "ERROR: \${EXP_CNFG} is not defined.\n"
+if [ ! ${CNFG_ROOT} ]; then
+  printf "ERROR: \${CNFG_ROOT} is not defined.\n"
   exit 1
-elif [ ! -d ${EXP_CNFG} ]; then
-  printf "ERROR: \${EXP_CNFG} directory\n ${EXP_CNFG}\n does not exist.\n"
+elif [ ! -d ${CNFG_ROOT} ]; then
+  printf "ERROR: \${CNFG_ROOT} directory\n ${CNFG_ROOT}\n does not exist.\n"
   exit 1
 fi
 
@@ -284,13 +292,20 @@ mpiprocs=$(( ${N_NDES} * ${N_PROC} ))
 ##################################################################################
 # The following paths are relative to workflow root paths
 #
+# cnfg_dir      = Full path to simulation files directory derived from CNFG_ROOT
 # ungrib_root   = Directory from which ungribbed background data is sourced
-# work_root     = Working directory where metgrid_exe runs and outputs
+# work_root     = Work directory where metgrid_exe runs and outputs
 # wps_run_files = All file contents of clean WPS directory
 #                 namelists and input data will be linked from other sources
 # metgrid_exe   = Path and name of working executable
 #
 ##################################################################################
+cnfg_dir=${CNFG_ROOT}/${EXP_NME}
+if [ ! -d ${cnfg_dir} ]; then
+  printf "ERROR: simulation settings directory\n ${cnfg_dir}\n does not exist.\n"
+  exit 1
+fi
+
 # define work root and change directories
 work_root=${CYC_HME}/metgrid/ens_${memid}
 cmd="mkdir -p ${work_root}; cd ${work_root}"
@@ -362,7 +377,7 @@ fi
 # Check to make sure the geogrid input files (e.g. geo_em.d01.nc)
 # are available and make links to them
 for dmn in ${dmns[@]}; do
-  geoinput_name=${EXP_CNFG}/geogrid/geo_em.d${dmn}.nc
+  geoinput_name=${cnfg_dir}/terrestrial/geo_em.d${dmn}.nc
   if [ ! -r "${geoinput_name}" ]; then
     printf "ERROR: Input file\n ${geoinput_name}\n is missing.\n"
     exit 1
@@ -376,7 +391,7 @@ done
 #  Build WPS namelist
 ##################################################################################
 # Copy the wps namelist template, NOTE: THIS WILL BE MODIFIED DO NOT LINK TO IT
-namelist_temp=${EXP_CNFG}/namelists/namelist.wps
+namelist_temp=${cnfg_dir}/namelists/namelist.wps
 if [ ! -r ${namelist_temp} ]; then 
   msg="WPS namelist template\n ${namelist_temp}\n is not readable or "
   msg+="does not exist.\n"
@@ -421,7 +436,7 @@ mv namelist.wps.tmp namelist.wps
 ##################################################################################
 # Print run parameters
 printf "\n"
-printf "EXP_CNFG = ${EXP_CNFG}\n"
+printf "EXP_NME  = ${EXP_NME}\n"
 printf "MEMID    = ${MEMID}\n"
 printf "CYC_HME  = ${CYC_HME}\n"
 printf "STRT_DT  = ${strt_iso}\n"
