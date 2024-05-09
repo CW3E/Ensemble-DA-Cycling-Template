@@ -144,7 +144,7 @@ fi
 # Below variables are defined in control flow variables
 #
 # WRFDA_ROOT = Root directory of a WRFDA build 
-# EXP_CNFG   = Root directory containing sub-directories for namelists
+# EXP_CFG   = Root directory containing sub-directories for namelists
 #              vtables, geogrid data, GSI fix files, etc.
 # CYC_HME    = Start time named directory for cycling data containing
 #              bkg, ungrib, metgrid, real, wrf, wrfda_bc, gsi, enkf
@@ -159,11 +159,11 @@ elif [ ! -d ${WRFDA_ROOT} ]; then
   exit 1
 fi
 
-if [ ! ${EXP_CNFG} ]; then
-  printf "ERROR: \${EXP_CNFG} is not defined.\n"
+if [ ! ${EXP_CFG} ]; then
+  printf "ERROR: \${EXP_CFG} is not defined.\n"
   exit 1
-elif [ ! -d ${EXP_CNFG} ]; then
-  printf "ERROR: \${EXP_CNFG} directory\n ${EXP_CNFG}\n does not exist.\n"
+elif [ ! -d ${EXP_CFG} ]; then
+  printf "ERROR: \${EXP_CFG} directory\n ${EXP_CFG}\n does not exist.\n"
   exit 1
 fi
 
@@ -266,7 +266,7 @@ for memid in `seq -f "%02g" 0 ${ens_max}`; do
       #  Build da_update_bc namelist
       ##################################################################################
       # Copy the namelist from the static dir -- THIS WILL BE MODIFIED DO NOT LINK TO IT
-      cmd="cp -L ${EXP_CNFG}/namelists/parame.in ."
+      cmd="cp -L ${EXP_CFG}/namelists/parame.in ."
       printf "${cmd}\n"; eval "${cmd}"
   
       # Update the namelist
@@ -288,7 +288,7 @@ for memid in `seq -f "%02g" 0 ${ens_max}`; do
       printf "BOUNDARY = ${BOUNDARY}\n"
       printf "DOMAIN   = ${dmn}\n"
       printf "ANL_DT   = ${anl_iso}\n"
-      printf "EXP_CNFG = ${EXP_CNFG}\n"
+      printf "EXP_CFG = ${EXP_CFG}\n"
       printf "CYC_HME  = ${CYC_HME}\n"
       printf "ENS_ROOT = ${ENS_ROOT}\n"
       printf "\n"
@@ -369,7 +369,7 @@ for memid in `seq -f "%02g" 0 ${ens_max}`; do
     #  Build da_update_bc namelist
     ##################################################################################
     # Copy the namelist from the static dir -- THIS WILL BE MODIFIED DO NOT LINK TO IT
-    cmd="cp -L ${EXP_CNFG}/namelists/parame.in ."
+    cmd="cp -L ${EXP_CFG}/namelists/parame.in ."
     printf "${cmd}\n"; eval "${cmd}"
   
     # Update the namelist for lateral boundary update 
@@ -392,7 +392,7 @@ for memid in `seq -f "%02g" 0 ${ens_max}`; do
     printf "BOUNDARY = ${BOUNDARY}\n"
     printf "DOMAIN   = ${dmn}\n"
     printf "ANL_DT   = ${anl_iso}\n"
-    printf "EXP_CNFG = ${EXP_CNFG}\n"
+    printf "EXP_CFG = ${EXP_CFG}\n"
     printf "CYC_HME  = ${CYC_HME}\n"
     printf "ENS_ROOT = ${ENS_ROOT}\n"
     printf "\n"

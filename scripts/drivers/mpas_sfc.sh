@@ -67,9 +67,11 @@ fi
 ##################################################################################
 # Options below are defined in workflow variables
 #
-# DMN_NME    = MPAS domain name used to call mesh / static file name patterns
+# EXP_NME    = Case study / config short name directory structure
+# CFG_ROOT   = Root directory containing simulation settings
+# MSH_NME    = MPAS mesh name used to call mesh file name patterns
 # MEMID      = Ensemble ID index, 00 for control, i > 0 for perturbation
-# STRT_DT    = Simulation start time in YYMMDDHH
+# STRT_DT    = Simulation start time in YYYYMMDDHH
 # IF_DYN_LEN = If to compute forecast length dynamically (Yes / No)
 # FCST_HRS   = Total length of MPAS forecast simulation in HH, IF_DYN_LEN=No
 # EXP_VRF    = Verfication time for calculating forecast hours, IF_DYN_LEN=Yes
@@ -78,11 +80,34 @@ fi
 #
 ##################################################################################
 
-if [ ! ${DMN_NME} ]; then
-  printf "ERROR: \${DMN_NME} is not defined.\n"
+if [ ! ${EXP_NME} ]; then
+  printf "ERROR: Case study / config short name \${EXP_NME} is not defined.\n"
   exit 1
 else
-  printf "MPAS domain name is ${DMN_NME}.\n"
+  IFS="/" read -ra exp_nme <<< ${EXP_NME}
+  cse_nme=${exp_nme[0]}
+  cfg_nme=${exp_nme[1]}
+  printf "Setting up configuration:\n    ${cfg_nme}\n"
+  printf "for:\n    ${cse_nme}\n case study.\n"
+  if [ ! ${CFG_ROOT} ]; then
+    printf "ERROR: \${CFG_ROOT} is not defined.\n"
+    exit 1
+  elif [ ! -d ${CFG_ROOT} ]; then
+    printf "ERROR: \${CFG_ROOT} directory\n ${CFG_ROOT}\n does not exist.\n"
+    exit 1
+  fi
+  cfg_dir=${CFG_ROOT}/${EXP_NME}
+  if [ ! -d ${cfg_dir} ]; then
+    printf "ERROR: simulation settings directory\n ${cfg_dir}\n does not exist.\n"
+    exit 1
+  fi
+fi
+
+if [ ! ${MSH_NME} ]; then
+  printf "ERROR: \${MSH_NME} is not defined.\n"
+  exit 1
+else
+  printf "MPAS domain name is ${MSH_NME}.\n"
 fi
 
 if [ ! ${MEMID} ]; then
@@ -94,7 +119,7 @@ else
   printf "Running init_atmosphere for ensemble member ${MEMID}.\n"
 fi
 
-if [ ${#STRT_DT} -ne 10 ]; then
+if [[ ! ${STRT_DT} =~ ${ISO_RE} ]]; then
   printf "ERROR: \${STRT_DT}, '${STRT_DT}', is not in 'YYYYMMDDHH' format.\n"
   exit 1
 else
@@ -114,8 +139,8 @@ if [[ ${IF_DYN_LEN} = ${NO} ]]; then
   fi
 elif [[ ${IF_DYN_LEN} = ${YES} ]]; then
   printf "Generating forecast forcing data until experiment validation time.\n"
-  if [ ${#EXP_VRF} -ne 10 ]; then
-    printf "ERROR: \${EXP_VRF}, ${EXP_VRF} is not in 'YYYMMDDHH' format.\n"
+  if [[ ! ${EXP_VRF} =~ ${ISO_RE} ]]; then
+    printf "ERROR: \${EXP_VRF}, ${EXP_VRF} is not in 'YYYYMMDDHH' format.\n"
     exit 1
   else
     # compute forecast length relative to start time and verification time
@@ -138,13 +163,30 @@ if [[ ${IF_ZETA_LIST} = ${NO} ]]; then
   if_zeta_list=""
 elif [[ ${IF_ZETA_LIST} = ${YES} ]]; then
   # define full path to zeta list
-  zeta_list=${EXP_CNFG}/namelists/zeta_list_${DMN_NME}.txt
+  zeta_list=( `ls ${cfg_dir}/static/*.ZETA_LIST.txt` )
+  if [ $? -ne 0 ]; then
+    printf "ERROR: no match found for pattern\n"
+    printf "    ${cfg_dir}/static/*.ZETA_LIST.txt"
+    printf "A *.ZETA_LIST.txt is required for specified zeta levels."
+    exit 1
+  elif [ ${#zeta_list[@]} -gt 1 ]; then
+    printf "ERROR: multiple matches found for *.ZETA_LIST.txt\n"
+    for tmp in ${zeta_list[@]}; do
+      printf "    ${tmp}\n"
+    done
+    printf "Simulation configuration directory\n    ${cfg_dir}/static\n"
+    printf "must have a unique choice of *.ZETA_LIST.txt\n"
+    exit 1
+  elif 
+  else
+    zeta_list=${zeta_list[0]}
+  fi
 
   # define string replacement for the namelist
   if_zeta_list="config_specified_zeta_levels = `basename ${zeta_list}`"
 
   printf "Uses explicitly defined zeta levels for vertical grid spacing in file\n"
-  printf "${zeta_list}\n"
+  printf "`basename ${zeta_list}`\n"
 else
   printf "\${IF_ZETA_LIST} must be set to 'Yes' or 'No' (case insensitive).\n"
   exit 1
@@ -178,10 +220,7 @@ fi
 # Below variables are defined in workflow variables
 #
 # MPAS_ROOT = Root directory of a clean MPAS build
-# EXP_CNFG  = Root directory containing sub-directories for namelists
-#             vtables, static data, etc.
-# CYC_HME   = Cycle YYYYMMDDHH named directory for cycling data containing
-#             bkg, init_atmosphere, mpas
+# CYC_HME   = Cycle YYYYMMDDHH named directory for cycling data
 # MPIRUN    = MPI multiprocessing evaluation call, machine specific
 # N_NDES    = Total number of nodes
 # N_PROC    = The total number of processes per node
@@ -198,11 +237,11 @@ elif [ ! -d ${MPAS_ROOT} ]; then
   exit 1
 fi
 
-if [ ! ${EXP_CNFG} ]; then
-  printf "ERROR: \${EXP_CNFG} is not defined.\n"
+if [ ! ${EXP_CFG} ]; then
+  printf "ERROR: \${EXP_CFG} is not defined.\n"
   exit 1
-elif [ ! -d ${EXP_CNFG} ]; then
-  printf "ERROR: \${EXP_CNFG} directory\n ${EXP_CNFG}\n does not exist.\n"
+elif [ ! -d ${EXP_CFG} ]; then
+  printf "ERROR: \${EXP_CFG} directory\n ${EXP_CFG}\n does not exist.\n"
   exit 1
 fi
 
@@ -266,11 +305,10 @@ mpiprocs=$(( ${N_NDES} * ${N_PROC} ))
 ##################################################################################
 # The following paths are relative to workflow root paths
 #
-# ungrib_root     = Directory from which ungribbed background data is sourced
-# work_root       = Working directory where init_atmosphere runs and outputs
-# init_run_files  = All file contents of clean MPAS build directory
-#                   namelists and input data is linked from other sources
-# init_atmos_exe  = Path and name of working executable
+# ungrib_root = Directory from which ungribbed background data is sourced
+# work_root   = Work directory where init_atmosphere runs and outputs
+# mpas_files  = All file contents of clean MPAS build directory
+# init_exe    = Path and name of working executable
 #
 ##################################################################################
 # Create work root and change directory
@@ -279,37 +317,37 @@ cmd="mkdir -p ${work_root}; cd ${work_root}"
 printf "${cmd}\n"; eval "${cmd}"
 
 # check that the init_atmosphere executable exists and can be run
-init_atmos_exe=${MPAS_ROOT}/init_atmosphere_model
-if [ ! -x ${init_atmos_exe} ]; then
-  printf "ERROR:\n ${init_atmos_exe}\n does not exist, or is not executable.\n"
+init_exe=${MPAS_ROOT}/init_atmosphere_model
+if [ ! -x ${init_exe} ]; then
+  printf "ERROR:\n ${init_exe}\n does not exist, or is not executable.\n"
   exit 1
 fi
 
 # Make links to the init_atmos run files
-init_run_files=(${MPAS_ROOT}/*)
-for file in ${init_run_files[@]}; do
+mpas_files=(${MPAS_ROOT}/*)
+for file in ${mpas_files[@]}; do
   cmd="ln -sf ${file} ."
   printf "${cmd}\n"; eval "${cmd}"
 done
 
-# Remove any mpas static files following ${DMN_NME}.static.nc pattern
+# Remove any mpas static files following ${cfg_nme}.static.nc pattern
 cmd="rm -f *.static.nc"
 printf "${cmd}\n"; eval "${cmd}"
 
-# Remove any mpas init files following ${DMN_NME}.init.nc pattern
+# Remove any mpas init files following ${cfg_nme}.init.nc pattern
 cmd="rm -f *.init.nc"
 printf "${cmd}\n"; eval "${cmd}"
 
-# Remove any mpas sfc files following ${DMN_NME}.init.nc pattern
+# Remove any mpas sfc files following ${cfg_nme}.init.nc pattern
 cmd="rm -f *.sfc_update.nc"
 printf "${cmd}\n"; eval "${cmd}"
 
-# Remove any mpas partition files following ${DMN_NME}.graph.info.part.* pattern
-cmd="rm -f ${DMN_NME}.graph.info.part.*"
+# Remove any mpas partition files following ${cfg_nme}.graph.info.part.* pattern
+cmd="rm -f *.graph.info.part.*"
 printf "${cmd}\n"; eval "${cmd}"
 
 # Remove any previous namelists and stream lists
-cmd="rm -f namelist.*; rm -f streams.*; rm -f stream_list.*; rm -f zeta_list*.txt"
+cmd="rm -f namelist.*; rm -f streams.*; rm -f stream_list.*; rm -f *.ZETA_LIST.txt"
 printf "${cmd}\n"; eval "${cmd}"
 
 # Move existing log files to a subdir if there are any
@@ -349,23 +387,23 @@ else
 fi
 
 # Check to make sure the static terrestrial input file is available and link
-static_input_name=${EXP_CNFG}/static_files/${DMN_NME}.static.nc
-if [ ! -r "${static_input_name}" ]; then
-  printf "ERROR: Input file\n ${static_input_name}\n is missing.\n"
+static_input=${EXP_CFG}/static/${cfg_nme}.static.nc
+if [ ! -r "${static_input}" ]; then
+  printf "ERROR: Input file\n ${static_input}\n is missing.\n"
   exit 1
 else
-  cmd="ln -sf ${static_input_name} ."
+  cmd="ln -sf ${static_input} ."
   printf "${cmd}\n"; eval "${cmd}"
 fi
 
 # Check to make sure the graph partitioning file is available and link
 # NOTE: ${mpiprocs} must match the number of MPI processes
-graph_part_name=${EXP_CNFG}/static_files/${DMN_NME}.graph.info.part.${mpiprocs}
-if [ ! -r "${graph_part_name}" ]; then
-  printf "ERROR: Input file\n ${graph_part_name}\n is missing.\n"
+graph_part=${CFG_ROOT}/meshes/${MSH_NME}.graph.info.part.${mpiprocs}
+if [ ! -r "${graph_part}" ]; then
+  printf "ERROR: Input file\n ${graph_part}\n is missing.\n"
   exit 1
 else
-  cmd="ln -sf ${graph_part_name} ."
+  cmd="ln -sf ${graph_part} ."
   printf "${cmd}\n"; eval "${cmd}"
 fi
 
@@ -374,7 +412,9 @@ fi
 ##################################################################################
 # Copy the init_atmosphere namelist / streams templates,
 # NOTE: THESE WILL BE MODIFIED DO NOT LINK TO THEM
-namelist_tmp=${EXP_CNFG}/namelists/namelist.init_atmosphere.${DMN_NME}.${BKG_DATA}
+namelist_tmp=${cfg_dir}/namelists/namelist.init_atmosphere.${BKG_DATA}
+streams_tmp=${cfg_dir}/streamlists/streams.init_atmosphere
+
 if [ ! -r ${namelist_tmp} ]; then 
   msg="init_atmosphere namelist template\n ${namelist_tmp}\n is not readable or "
   msg+="does not exist.\n"
@@ -397,7 +437,6 @@ if [[ ${IF_ZETA_LIST} = ${YES} ]]; then
   fi
 fi
 
-streams_tmp=${EXP_CNFG}/streamlists/streams.init_atmosphere
 if [ ! -r ${streams_tmp} ]; then 
   msg="init_atmosphere streams template\n ${streams_tmp}\n is not readable or "
   msg+="does not exist.\n"
@@ -431,12 +470,12 @@ cat namelist.init_atmosphere \
   | sed "s/= IF_FRAC_SEAICE,/= true/" \
   | sed "s/= PIO_NUM,/= ${PIO_NUM}/" \
   | sed "s/= PIO_STRD,/= ${PIO_STRD}/" \
-  | sed "s/DMN_NME/${DMN_NME}/" \
+  | sed "s/MSH_NME/${MSH_NME}/" \
   > namelist.init_atmosphere.tmp
 mv namelist.init_atmosphere.tmp namelist.init_atmosphere
 
 cat streams.init_atmosphere \
-  | sed "s/DMN_NME/${DMN_NME}/" \
+  | sed "s/CFG_NME/${cfg_nme}/" \
   | sed "s/=SFC_INT,/=\"${BKG_INT}:00:00\"/" \
   | sed "s/=LBC_INT,/=\"${BKG_INT}:00:00\"/" \
   > streams.init_atmosphere.tmp
@@ -447,8 +486,8 @@ mv streams.init_atmosphere.tmp streams.init_atmosphere
 ##################################################################################
 # Print run parameters
 printf "\n"
-printf "EXP_CNFG = ${EXP_CNFG}\n"
-printf "DMN_NME  = ${DMN_NME}\n"
+printf "EXP_NME  = ${EXP_NME}\n"
+printf "MSH_NME  = ${MSH_NME}\n"
 printf "MEMID    = ${MEMID}\n"
 printf "CYC_HME  = ${CYC_HME}\n"
 printf "STRT_DT  = ${strt_iso}\n"
@@ -458,9 +497,9 @@ printf "BKG_INT  = ${BKG_INT}\n"
 printf "\n"
 now=`date +%Y-%m-%d_%H_%M_%S`
 printf "init_atmosphere started at ${now}.\n"
-cmd="${MPIRUN} -n ${mpiprocs} ${init_atmos_exe}"
+cmd="${MPIRUN} -n ${mpiprocs} ${init_exe}"
 printf "${cmd}\n"
-${MPIRUN} -n ${mpiprocs} ${init_atmos_exe}
+${MPIRUN} -n ${mpiprocs} ${init_exe}
 
 ##################################################################################
 # Run time error check
@@ -486,7 +525,7 @@ if [[ ${IF_ZETA_LIST} = ${YES} ]]; then
 fi
 
 # Remove links to the init_atmos run files
-for file in ${init_run_files[@]}; do
+for file in ${mpas_files[@]}; do
   cmd="rm -f `basename ${file}`"
   printf "${cmd}\n"; eval "${cmd}"
 done
@@ -499,21 +538,21 @@ for fcst in ${fcst_seq[@]}; do
 done
 
 # remove links to static and partition data
-cmd="rm -f ${DMN_NME}.static.nc"
+cmd="rm -f *.static.nc"
 printf "${cmd}\n"; eval "${cmd}"
 
-cmd="rm -f ${DMN_NME}.graph.info.part.${mpiprocs}"
+cmd="rm -f .graph.info.part.*"
 printf "${cmd}\n"; eval "${cmd}"
 
 if [ ${error} -ne 0 ]; then
-  printf "ERROR:\n ${init_atmos_exe}\n exited with status ${error}.\n"
+  printf "ERROR:\n ${init_exe}\n exited with status ${error}.\n"
   exit ${error}
 fi
 
 # Check to see if init_atmosphere outputs are generated
-out_name=${DMN_NME}.sfc_update.nc
+out_name=${cfg_nme}.sfc_update.nc
 if [ ! -s "${out_name}" ]; then
-  printf "ERROR:\n ${init_atmos_exe}\n failed to complete writing ${out_name}.\n"
+  printf "ERROR:\n ${init_exe}\n failed to complete writing ${out_name}.\n"
   exit 1
 fi
 

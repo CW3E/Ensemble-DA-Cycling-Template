@@ -5,10 +5,9 @@
 !archive
 !archive/*
 !archive/**/*
-!static
-!static/*
-!static/**/*
+!variable_tables
+!variable_tables/*
+!meshes
+!meshes/*
 archive/**/*.swp
 archive/**/*.nc
-static/**/*.swp
-static/**/*.nc

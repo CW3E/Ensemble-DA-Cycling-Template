@@ -5,9 +5,8 @@
 
   <!-- CONTROL FLOW NAME / TUNABLE SETTINGS -->
   <!ENTITY EXP_VRF     "2022122800"> <!-- Define the valid date YYYYMMDDHH for verification -->
-  <!ENTITY DMN_NME     "9_WestCoast"> <!-- Define the WRF domain / nest name -->
   <!ENTITY CSE_NME     "&EXP_VRF;_valid_date"> <!-- Define the name of case study / experiment group -->
-  <!ENTITY CNFG_NME    "WRF_&DMN_NME;"> <!-- Configuration name including tunable parameters -->
+  <!ENTITY CNFG_NME    "WRF_9_WestCoast"> <!-- Configuration name including tunable parameters -->
   <!ENTITY EXP_NME     "&CSE_NME;/&CNFG_NME;"> <!-- Experiment logs and data are defined in the case / configuration nested structure -->
   <!-- END CONTROL FLOW NAME / TUNABLE SETTINGS -->
 

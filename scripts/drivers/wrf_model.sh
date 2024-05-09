@@ -123,7 +123,7 @@ fi
 #
 # EXP_NME     = Case study / config short name directory structure
 # MEMID       = Ensemble ID index, 00 for control, i > 00 for perturbation
-# STRT_DT     = Simulation start time in YYMMDDHH
+# STRT_DT     = Simulation start time in YYYYMMDDHH
 # IF_DYN_LEN  = "Yes" or "No" switch to compute forecast length dynamically 
 # FCST_HRS    = Total length of WRF forecast simulation in HH, IF_DYN_LEN=No
 # EXP_VRF     = Verfication time for calculating forecast hours, IF_DYN_LEN=Yes
@@ -148,8 +148,15 @@ if [ ! ${EXP_NME} ]; then
   exit 1
 else
   IFS="/" read -ra exp_nme <<< ${EXP_NME}
-  printf "Setting up configuration:\n    ${exp_nme[1]}\n"
-  printf "for:\n    ${exp_nme[0]}\n case study.\n"
+  cse_nme=${exp_nme[0]}
+  cfg_nme=${exp_nme[1]}
+  printf "Setting up configuration:\n    ${cfg_nme}\n"
+  printf "for:\n    ${cse_nme}\n case study.\n"
+  cfg_dir=${CFG_ROOT}/${EXP_NME}
+  if [ ! -d ${cfg_dir} ]; then
+    printf "ERROR: simulation settings directory\n ${cfg_dir}\n does not exist.\n"
+    exit 1
+  fi
 fi
 
 if [ ! ${MEMID}  ]; then
@@ -192,7 +199,7 @@ if [[ ${IF_DYN_LEN} = ${NO} ]]; then
 elif [[ ${IF_DYN_LEN} = ${YES} ]]; then
   printf "Forecast runs until data until experiment validation time.\n"
   if [[ ! ${EXP_VRF} =~ ${ISO_RE} ]]; then
-    printf "ERROR: \${EXP_VRF}, ${EXP_VRF}, is not in 'YYYMMDDHH' format.\n"
+    printf "ERROR: \${EXP_VRF}, ${EXP_VRF}, is not in 'YYYYMMDDHH' format.\n"
     exit 1
   else
     # compute forecast length relative to start time and verification time
@@ -330,9 +337,9 @@ fi
 # Below variables are defined in workflow variables
 #
 # WRF_ROOT = Root directory of a clean WRF build WRF/run directory
-# CNFG_ROOT = Root directory containing simulation settings
-# CYC_HME   = Cycle YYYYMMDDHH named directory for cycling data
-# MPIRUN   = MPI Command to execute WRF
+# CFG_ROOT = Root directory containing simulation settings
+# CYC_HME  = Cycle YYYYMMDDHH named directory for cycling data
+# MPIRUN   = MPI multiprocessing evaluation call, machine specific
 # N_NDES   = Total number of nodes
 # N_PROC   = The total number of processes-per-node
 # NIO_GRPS = Number of Quilting groups -- only used for NIO_TPG > 0
@@ -348,11 +355,11 @@ elif [ ! -d ${WRF_ROOT} ]; then
   exit 1
 fi
 
-if [ ! ${CNFG_ROOT} ]; then
-  printf "ERROR: \${CNFG_ROOT} is not defined.\n"
+if [ ! ${CFG_ROOT} ]; then
+  printf "ERROR: \${CFG_ROOT} is not defined.\n"
   exit 1
-elif [ ! -d ${CNFG_ROOT} ]; then
-  printf "ERROR: \${CNFG_ROOT} directory\n ${CNFG_ROOT}\n does not exist.\n"
+elif [ ! -d ${CFG_ROOT} ]; then
+  printf "ERROR: \${CFG_ROOT} directory\n ${CFG_ROOT}\n does not exist.\n"
   exit 1
 fi
 
@@ -396,21 +403,12 @@ mpiprocs=$(( ${N_NDES} * ${N_PROC} ))
 ##################################################################################
 # The following paths are relative to workflow supplied root paths
 #
-# cnfg_dir      = Full path to simulation files directory derived from CNFG_ROOT
-# work_root     = Working directory where WRF runs
-# wrf_in_root   = Directory of previous wrf run for restart runs
-# wrf_run_files = All file contents of clean WRF/run directory
-#                 namelists, boundary and input data will be linked
-#                 from other sources
-# wrf_exe       = Path and name of working executable
+# work_root   = Work directory where WRF runs
+# wrf_in_root = Directory of previous wrf run for restart runs
+# wrf_files   = All file contents of clean WRF/run directory
+# wrf_exe     = Path and name of working executable
 #
 ##################################################################################
-cnfg_dir=${CNFG_ROOT}/${EXP_NME}
-if [ ! -d ${cnfg_dir} ]; then
-  printf "ERROR: simulation settings directory\n ${cnfg_dir}\n does not exist.\n"
-  exit 1
-fi
-
 # define work root and change directories
 if [[ ${WRF_IC} = ${RESTART} ]]; then
   work_root=${CYC_HME}/wrfrst/ens_${memid}	
@@ -434,8 +432,8 @@ if [ ! -x ${wrf_exe} ]; then
 fi
 
 # Make links to the WRF run files
-wrf_run_files=(${WRF_ROOT}/run/*)
-for file in ${wrf_run_files[@]}; do
+wrf_files=(${WRF_ROOT}/run/*)
+for file in ${wrf_files[@]}; do
   cmd="ln -sf ${file} ."
   printf "${cmd}\n"; eval "${cmd}"
 done
@@ -569,7 +567,7 @@ fi
 #  Build WRF namelist
 ##################################################################################
 # Copy the wrf namelist template, NOTE: THIS WILL BE MODIFIED DO NOT LINK TO IT
-namelist_temp=${cnfg_dir}/namelists/namelist.${BKG_DATA}
+namelist_temp=${cfg_dir}/namelists/namelist.${BKG_DATA}
 if [ ! -r ${namelist_temp} ]; then 
   msg="WRF namelist template\n ${namelist_temp}\n is not readable or "
   msg+="does not exist.\n"
@@ -687,7 +685,7 @@ cmd="mv namelist.* ${rsldir}"
 printf "${cmd}\n"; eval "${cmd}"
 
 # Remove links to the WRF run files
-for file in ${wrf_run_files[@]}; do
+for file in ${wrf_files[@]}; do
     cmd="rm -f `basename ${file}`"
     printf "${cmd}\n"; eval "${cmd}"
 done

@@ -66,9 +66,11 @@ fi
 ##################################################################################
 # Options below are defined in workflow variables
 #
-# DMN_NME      = MPAS domain name used to call mesh / static file name patterns
+# EXP_NME      = Case study / config short name directory structure
+# CFG_ROOT     = Root directory containing simulation settings
+# MSH_NME      = MPAS mesh name used to call mesh file name patterns
 # MEMID        = Ensemble ID index, 00 for control, i > 0 for perturbation
-# STRT_DT      = Simulation start time in YYMMDDHH
+# STRT_DT      = Simulation start time in YYYYMMDDHH
 # IF_DYN_LEN   = If to compute forecast length dynamically (Yes / No)
 # FCST_HRS     = Total length of MPAS forecast simulation in HH, IF_DYN_LEN=No
 # EXP_VRF      = Verfication time for calculating forecast hours, IF_DYN_LEN=Yes
@@ -88,11 +90,34 @@ fi
 #
 ##################################################################################
 
-if [ ! ${DMN_NME} ]; then
-  printf "ERROR: \${DMN_NME} is not defined.\n"
+if [ ! ${EXP_NME} ]; then
+  printf "ERROR: Case study / config short name \${EXP_NME} is not defined.\n"
   exit 1
 else
-  printf "MPAS domain name is ${DMN_NME}.\n"
+  IFS="/" read -ra exp_nme <<< ${EXP_NME}
+  cse_nme=${exp_nme[0]}
+  cfg_nme=${exp_nme[1]}
+  printf "Setting up configuration:\n    ${cfg_nme}\n"
+  printf "for:\n    ${cse_nme}\n case study.\n"
+  if [ ! ${CFG_ROOT} ]; then
+    printf "ERROR: \${CFG_ROOT} is not defined.\n"
+    exit 1
+  elif [ ! -d ${CFG_ROOT} ]; then
+    printf "ERROR: \${CFG_ROOT} directory\n ${CFG_ROOT}\n does not exist.\n"
+    exit 1
+  fi
+  cfg_dir=${CFG_ROOT}/${EXP_NME}
+  if [ ! -d ${cfg_dir} ]; then
+    printf "ERROR: simulation settings directory\n ${cfg_dir}\n does not exist.\n"
+    exit 1
+  fi
+fi
+
+if [ ! ${MSH_NME} ]; then
+  printf "ERROR: \${MSH_NME} is not defined.\n"
+  exit 1
+else
+  printf "MPAS domain name is ${MSH_NME}.\n"
 fi
 
 if [ ! ${MEMID} ]; then
@@ -104,7 +129,7 @@ else
   printf "Running atmosphere_model for ensemble member ${MEMID}.\n"
 fi
 
-if [ ${#STRT_DT} -ne 10 ]; then
+if [[ ! ${STRT_DT} =~ ${ISO_RE} ]]; then
   printf "ERROR: \${STRT_DT}, '${STRT_DT}', is not in 'YYYYMMDDHH' format.\n"
   exit 1
 else
@@ -124,8 +149,8 @@ if [[ ${IF_DYN_LEN} = ${NO} ]]; then
   fi
 elif [[ ${IF_DYN_LEN} = ${YES} ]]; then
   printf "Generating forecast forcing data until experiment validation time.\n"
-  if [ ${#EXP_VRF} -ne 10 ]; then
-    printf "ERROR: \${EXP_VRF}, ${EXP_VRF} is not in 'YYYMMDDHH' format.\n"
+  if [[ ! ${EXP_VRF} =~ ${ISO_RE} ]]; then
+    printf "ERROR: \${EXP_VRF}, ${EXP_VRF} is not in 'YYYYMMDDHH' format.\n"
     exit 1
   else
     # compute forecast length relative to start time and verification time
@@ -332,16 +357,13 @@ fi
 ##################################################################################
 # Below variables are defined in workflow variables
 #
-# MPAS_ROOT  = Root directory of a clean MPAS build
-# EXP_CNFG   = Root directory containing sub-directories for namelists
-#              vtables, static data, etc.
-# CYC_HME    = Cycle YYYYMMDDHH named directory for cycling data containing
-#              bkg, init_atmosphere, atmosphere_model
-# MPIRUN     = MPI multiprocessing evaluation call, machine specific
-# N_NDES     = Total number of nodes
-# N_PROC     = The total number of processes per node
-# PIO_NUM    = Number of tasks to perform file I/O
-# PIO_STRD = Stride between file I/O tasks
+# MPAS_ROOT = Root directory of a clean MPAS build
+# CYC_HME   = Cycle YYYYMMDDHH named directory for cycling data
+# MPIRUN    = MPI multiprocessing evaluation call, machine specific
+# N_NDES    = Total number of nodes
+# N_PROC    = The total number of processes per node
+# PIO_NUM   = Number of tasks to perform file I/O
+# PIO_STRD  = Stride between file I/O tasks
 #
 ##################################################################################
 
@@ -350,14 +372,6 @@ if [ ! ${MPAS_ROOT} ]; then
   exit 1
 elif [ ! -d ${MPAS_ROOT} ]; then
   printf "ERROR: \${MPAS_ROOT} directory\n ${MPAS_ROOT}\n does not exist.\n"
-  exit 1
-fi
-
-if [ ! ${EXP_CNFG} ]; then
-  printf "ERROR: \${EXP_CNFG} is not defined.\n"
-  exit 1
-elif [ ! -d ${EXP_CNFG} ]; then
-  printf "ERROR: \${EXP_CNFG} directory\n ${EXP_CNFG}\n does not exist.\n"
   exit 1
 fi
 
@@ -421,13 +435,13 @@ mpiprocs=$(( ${N_NDES} * ${N_PROC} ))
 ##################################################################################
 # The following paths are relative to workflow root paths
 #
-# atmos_ic_root    = Directory from which initial condition data is sourced
-# atmos_sfc_root   = Directory from which surface update data is sourced
-# atmos_lbc_root   = Directory from which lateral boundary data is sourced
-# work_root        = Working directory where atmosphere_model runs and outputs
-# model_run_files  = All file contents of clean MPAS build directory
-#                    namelists and input data is linked from other sources
-# atmos_model_exe  = Path and name of working executable
+# ic_root    = Directory from which initial condition data is sourced
+# sfc_root   = Directory from which surface update data is sourced
+# lbc_root   = Directory from which lateral boundary data is sourced
+# work_root  = Work directory where atmosphere_model runs and outputs
+# mpas_files = All file contents of clean MPAS build directory
+# atmos_exe  = Path and name of working executable
+# phys_files = All files from WRF physics directory, incl Thompson MP
 #
 ##################################################################################
 # Create work root and change directory
@@ -436,53 +450,53 @@ cmd="mkdir -p ${work_root}; cd ${work_root}"
 printf "${cmd}\n"; eval "${cmd}"
 
 # check that the atmosphere_model executable exists and can be run
-atmos_model_exe=${MPAS_ROOT}/atmosphere_model
-if [ ! -x ${atmos_model_exe} ]; then
-  printf "ERROR:\n ${atmos_model_exe}\n does not exist, or is not executable.\n"
+atmos_exe=${MPAS_ROOT}/atmosphere_model
+if [ ! -x ${atmos_exe} ]; then
+  printf "ERROR:\n ${atmos_exe}\n does not exist, or is not executable.\n"
   exit 1
 fi
 
 # Make links to the model run files
-model_run_files=(${MPAS_ROOT}/*)
-for run_f in ${model_run_files[@]}; do
+mpas_files=(${MPAS_ROOT}/*)
+for run_f in ${mpas_files[@]}; do
   cmd="ln -sf ${run_f} ."
   printf "${cmd}\n"; eval "${cmd}"
 done
 
 # Make links to the model physics files
-model_phys_files=(${MPAS_ROOT}/src/core_atmosphere/physics/physics_wrf/files/*)
-for phys_f in ${model_phys_files[@]}; do
+phys_files=(${MPAS_ROOT}/src/core_atmosphere/physics/physics_wrf/files/*)
+for phys_f in ${phys_files[@]}; do
   cmd="ln -sf ${phys_f} ."
   printf "${cmd}\n"; eval "${cmd}"
 done
 
-# Remove any mpas init files following ${DMN_NME}.init.nc pattern
+# Remove any mpas init files following ${cfg_nme}.init.nc pattern
 cmd="rm -f *.init.nc"
 printf "${cmd}\n"; eval "${cmd}"
 
-# Remove any mpas partition files following ${DMN_NME}.graph.info.part.* pattern
-cmd="rm -f ${DMN_NME}.graph.info.part.*"
+# Remove any mpas partition files following ${cfg_nme}.graph.info.part.* pattern
+cmd="rm -f *.graph.info.part.*"
 printf "${cmd}\n"; eval "${cmd}"
 
 # Remove any previous namelists and stream lists
 cmd="rm -f namelist.*; rm -f streams.*; rm -f stream_list.*"
 printf "${cmd}\n"; eval "${cmd}"
 
-# Remove any previous lateral boundary condition files ${DMN_NME}.lbc.*.nc
+# Remove any previous lateral boundary condition files ${cfg_nme}.lbc.*.nc
 cmd="rm -f *.lbc.*.nc"
 printf "${cmd}\n"; eval "${cmd}"
 
 # Remove pre-existing model run outputs
-cmd="rm -f ${DMN_NME}.history.*"
+cmd="rm -f *.history.*"
 printf "${cmd}\n"; eval "${cmd}"
 
-cmd="rm -f ${DMN_NME}.diag.*"
+cmd="rm -f *.diag.*"
 printf "${cmd}\n"; eval "${cmd}"
 
-cmd="rm -f ${DMN_NME}.restart.*"
+cmd="rm -f *.restart.*"
 printf "${cmd}\n"; eval "${cmd}"
 
-cmd="rm -f ${DMN_NME}.snd.*"
+cmd="rm -f *.snd.*"
 printf "${cmd}\n"; eval "${cmd}"
 
 # Move existing log files to a subdir if there are any
@@ -498,12 +512,12 @@ else
 fi
 
 # Define list of preprocessed data and make links
-atmos_ic_root=${CYC_HME}/init_atmosphere_ic/ens_${memid}
-input_files=( "${atmos_ic_root}/${DMN_NME}.init.nc" )
+ic_root=${CYC_HME}/init_atmosphere_ic/ens_${memid}
+input_files=( "${ic_root}/${cfg_nme}.init.nc" )
 
 if [[ ${IF_SST_UPDT} = ${YES} ]]; then
-  atmos_sfc_root=${CYC_HME}/init_atmosphere_sfc/ens_${memid}
-  input_files+=( "${atmos_sfc_root}/${DMN_NME}.sfc_update.nc" )
+  sfc_root=${CYC_HME}/init_atmosphere_sfc/ens_${memid}
+  input_files+=( "${sfc_root}/${cfg_nme}.sfc_update.nc" )
 fi
 
 if [[ ${IF_RGNL} = ${YES} ]]; then 
@@ -511,7 +525,7 @@ if [[ ${IF_RGNL} = ${YES} ]]; then
   bkg_seq=`seq -f "%03g" 0 ${BKG_INT} ${fcst_hrs}`
   for fcst in ${fcst_seq[@]}; do
     lbc_time="`date +%Y-%m-%d_%H_%M_%S -d "${strt_dt} ${fcst} hours"`"
-    input_files+=( "${atmos_lbs_root}/${DMN}.lbc.${lbc_time}.nc" )
+    input_files+=( "${lbs_root}/${DMN}.lbc.${lbc_time}.nc" )
   done
 fi
 
@@ -530,12 +544,12 @@ done
 
 # Check to make sure the graph partitioning file is available and link
 # NOTE: ${mpiprocs} must match the number of MPI processes
-graph_part_name=${EXP_CNFG}/static_files/${DMN_NME}.graph.info.part.${mpiprocs}
-if [ ! -r "${graph_part_name}" ]; then
-  printf "ERROR: Input file\n ${graph_part_name}\n is missing.\n"
+graph_part=${CFG_ROOT}/static_files/${MSH_NME}.graph.info.part.${mpiprocs}
+if [ ! -r "${graph_part}" ]; then
+  printf "ERROR: Input file\n ${graph_part}\n is missing.\n"
   exit 1
 else
-  cmd="ln -sf ${graph_part_name} ."
+  cmd="ln -sf ${graph_part} ."
   printf "${cmd}\n"; eval "${cmd}"
 fi
 
@@ -544,7 +558,8 @@ fi
 ##################################################################################
 # Copy the atmosphere namelist / streams templates,
 # NOTE: THESE WILL BE MODIFIED DO NOT LINK TO THEM
-namelist_tmp=${EXP_CNFG}/namelists/namelist.atmosphere.${DMN_NME}
+namelist_tmp=${cfg_dir}/namelists/namelist.atmosphere
+streams_tmp=${cfg_dir}/namelists/streams.atmosphere
 if [ ! -r ${namelist_tmp} ]; then 
   msg="atmosphere namelist template\n ${namelist_tmp}\n is not readable or "
   msg+="does not exist.\n"
@@ -555,7 +570,6 @@ else
   printf "${cmd}\n"; eval "${cmd}"
 fi
 
-streams_tmp=${EXP_CNFG}/streamlists/streams.atmosphere
 if [ ! -r ${streams_tmp} ]; then 
   msg="atmosphere streams template\n ${streams_tmp}\n is not readable or "
   msg+="does not exist.\n"
@@ -566,7 +580,7 @@ else
   printf "${cmd}\n"; eval "${cmd}"
 fi
 
-streamlist_out_tmp=${EXP_CNFG}/streamlists/stream_list.atmosphere.output
+streamlist_out_tmp=${cfg_dir}/namelists/stream_list.atmosphere.output
 if [ ! -r ${streamlist_out_tmp} ]; then 
   msg="atmosphere stream_list.atmosphere.output\n ${streamlist_out_tmp}\n"
   msg+=" is not readable or does not exist.\n"
@@ -577,7 +591,7 @@ else
   printf "${cmd}\n"; eval "${cmd}"
 fi
 
-streamlist_sfc_tmp=${EXP_CNFG}/streamlists/stream_list.atmosphere.surface
+streamlist_sfc_tmp=${cfg_dir}/namelists/stream_list.atmosphere.surface
 if [ ! -r ${streamlist_sfc_tmp} ]; then 
   msg="atmosphere stream_list.atmosphere.surface\n ${streamlist_sfc_tmp}\n"
   msg+=" is not readable or does not exist.\n"
@@ -588,7 +602,7 @@ else
   printf "${cmd}\n"; eval "${cmd}"
 fi
 
-streamlist_diag_tmp=${EXP_CNFG}/streamlists/stream_list.atmosphere.diagnostics
+streamlist_diag_tmp=${cfg_dir}/namelists/stream_list.atmosphere.diagnostics
 if [ ! -r ${streamlist_diag_tmp} ]; then 
   msg="atmosphere stream_list.atmosphere.diagnostics\n ${streamlist_diag_tmp}\n"
   msg+=" is not readable or does not exist.\n"
@@ -621,12 +635,12 @@ cat namelist.atmosphere \
   | sed "s/= SND_INT,/= '${snd_int}'/" \
   | sed "s/= PIO_NUM,/= ${PIO_NUM}/" \
   | sed "s/= PIO_STRD,/= ${PIO_STRD}/" \
-  | sed "s/DMN_NME/${DMN_NME}/" \
+  | sed "s/MSH_NME/${MSH_NME}/" \
   > namelist.atmosphere.tmp
 mv namelist.atmosphere.tmp namelist.atmosphere
 
 cat streams.atmosphere \
-  | sed "s/DMN_NME/${DMN_NME}/" \
+  | sed "s/CFG_NME/${CFG_NME}/" \
   | sed "s/=RSTRT_INT,/=\"${rstrt_int}\"/" \
   | sed "s/=HIST_INT,/=\"${hist_int}\"/" \
   | sed "s/=DIAG_INT,/=\"${diag_int}\"/" \
@@ -640,19 +654,19 @@ mv streams.atmosphere.tmp streams.atmosphere
 ##################################################################################
 # Print run parameters
 printf "\n"
-printf "EXP_CNFG = ${EXP_CNFG}\n"
-printf "DMN_NME  = ${DMN_NME}\n"
-printf "MEMID    = ${MEMID}\n"
-printf "CYC_HME  = ${CYC_HME}\n"
-printf "STRT_DT  = ${strt_iso}\n"
-printf "STOP_DT  = ${stop_iso}\n"
-printf "BKG_INT  = ${BKG_INT}\n"
+printf "EXP_NME = ${EXP_NME}\n"
+printf "MSH_NME = ${MSH_NME}\n"
+printf "MEMID   = ${MEMID}\n"
+printf "CYC_HME = ${CYC_HME}\n"
+printf "STRT_DT = ${strt_iso}\n"
+printf "STOP_DT = ${stop_iso}\n"
+printf "BKG_INT = ${BKG_INT}\n"
 printf "\n"
 now=`date +%Y-%m-%d_%H_%M_%S`
 printf "atmosphere_model started at ${now}.\n"
-cmd="${MPIRUN} -n ${mpiprocs} ${atmos_model_exe}"
+cmd="${MPIRUN} -n ${mpiprocs} ${atmos_exe}"
 printf "${cmd}\n"
-${MPIRUN} -n ${mpiprocs} ${atmos_model_exe}
+${MPIRUN} -n ${mpiprocs} ${atmos_exe}
 
 ##################################################################################
 # Run time error check
@@ -676,13 +690,13 @@ cmd="mv stream_list.* ${log_dir}"
 printf "${cmd}\n"; eval "${cmd}"
 
 # Remove links to the model run files
-for run_f in ${model_run_files[@]}; do
+for run_f in ${mpas_files[@]}; do
   cmd="rm -f `basename ${run_f}`"
   printf "${cmd}\n"; eval "${cmd}"
 done
 
 # Remove links to the model physics files
-for phys_f in ${model_phys_files[@]}; do
+for phys_f in ${phys_files[@]}; do
   cmd="rm -f `basename ${phys_f}`"
   printf "${cmd}\n"; eval "${cmd}"
 done
@@ -694,11 +708,11 @@ for input_f in ${input_files[@]}; do
 done
 
 # remove links to partition data
-cmd="rm -f ${DMN_NME}.graph.info.part.${mpiprocs}"
+cmd="rm -f *.graph.info.part.*"
 printf "${cmd}\n"; eval "${cmd}"
 
 if [ ${error} -ne 0 ]; then
-  printf "ERROR:\n ${atmos_model_exe}\n exited with status ${error}.\n"
+  printf "ERROR:\n ${atmos_exe}\n exited with status ${error}.\n"
   exit ${error}
 fi
 
@@ -707,7 +721,7 @@ if [ ! ${HIST_INT} = 00 ]; then
   hist_seq=`seq -f "%03g" 0 ${HIST_INT} ${fcst_hrs}`
   
   for hist in ${hist_seq[@]}; do
-    filename="${DMN_NME}.history.`date +%Y-%m-%d_%H_%M_%S -d "${strt_dt} ${hist} hours"`.nc"
+    filename="${cfg_nme}.history.`date +%Y-%m-%d_%H_%M_%S -d "${strt_dt} ${hist} hours"`.nc"
     if [ ! -s ${filename} ]; then
       printf "ERROR: ${filename} is missing.\n"
       exit 1
@@ -720,7 +734,7 @@ if [ ! ${DIAG_INT} = 00 ]; then
   diag_seq=`seq -f "%03g" 0 ${DIAG_INT} ${fcst_hrs}`
   
   for diag in ${diag_seq[@]}; do
-    filename="${DMN_NME}.diag.`date +%Y-%m-%d_%H_%M_%S -d "${strt_dt} ${diag} hours"`.nc"
+    filename="${cfg_nme}.diag.`date +%Y-%m-%d_%H_%M_%S -d "${strt_dt} ${diag} hours"`.nc"
     if [ ! -s ${filename} ]; then
       printf "ERROR: ${filename} is missing.\n"
       exit 1
@@ -733,7 +747,7 @@ if [ ! ${RSTRT_INT} = 00 ]; then
   rstrt_seq=`seq -f "%03g" ${RSTRT_INT} ${RSTRT_INT} ${fcst_hrs}`
   
   for rstrt in ${rstrt_seq[@]}; do
-    filename="${DMN_NME}.restart.`date +%Y-%m-%d_%H_%M_%S -d "${strt_dt} ${rstrt} hours"`.nc"
+    filename="${cfg_nme}.restart.`date +%Y-%m-%d_%H_%M_%S -d "${strt_dt} ${rstrt} hours"`.nc"
     if [ ! -s ${filename} ]; then
       printf "ERROR: ${filename} is missing.\n"
       exit 1
@@ -747,7 +761,7 @@ if [ ! ${SND_INT} = 00 ]; then
   snd_seq=`seq -f "%03g" 0 ${SND_INT} ${fcst_hrs}`
   
   for snd in ${snd_seq[@]}; do
-    filename="${DMN_NME}.snd.`date +%Y-%m-%d_%H_%M_%S -d "${strt_dt} ${snd} hours"`.nc"
+    filename="${cfg_nme}.snd.`date +%Y-%m-%d_%H_%M_%S -d "${strt_dt} ${snd} hours"`.nc"
     if [ ! -s ${filename} ]; then
       printf "ERROR: ${filename} is missing.\n"
       exit 1
