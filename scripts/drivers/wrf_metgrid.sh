@@ -299,15 +299,15 @@ mpiprocs=$(( ${N_NDES} * ${N_PROC} ))
 ##################################################################################
 # The following paths are relative to workflow root paths
 #
-# ungrib_root = Directory from which ungribbed background data is sourced
-# work_root   = Work directory where metgrid_exe runs and outputs
+# ungrib_dir  = Directory from which ungrib data is sourced
+# work_dir    = Work directory where metgrid_exe runs and outputs
 # wps_files   = All file contents of clean WPS directory
 # metgrid_exe = Path and name of working executable
 #
 ##################################################################################
 # define work root and change directories
-work_root=${CYC_HME}/metgrid/ens_${memid}
-cmd="mkdir -p ${work_root}; cd ${work_root}"
+work_dir=${CYC_HME}/metgrid/ens_${memid}
+cmd="mkdir -p ${work_dir}; cd ${work_dir}"
 printf "${cmd}\n"; eval "${cmd}"
 
 # Check that metgrid executable exists and runs
@@ -356,13 +356,13 @@ for fcst in ${fcst_seq[@]}; do
 done
 
 # check for the ungrib case products and link to them
-ungrib_root=${CYC_HME}/ungrib/ens_${memid}
-if [ ! -d ${ungrib_root} ]; then
-  printf "ERROR: \${ungrib_root} directory\n ${ungrib_root}\n does not exist.\n"
+ungrib_dir=${CYC_HME}/ungrib/ens_${memid}
+if [ ! -d ${ungrib_dir} ]; then
+  printf "ERROR: \${ungrib_dir} directory\n ${ungrib_dir}\n does not exist.\n"
   exit 1
 else
   for fcst in ${fcst_seq[@]}; do
-    filename="${ungrib_root}/${BKG_DATA}:`date +%Y-%m-%d_%H -d "${strt_dt} ${fcst} hours"`"
+    filename="${ungrib_dir}/${BKG_DATA}:`date +%Y-%m-%d_%H -d "${strt_dt} ${fcst} hours"`"
     if [ ! -s ${filename} ]; then
       printf "ERROR: ${filename} is missing.\n"
       exit 1
@@ -390,14 +390,14 @@ done
 #  Build WPS namelist
 ##################################################################################
 # Copy the wps namelist template, NOTE: THIS WILL BE MODIFIED DO NOT LINK TO IT
-namelist_temp=${cfg_dir}/namelists/namelist.wps
-if [ ! -r ${namelist_temp} ]; then 
-  msg="WPS namelist template\n ${namelist_temp}\n is not readable or "
+namelist_tmp=${cfg_dir}/namelists/namelist.wps
+if [ ! -r ${namelist_tmp} ]; then 
+  msg="WPS namelist template\n ${namelist_tmp}\n is not readable or "
   msg+="does not exist.\n"
   printf "${msg}"
   exit 1
 else
-  cmd="cp -L ${namelist_temp} ."
+  cmd="cp -L ${namelist_tmp} ."
   printf "${cmd}\n"; eval "${cmd}"
 fi
 

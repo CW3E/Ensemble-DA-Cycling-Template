@@ -403,25 +403,25 @@ mpiprocs=$(( ${N_NDES} * ${N_PROC} ))
 ##################################################################################
 # The following paths are relative to workflow supplied root paths
 #
-# work_root   = Work directory where WRF runs
-# wrf_in_root = Directory of previous wrf run for restart runs
-# wrf_files   = All file contents of clean WRF/run directory
-# wrf_exe     = Path and name of working executable
+# work_dir   = Work directory where WRF runs
+# wrf_in_dir = Directory of previous wrf run for restart runs
+# wrf_files  = All file contents of clean WRF/run directory
+# wrf_exe    = Path and name of working executable
 #
 ##################################################################################
 # define work root and change directories
 if [[ ${WRF_IC} = ${RESTART} ]]; then
-  work_root=${CYC_HME}/wrfrst/ens_${memid}	
-  wrf_in_root=${CYC_HME}/wrf/ens_${memid}
-  if [[ ! -d ${wrf_in_root} ]]; then
-    printf "ERROR: \${wrf_in_root} directory\n ${wrf_in_root}\n does not exist.\n"
+  work_dir=${CYC_HME}/wrfrst/ens_${memid}	
+  wrf_in_dir=${CYC_HME}/wrf/ens_${memid}
+  if [[ ! -d ${wrf_in_dir} ]]; then
+    printf "ERROR: \${wrf_in_dir} directory\n ${wrf_in_dir}\n does not exist.\n"
     exit 1
   fi
 else
-  work_root=${CYC_HME}/wrf/ens_${memid}
+  work_dir=${CYC_HME}/wrf/ens_${memid}
 fi
 
-cmd="mkdir -p ${work_root}; cd ${work_root}"
+cmd="mkdir -p ${work_dir}; cd ${work_dir}"
 printf "${cmd}\n"; eval "${cmd}"
 
 # Check that the wrf executable exists and runs
@@ -490,7 +490,7 @@ for dmn in ${dmns[@]}; do
 
   elif [[ ${WRF_IC} = ${RESTART} ]]; then
     # check for restart files at valid start time for each domain
-    wrfrst=${wrf_in_root}/wrfrst_d${dmn}_${dt_str}
+    wrfrst=${wrf_in_dir}/wrfrst_d${dmn}_${dt_str}
     if [ ! -r ${wrfrst} ]; then
       printf "ERROR: wrfrst source\n ${wrfrst}\n does not exist or is not readable.\n"
       exit 1
@@ -567,14 +567,14 @@ fi
 #  Build WRF namelist
 ##################################################################################
 # Copy the wrf namelist template, NOTE: THIS WILL BE MODIFIED DO NOT LINK TO IT
-namelist_temp=${cfg_dir}/namelists/namelist.${BKG_DATA}
-if [ ! -r ${namelist_temp} ]; then 
-  msg="WRF namelist template\n ${namelist_temp}\n is not readable or "
+namelist_tmp=${cfg_dir}/namelists/namelist.${BKG_DATA}
+if [ ! -r ${namelist_tmp} ]; then 
+  msg="WRF namelist template\n ${namelist_tmp}\n is not readable or "
   msg+="does not exist.\n"
   printf "${msg}"
   exit 1
 else
-  cmd="cp -L ${namelist_temp} ./namelist.input"
+  cmd="cp -L ${namelist_tmp} ./namelist.input"
   printf "${cmd}\n"; eval "${cmd}"
 fi
 
@@ -740,7 +740,7 @@ for dmn in ${dmns[@]}; do
       # if performing a restart run, link the outputs back to the original
       # run directory for sake of easy post-processing
       if [[ ${WRF_IC} = ${RESTART} ]]; then
-        cmd="ln -sfr wrfout_d${dmn}_${dt_str} ${wrf_in_root}"
+        cmd="ln -sfr wrfout_d${dmn}_${dt_str} ${wrf_in_dir}"
         printf "${cmd}\n"; eval "${cmd}"
       fi
     fi
@@ -762,7 +762,7 @@ for dmn in ${dmns[@]}; do
         # if performing a restart run, link the outputs back to the original
         # run directory for sake of easy post-processing
         if [[ ${WRF_IC} = ${RESTART} ]]; then
-          cmd="ln -sfr wrfrst_d${dmn}_${dt_str} ${wrf_in_root}"
+          cmd="ln -sfr wrfrst_d${dmn}_${dt_str} ${wrf_in_dir}"
           printf "${cmd}\n"; eval "${cmd}"
         fi
       fi

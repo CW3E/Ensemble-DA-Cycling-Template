@@ -385,12 +385,12 @@ fi
 # Begin pre-GSI setup, running one domain at a time
 ##################################################################################
 # Create the work directory organized by domain analyzed and cd into it
-work_root=${CYC_HME}/gsi
+work_dir=${CYC_HME}/gsi
 
 for dmn in `seq -f "%02g" 1 ${max_dom}`; do
   # NOTE: Hybrid DA uses the control forecast as the EnKF forecast mean, not the
   # control analysis. Work directory for GSI is sub-divided based on domain index
-  dmndir=${work_root}/d${dmn}
+  dmndir=${work_dir}/d${dmn}
   printf "Create work root directory\n ${dmndir}.\n"
 
   if [ -d "${dmndir}" ]; then

@@ -316,14 +316,15 @@ mpiprocs=$(( ${N_NDES} * ${N_PROC} ))
 ##################################################################################
 # The following paths are relative to workflow supplied root paths
 #
-# work_root = Work directory where real runs and outputs input files
-# wrf_files = All file contents of clean WRF/run directory
-# real_exe  = Path and name of working executable
+# metgrid_dir = Directory from which metgrid data is sourced
+# work_dir    = Work directory where real runs and outputs input files
+# wrf_files   = All file contents of clean WRF/run directory
+# real_exe    = Path and name of working executable
 #
 ##################################################################################
 # define work root and change directories
-work_root=${CYC_HME}/real/ens_${memid}
-cmd="mkdir -p ${work_root}; cd ${work_root}"
+work_dir=${CYC_HME}/real/ens_${memid}
+cmd="mkdir -p ${work_dir}; cd ${work_dir}"
 printf "${cmd}\n"; eval "${cmd}"
 
 # Check that the real executable exists and runs
@@ -358,12 +359,12 @@ for dmn in ${dmns[@]}; do
   for fcst in ${fcst_seq[@]}; do
     dt_str=`date "+%Y-%m-%d_%H_%M_%S" -d "${strt_dt} ${fcst} hours"`
     realinput_name=met_em.d${dmn}.${dt_str}.nc
-    wps_dir=${CYC_HME}/metgrid/ens_${memid}
-    if [ ! -r "${wps_dir}/${realinput_name}" ]; then
+    metgrid_dir=${CYC_HME}/metgrid/ens_${memid}
+    if [ ! -r "${metgrid_dir}/${realinput_name}" ]; then
       printf "ERROR: Input file\n ${CYC_HME}/${realinput_name}\n is missing.\n"
       exit 1
     else
-      cmd="ln -sfr ${wps_dir}/${realinput_name} ."
+      cmd="ln -sfr ${metgrid_dir}/${realinput_name} ."
       printf "${cmd}\n"; eval "${cmd}"
     fi
   done
@@ -387,14 +388,14 @@ fi
 #  Build real namelist
 ##################################################################################
 # Copy the wrf namelist template, NOTE: THIS WILL BE MODIFIED DO NOT LINK TO IT
-namelist_temp=${cfg_dir}/namelists/namelist.${BKG_DATA}
-if [ ! -r ${namelist_temp} ]; then 
-  msg="WRF namelist template\n ${namelist_temp}\n is not readable or "
+namelist_tmp=${cfg_dir}/namelists/namelist.${BKG_DATA}
+if [ ! -r ${namelist_tmp} ]; then 
+  msg="WRF namelist template\n ${namelist_tmp}\n is not readable or "
   msg+="does not exist.\n"
   printf "${msg}"
   exit 1
 else
-  cmd="cp -L ${namelist_temp} ./namelist.input"
+  cmd="cp -L ${namelist_tmp} ./namelist.input"
   printf "${cmd}\n"; eval "${cmd}"
 fi
 

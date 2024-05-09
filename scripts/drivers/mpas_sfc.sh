@@ -177,7 +177,6 @@ elif [[ ${IF_ZETA_LIST} = ${YES} ]]; then
     printf "Simulation configuration directory\n    ${cfg_dir}/static\n"
     printf "must have a unique choice of *.ZETA_LIST.txt\n"
     exit 1
-  elif 
   else
     zeta_list=${zeta_list[0]}
   fi
@@ -234,14 +233,6 @@ if [ ! ${MPAS_ROOT} ]; then
   exit 1
 elif [ ! -d ${MPAS_ROOT} ]; then
   printf "ERROR: \${MPAS_ROOT} directory\n ${MPAS_ROOT}\n does not exist.\n"
-  exit 1
-fi
-
-if [ ! ${EXP_CFG} ]; then
-  printf "ERROR: \${EXP_CFG} is not defined.\n"
-  exit 1
-elif [ ! -d ${EXP_CFG} ]; then
-  printf "ERROR: \${EXP_CFG} directory\n ${EXP_CFG}\n does not exist.\n"
   exit 1
 fi
 
@@ -305,15 +296,15 @@ mpiprocs=$(( ${N_NDES} * ${N_PROC} ))
 ##################################################################################
 # The following paths are relative to workflow root paths
 #
-# ungrib_root = Directory from which ungribbed background data is sourced
-# work_root   = Work directory where init_atmosphere runs and outputs
-# mpas_files  = All file contents of clean MPAS build directory
-# init_exe    = Path and name of working executable
+# ungrib_dir = Directory from which ungrib data is sourced
+# work_dir   = Work directory where init_atmosphere runs and outputs
+# mpas_files = All file contents of clean MPAS build directory
+# init_exe   = Path and name of init_atmosphere executable
 #
 ##################################################################################
 # Create work root and change directory
-work_root=${CYC_HME}/init_atmosphere_sfc/ens_${memid}
-cmd="mkdir -p ${work_root}; cd ${work_root}"
+work_dir=${CYC_HME}/init_atmosphere_sfc/ens_${memid}
+cmd="mkdir -p ${work_dir}; cd ${work_dir}"
 printf "${cmd}\n"; eval "${cmd}"
 
 # check that the init_atmosphere executable exists and can be run
@@ -369,13 +360,13 @@ for fcst in ${fcst_seq[@]}; do
   printf "${cmd}\n"; eval "${cmd}"
 done
 
-ungrib_root=${CYC_HME}/ungrib/ens_${memid}
-if [ ! -d ${ungrib_root} ]; then
-  printf "ERROR: \${ungrib_root} directory\n ${ungrib_root}\n does not exist.\n"
+ungrib_dir=${CYC_HME}/ungrib/ens_${memid}
+if [ ! -d ${ungrib_dir} ]; then
+  printf "ERROR: \${ungrib_dir} directory\n ${ungrib_dir}\n does not exist.\n"
   exit 1
 else
   for fcst in ${fcst_seq[@]}; do
-    filename="${ungrib_root}/${BKG_DATA}:`date +%Y-%m-%d_%H -d "${strt_dt} ${fcst} hours"`"
+    filename="${ungrib_dir}/${BKG_DATA}:`date +%Y-%m-%d_%H -d "${strt_dt} ${fcst} hours"`"
     if [ ! -s ${filename} ]; then
       printf "ERROR: ${filename} is missing.\n"
       exit 1
@@ -387,7 +378,7 @@ else
 fi
 
 # Check to make sure the static terrestrial input file is available and link
-static_input=${EXP_CFG}/static/${cfg_nme}.static.nc
+static_input=${cfg_dir}/static/${cfg_nme}.static.nc
 if [ ! -r "${static_input}" ]; then
   printf "ERROR: Input file\n ${static_input}\n is missing.\n"
   exit 1

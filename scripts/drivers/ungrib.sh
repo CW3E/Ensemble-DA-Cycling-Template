@@ -121,8 +121,9 @@ fi
 ##################################################################################
 # Options below are defined in workflow variables
 #
-# MEMID       = Ensemble ID index, 00 for control, i > 0 for perturbation
 # EXP_NME     = Case study / config short name directory structure
+# CFG_ROOT    = Root directory containing simulation settings
+# MEMID       = Ensemble ID index, 00 for control, i > 0 for perturbation
 # STRT_DT     = Simulation start time in YYYYMMDDHH
 # BKG_STRT_DT = Background data simulation start time in YYYYMMDDHH
 # IF_DYN_LEN  = "Yes" or "No" switch to compute forecast length dynamically 
@@ -131,8 +132,7 @@ fi
 # EXP_VRF     = Verfication time for calculating forecast hours, IF_DYN_LEN=Yes
 # BKG_INT     = Interval of background input data in HH
 # BKG_DATA    = String case variable for supported inputs: GFS, GEFS currently
-# IF_ECMWF_ML = "Yes" or "No" switch to compute ECMWF coefficients for
-#               initializing with model level data, case insensitive
+# IF_ECMWF_ML = "Yes" or "No" switch to compute ECMWF model level coefficients
 #
 ##################################################################################
 
@@ -145,6 +145,13 @@ else
   cfg_nme=${exp_nme[1]}
   printf "Setting up configuration:\n    ${cfg_nme}\n"
   printf "for:\n    ${cse_nme}\n case study.\n"
+  if [ ! ${CFG_ROOT} ]; then
+    printf "ERROR: \${CFG_ROOT} is not defined.\n"
+    exit 1
+  elif [ ! -d ${CFG_ROOT} ]; then
+    printf "ERROR: \${CFG_ROOT} directory\n ${CFG_ROOT}\n does not exist.\n"
+    exit 1
+  fi
   cfg_dir=${CFG_ROOT}/${EXP_NME}
   if [ ! -d ${cfg_dir} ]; then
     printf "ERROR: simulation settings directory\n ${cfg_dir}\n does not exist.\n"
@@ -279,7 +286,6 @@ fi
 # Below variables are defined in workflow variables
 #
 # WPS_ROOT  = Root directory of clean WPS build
-# CFG_ROOT = Root directory containing simulation settings
 # CYC_HME   = Cycle YYYYMMDDHH named directory for cycling data
 # GRIB_ROOT = Directory for grib files, sub-directories organized by BKG_DATA name
 #
@@ -290,14 +296,6 @@ if [ ! ${WPS_ROOT} ]; then
   exit 1
 elif [ ! -d ${WPS_ROOT} ]; then
   printf "ERROR: WPS_ROOT directory\n ${WPS_ROOT}\n does not exist.\n"
-  exit 1
-fi
-
-if [ ! ${CFG_ROOT} ]; then
-  printf "ERROR: \${CFG_ROOT} is not defined.\n"
-  exit 1
-elif [ ! -d ${CFG_ROOT} ]; then
-  printf "ERROR: \${CFG_ROOT} directory\n ${CFG_ROOT}\n does not exist.\n"
   exit 1
 fi
 
@@ -327,7 +325,7 @@ fi
 ##################################################################################
 # The following paths are relative to workflow supplied root paths
 #
-# work_root  = Work directory where ungrib_exe runs and outputs
+# work_dir   = Work directory where ungrib_exe runs and outputs
 # wps_files  = All file contents of clean WPS directory
 # ungrib_exe = Path and name of working executable
 # vtable     = Path and name of variable table
@@ -335,8 +333,8 @@ fi
 #
 ##################################################################################
 # define work root and change directories
-work_root=${CYC_HME}/ungrib/ens_${memid}
-cmd="mkdir -p ${work_root}; cd ${work_root}"
+work_dir=${CYC_HME}/ungrib/ens_${memid}
+cmd="mkdir -p ${work_dir}; cd ${work_dir}"
 printf "${cmd}\n"; eval "${cmd}"
 
 # check that the ungrib executable exists and runs
@@ -429,14 +427,14 @@ fi
 #  Build WPS namelist
 ##################################################################################
 # Copy the wps namelist template, NOTE: THIS WILL BE MODIFIED DO NOT LINK TO IT
-namelist_temp=${cfg_dir}/namelists/namelist.wps
-if [ ! -r ${namelist_temp} ]; then 
-  msg="WPS namelist template\n ${namelist_temp}\n is not readable or "
+namelist_tmp=${cfg_dir}/namelists/namelist.wps
+if [ ! -r ${namelist_tmp} ]; then 
+  msg="WPS namelist template\n ${namelist_tmp}\n is not readable or "
   msg+="does not exist.\n"
   printf "${msg}"
   exit 1
 else
-  cmd="cp -L ${namelist_temp} ."
+  cmd="cp -L ${namelist_tmp} ."
   printf "${cmd}\n"; eval "${cmd}"
 fi
 

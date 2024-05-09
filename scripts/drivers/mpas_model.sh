@@ -438,15 +438,15 @@ mpiprocs=$(( ${N_NDES} * ${N_PROC} ))
 # ic_root    = Directory from which initial condition data is sourced
 # sfc_root   = Directory from which surface update data is sourced
 # lbc_root   = Directory from which lateral boundary data is sourced
-# work_root  = Work directory where atmosphere_model runs and outputs
+# work_dir   = Work directory where atmosphere_model runs and outputs
 # mpas_files = All file contents of clean MPAS build directory
 # atmos_exe  = Path and name of working executable
 # phys_files = All files from WRF physics directory, incl Thompson MP
 #
 ##################################################################################
 # Create work root and change directory
-work_root=${CYC_HME}/atmosphere_model/ens_${memid}
-cmd="mkdir -p ${work_root}; cd ${work_root}"
+work_dir=${CYC_HME}/atmosphere_model/ens_${memid}
+cmd="mkdir -p ${work_dir}; cd ${work_dir}"
 printf "${cmd}\n"; eval "${cmd}"
 
 # check that the atmosphere_model executable exists and can be run
@@ -458,8 +458,8 @@ fi
 
 # Make links to the model run files
 mpas_files=(${MPAS_ROOT}/*)
-for run_f in ${mpas_files[@]}; do
-  cmd="ln -sf ${run_f} ."
+for file in ${mpas_files[@]}; do
+  cmd="ln -sf ${file} ."
   printf "${cmd}\n"; eval "${cmd}"
 done
 
@@ -690,8 +690,8 @@ cmd="mv stream_list.* ${log_dir}"
 printf "${cmd}\n"; eval "${cmd}"
 
 # Remove links to the model run files
-for run_f in ${mpas_files[@]}; do
-  cmd="rm -f `basename ${run_f}`"
+for file in ${mpas_files[@]}; do
+  cmd="rm -f `basename ${file}`"
   printf "${cmd}\n"; eval "${cmd}"
 done
 

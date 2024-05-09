@@ -180,7 +180,7 @@ fi
 ##################################################################################
 # The following paths are relative to control flow supplied root paths
 #
-# work_root      = Directory where da_update_bc.exe runs
+# work_dir      = Directory where da_update_bc.exe runs
 # real_dir       = Directory real.exe runs and outputs IC and BC files for cycle
 # ctr_dir        = Directory with control WRF forecast for lower boundary update 
 # ens_dir        = Directory with ensemble WRF forecast for lower boundary update 
@@ -191,7 +191,7 @@ fi
 ##################################################################################
 
 for memid in `seq -f "%02g" 0 ${ens_max}`; do
-  work_root=${CYC_HME}/wrfda_bc
+  work_dir=${CYC_HME}/wrfda_bc
   real_dir=${CYC_HME}/real/ens_${memid}
   gsi_dir=${CYC_HME}/gsi
   enkf_dir=${CYC_HME}/enkf
@@ -209,9 +209,9 @@ for memid in `seq -f "%02g" 0 ${ens_max}`; do
   
   if [[ ${BOUNDARY} = ${LOWER} ]]; then 
     # create working directory and cd into it
-    work_root=${work_root}/lower_bdy_updt/ens_${memid}
-    mkdir -p ${work_root}
-    cmd="cd ${work_root}"
+    work_dir=${work_dir}/lower_bdy_updt/ens_${memid}
+    mkdir -p ${work_dir}
+    cmd="cd ${work_dir}"
     printf "${cmd}\n"; eval "${cmd}"
     
     # Remove IC/BC in the directory if old data present
@@ -314,9 +314,9 @@ for memid in `seq -f "%02g" 0 ${ens_max}`; do
   
   else
     # create working directory and cd into it
-    work_root=${work_root}/lateral_bdy_updt/ens_${memid}
-    mkdir -p ${work_root}
-    cmd="cd ${work_root}"
+    work_dir=${work_dir}/lateral_bdy_updt/ens_${memid}
+    mkdir -p ${work_dir}
+    cmd="cd ${work_dir}"
     printf "${cmd}\n"; eval "${cmd}"
     
     # Remove IC/BC in the directory if old data present

@@ -6,8 +6,8 @@
   <!-- CONTROL FLOW NAME / TUNABLE SETTINGS -->
   <!ENTITY EXP_VRF     "2022122800"> <!-- Define the valid date YYYYMMDDHH for verification -->
   <!ENTITY CSE_NME     "&EXP_VRF;_valid_date"> <!-- Define the name of case study / experiment group -->
-  <!ENTITY CNFG_NME    "WRF_9_WestCoast"> <!-- Configuration name including tunable parameters -->
-  <!ENTITY EXP_NME     "&CSE_NME;/&CNFG_NME;"> <!-- Experiment logs and data are defined in the case / configuration nested structure -->
+  <!ENTITY CFG_NME     "WRF_9_WestCoast"> <!-- Configuration name including tunable parameters -->
+  <!ENTITY EXP_NME     "&CSE_NME;/&CFG_NME;"> <!-- Experiment logs and data are defined in the case / configuration nested structure -->
   <!-- END CONTROL FLOW NAME / TUNABLE SETTINGS -->
 
   <!-- COMPUTER-DEPENDENT ITEMS -->
@@ -20,7 +20,7 @@
 
   <!-- WORKFLOW SETTINGS -->
   <!ENTITY EXP_LOG      "&CLNE_ROOT;/logs/&EXP_NME;"> <!-- Root directory of workflow task logs -->
-  <!ENTITY CNFG_ROOT    "&CLNE_ROOT;/simulation_settings"> <!-- Root directory of experiment configuration files -->
+  <!ENTITY CFG_ROOT     "&CLNE_ROOT;/simulation_settings"> <!-- Root directory of experiment configuration files -->
   <!ENTITY SCRIPTS      "&CLNE_ROOT;/scripts"> <!-- Root directory of workflow framework scripts -->
   <!ENTITY DRIVERS      "&SCRIPTS;/drivers"> <!-- Root directory of task driver scripts -->
   <!ENTITY UTILITY      "&SCRIPTS;/utilities"> <!-- Root directory of utility scripts for hacking rocoto to work -->
@@ -104,6 +104,10 @@
         <value>&EXP_NME;</value>
       </envar>
       <envar>
+        <name>CFG_ROOT</name>
+        <value>&CFG_ROOT;</value>
+      </envar>
+      <envar>
          <name>MEMID</name>
          <value>#ENS_N#</value>
       </envar>
@@ -148,10 +152,6 @@
         <value>&WPS_ROOT;</value>
       </envar>
       <envar>
-        <name>CNFG_ROOT</name>
-        <value>&CNFG_ROOT;</value>
-      </envar>
-      <envar>
         <name>CYC_HME</name>
         <value><cyclestr>&WORK_ROOT;/@Y@m@d@H</cyclestr></value>
       </envar>
@@ -178,6 +178,10 @@
       <envar>
         <name>EXP_NME</name>
         <value>&EXP_NME;</value>
+      </envar>
+      <envar>
+        <name>CFG_ROOT</name>
+        <value>&CFG_ROOT;</value>
       </envar>
       <envar>
          <name>MEMID</name>
@@ -214,10 +218,6 @@
       <envar>
         <name>WPS_ROOT</name>
         <value>&WPS_ROOT;</value>
-      </envar>
-      <envar>
-        <name>CNFG_ROOT</name>
-        <value>&CNFG_ROOT;</value>
       </envar>
       <envar>
         <name>CYC_HME</name>
@@ -259,6 +259,10 @@
         <value>&EXP_NME;</value>
       </envar>
       <envar>
+        <name>CFG_ROOT</name>
+        <value>&CFG_ROOT;</value>
+      </envar>
+      <envar>
          <name>MEMID</name>
          <value>#ENS_N#</value>
       </envar>
@@ -293,10 +297,6 @@
       <envar>
         <name>WRF_ROOT</name>
         <value>&WRF_ROOT;</value>
-      </envar>
-      <envar>
-        <name>CNFG_ROOT</name>
-        <value>&CNFG_ROOT;</value>
       </envar>
       <envar>
         <name>CYC_HME</name>
@@ -336,6 +336,10 @@
       <envar>
         <name>EXP_NME</name>
         <value>&EXP_NME;</value>
+      </envar>
+      <envar>
+        <name>CFG_ROOT</name>
+        <value>&CFG_ROOT;</value>
       </envar>
       <envar>
          <name>MEMID</name>
@@ -400,10 +404,6 @@
       <envar>
         <name>WRF_ROOT</name>
         <value>&WRF_ROOT;</value>
-      </envar>
-      <envar>
-        <name>CNFG_ROOT</name>
-        <value>&CNFG_ROOT;</value>
       </envar>
       <envar>
         <name>CYC_HME</name>

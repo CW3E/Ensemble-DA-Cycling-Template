@@ -175,7 +175,6 @@ elif [[ ${IF_ZETA_LIST} = ${YES} ]]; then
     printf "Simulation configuration directory\n    ${cfg_dir}/static\n"
     printf "must have a unique choice of *.ZETA_LIST.txt\n"
     exit 1
-  elif 
   else
     zeta_list=${zeta_list[0]}
   fi
@@ -282,15 +281,15 @@ mpiprocs=$(( ${N_NDES} * ${N_PROC} ))
 ##################################################################################
 # The following paths are relative to workflow root paths
 #
-# ungrib_root = Directory from which ungribbed background data is sourced
-# work_root   = Work directory where init_atmosphere runs and outputs
-# mpas_files  = All file contents of clean MPAS build directory
-# init_exe    = Path and name of working executable
+# ungrib_dir = Directory from which ungrib data is sourced
+# work_dir   = Work directory where init_atmosphere runs and outputs
+# mpas_files = All file contents of clean MPAS build directory
+# init_exe   = Path and name of init_atmosphere_model executable
 #
 ##################################################################################
 # Create work root and change directory
-work_root=${CYC_HME}/init_atmosphere_ic/ens_${memid}
-cmd="mkdir -p ${work_root}; cd ${work_root}"
+work_dir=${CYC_HME}/init_atmosphere_ic/ens_${memid}
+cmd="mkdir -p ${work_dir}; cd ${work_dir}"
 printf "${cmd}\n"; eval "${cmd}"
 
 # Check that the executable exists and can be run
@@ -341,12 +340,12 @@ cmd="rm -f ./${filename}"
 printf "${cmd}\n"; eval "${cmd}"
 
 # Link case ungrib data from ungrib root
-ungrib_root=${CYC_HME}/ungrib/ens_${memid}
-if [ ! -d ${ungrib_root} ]; then
-  printf "ERROR: \${ungrib_root} directory\n ${ungrib_root}\n does not exist.\n"
+ungrib_dir=${CYC_HME}/ungrib/ens_${memid}
+if [ ! -d ${ungrib_dir} ]; then
+  printf "ERROR: \${ungrib_dir} directory\n ${ungrib_dir}\n does not exist.\n"
   exit 1
 else
-  filename="${ungrib_root}/${BKG_DATA}:`date +%Y-%m-%d_%H -d "${strt_dt} 0 hours"`"
+  filename="${ungrib_dir}/${BKG_DATA}:`date +%Y-%m-%d_%H -d "${strt_dt} 0 hours"`"
   if [ ! -s ${filename} ]; then
     printf "ERROR: ${filename} is missing.\n"
     exit 1
