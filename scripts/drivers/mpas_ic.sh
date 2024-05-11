@@ -164,8 +164,8 @@ elif [[ ${IF_ZETA_LIST} = ${YES} ]]; then
   zeta_list=( `ls ${cfg_dir}/static/*.ZETA_LIST.txt` )
   if [ $? -ne 0 ]; then
     printf "ERROR: no match found for pattern\n"
-    printf "    ${cfg_dir}/static/*.ZETA_LIST.txt"
-    printf "A *.ZETA_LIST.txt is required for specified zeta levels."
+    printf "    ${cfg_dir}/static/*.ZETA_LIST.txt\n"
+    printf "A *.ZETA_LIST.txt is required for specified zeta levels.\n"
     exit 1
   elif [ ${#zeta_list[@]} -gt 1 ]; then
     printf "ERROR: multiple matches found for *.ZETA_LIST.txt\n"

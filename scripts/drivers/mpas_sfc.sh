@@ -166,8 +166,8 @@ elif [[ ${IF_ZETA_LIST} = ${YES} ]]; then
   zeta_list=( `ls ${cfg_dir}/static/*.ZETA_LIST.txt` )
   if [ $? -ne 0 ]; then
     printf "ERROR: no match found for pattern\n"
-    printf "    ${cfg_dir}/static/*.ZETA_LIST.txt"
-    printf "A *.ZETA_LIST.txt is required for specified zeta levels."
+    printf "    ${cfg_dir}/static/*.ZETA_LIST.txt\n"
+    printf "A *.ZETA_LIST.txt is required for specified zeta levels.\n"
     exit 1
   elif [ ${#zeta_list[@]} -gt 1 ]; then
     printf "ERROR: multiple matches found for *.ZETA_LIST.txt\n"
@@ -404,7 +404,7 @@ fi
 # Copy the init_atmosphere namelist / streams templates,
 # NOTE: THESE WILL BE MODIFIED DO NOT LINK TO THEM
 namelist_tmp=${cfg_dir}/namelists/namelist.init_atmosphere.${BKG_DATA}
-streams_tmp=${cfg_dir}/streamlists/streams.init_atmosphere
+streams_tmp=${cfg_dir}/namelists/streams.init_atmosphere
 
 if [ ! -r ${namelist_tmp} ]; then 
   msg="init_atmosphere namelist template\n ${namelist_tmp}\n is not readable or "

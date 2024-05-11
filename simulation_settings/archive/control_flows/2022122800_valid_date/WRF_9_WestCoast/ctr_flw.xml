@@ -50,7 +50,7 @@
   <!-- WRF SETTINGS -->
   <!ENTITY HIST_INT     "03"> <!-- Output interval for wrfout files in HH -->
   <!ENTITY RSTRT_INT    "24"> <!-- Output interval for wrfout files in HH -->
-  <!ENTITY IF_SST_UPDT  "No"> <!-- This setting defines SST updates in simulation and is applied to both WRF and real.exe runs -->
+  <!ENTITY IF_SST_UPDT  "Yes"> <!-- This setting defines SST updates in simulation and is applied to both WRF and real.exe runs -->
   <!ENTITY IF_FEEDBACK  "No"> <!-- This setting defines Yes / No for nested domain 2-way coupling -->
   <!ENTITY NIO_TPG      "0"> <!-- Quilting tasks per group, set NIO_TPG=0 for default TURN OFF QUILTING --> 
   <!ENTITY NIO_GRPS     "4"> <!-- Quilting number of groups -->

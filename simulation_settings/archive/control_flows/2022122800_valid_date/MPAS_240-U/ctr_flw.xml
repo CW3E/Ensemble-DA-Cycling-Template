@@ -56,7 +56,7 @@
   <!ENTITY IF_SST_UPDT  "No"> <!-- Lower boundary condition updates from background data -->
   <!ENTITY IF_SST_DIURN "No"> <!-- Diurnal updates to lower boundary conditions -->
   <!ENTITY IF_DEEPSOIL  "No"> <!-- Slowly varying deep soil temperatures -->
-  <!ENTITY IF_ZETA_LIST "No"> <!-- If zeta levels are explicitly set -->
+  <!ENTITY IF_ZETA_LIST "Yes"> <!-- If zeta levels are explicitly set -->
   <!ENTITY PIO_NUM      "0"> <!-- Number of tasks devoted to IO, set to 0 for all tasks run IO --> 
   <!ENTITY PIO_STRD     "1"> <!-- Parallel IO stride -->
   <!-- END MPAS SETTINGS -->
@@ -189,8 +189,8 @@
         <value>&CFG_ROOT;</value>
       </envar>
       <envar>
-        <name>DMN_NME</name>
-        <value>&DMN_NME;</value>
+        <name>MSH_NME</name>
+        <value>&MSH_NME;</value>
       </envar>
       <envar>
          <name>MEMID</name>
@@ -272,8 +272,8 @@
         <value>&CFG_ROOT;</value>
       </envar>
       <envar>
-        <name>DMN_NME</name>
-        <value>&DMN_NME;</value>
+        <name>MSH_NME</name>
+        <value>&MSH_NME;</value>
       </envar>
       <envar>
          <name>MEMID</name>

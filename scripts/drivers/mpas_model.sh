@@ -544,7 +544,7 @@ done
 
 # Check to make sure the graph partitioning file is available and link
 # NOTE: ${mpiprocs} must match the number of MPI processes
-graph_part=${CFG_ROOT}/static_files/${MSH_NME}.graph.info.part.${mpiprocs}
+graph_part=${CFG_ROOT}/meshes/${MSH_NME}.graph.info.part.${mpiprocs}
 if [ ! -r "${graph_part}" ]; then
   printf "ERROR: Input file\n ${graph_part}\n is missing.\n"
   exit 1
@@ -640,7 +640,7 @@ cat namelist.atmosphere \
 mv namelist.atmosphere.tmp namelist.atmosphere
 
 cat streams.atmosphere \
-  | sed "s/CFG_NME/${CFG_NME}/" \
+  | sed "s/CFG_NME/${cfg_nme}/" \
   | sed "s/=RSTRT_INT,/=\"${rstrt_int}\"/" \
   | sed "s/=HIST_INT,/=\"${hist_int}\"/" \
   | sed "s/=DIAG_INT,/=\"${diag_int}\"/" \

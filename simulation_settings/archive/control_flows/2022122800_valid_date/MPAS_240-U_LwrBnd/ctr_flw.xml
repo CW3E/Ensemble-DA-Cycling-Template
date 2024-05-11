@@ -350,6 +350,10 @@
         <value>&MPAS_CNST;</value>
       </envar>
       <envar>
+        <name>EXP_NME</name>
+        <value>&EXP_NME;</value>
+      </envar>
+      <envar>
         <name>MSH_NME</name>
         <value>&MSH_NME;</value>
       </envar>
