@@ -102,6 +102,7 @@
  cu_physics                          = 3,    0,    
  cudt                                = 3,    0,   
  shcu_physics                        = 0,    0,
+ sst_update                          = IF_SST_UPDT,
  isfflx                              = 1,
  ifsnow                              = 1,
  icloud                              = 1,
