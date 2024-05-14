@@ -47,16 +47,6 @@
 # Using GMT time zone for time computations
 export TZ="GMT"
 
-# Root directory for software compiles
-export SOFT_ROOT=/expanse/nfs/cw3e/cwp168/SOFT_ROOT
-
-# Paths to library dependencies
-export NETCDF=${SOFT_ROOT}/NETCDF
-export PNETCDF=${SOFT_ROOT}/NETCDF
-export PIO=${SOFT_ROOT}/ParallelIO-pio2_5_8
-export MPAS_DIR=${SOFT_ROOT}/MPAS-Model
-export LD_LIBRARY_PATH=${PIO}/lib:${LD_LIBRARY_PATH}
-
 # Defines expanse environment with intel compilers
 module purge
 module restore
@@ -68,7 +58,6 @@ module load netcdf-fortran/4.5.3
 module load netcdf-cxx/4.2
 module load hdf5/1.10.6
 module load parallel-netcdf/1.12.1
-module load cmake/3.18.2
 
 # create variables for namelist templates / switches
 CYCLING=[Cc][Yy][Cc][Ll][Ii][Nn][Gg]
