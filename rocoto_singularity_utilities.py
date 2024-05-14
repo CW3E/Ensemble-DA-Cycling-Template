@@ -129,8 +129,10 @@ CSES = [
 # name of .xml workflows to execute and monitor WITHOUT the extension of file
 CTR_FLWS = [
             'MPAS_240-U',
-            'MPAS_240-U_LwrBnd',
-            'WRF_9_WestCoast',
+            #'MPAS_240-U_LwrBnd',
+            #'MPAS_60-10_CONUS',
+            'MPAS_60-3_WestCoast',
+            #'WRF_9_WestCoast',
             'WRF_9-3_WestCoast',
            ]
 

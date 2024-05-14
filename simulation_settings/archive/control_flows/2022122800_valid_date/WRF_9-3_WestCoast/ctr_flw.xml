@@ -34,13 +34,13 @@
   <!-- END SOFTWARE SETTINGS -->
 
   <!-- CYCLING SETTINGS -->
-  <!ENTITY CYC_STRT     "202212270000"> <!-- First initial time for a forecast -->
+  <!ENTITY CYC_STRT     "202212230000"> <!-- First initial time for a forecast -->
   <!ENTITY CYC_STOP     "202212270000"> <!-- Last initial time for a forecast -->
   <!ENTITY CYC_INC      "24"> <!-- Interval between cycle start times -->
   <!-- END CYCLING SETTINGS -->
 
   <!-- ENSEMBLE SETTINGS -->
-  <!ENTITY MEM_LIST     "00"> <!-- list of ensemble perturbation indices -->
+  <!ENTITY MEM_LIST     "00 01 02"> <!-- list of ensemble perturbation indices -->
   <!ENTITY WRF_ENS_DOM  "02"> <!-- Max domain for ensemble simulation -->
   <!ENTITY DOWN_DOM     "02"> <!-- First domain index to have ICs downscaled from parent's initial conditions (>01) -->
   <!ENTITY ENS_BKG_DATA "GEFS"> <!-- GFS and GEFS currently supported -->
