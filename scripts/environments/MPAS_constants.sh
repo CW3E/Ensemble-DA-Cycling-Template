@@ -60,13 +60,13 @@ module load hdf5/1.10.6
 module load parallel-netcdf/1.12.1
 
 # Create variables for namelist templates / switches
-CYCLING=[Cc][Yy][Cc][Ll][Ii][Nn][Gg]
-LATERAL=[Ll][Aa][Tt][Ee][Rr][Aa][Ll]
-LOWER=[Ll][Oo][Ww][Ee][Rr]
-RESTART=[Rr][Ee][Ss][Tt][Aa][Rr][Tt]
-REALEXE=[Rr][Ee][Aa][Ll][Ee][Xx][Ee]
-NO=[Nn][Oo]
-YES=[Yy][Ee][Ss]
+export CYCLING=[Cc][Yy][Cc][Ll][Ii][Nn][Gg]
+export LATERAL=[Ll][Aa][Tt][Ee][Rr][Aa][Ll]
+export LOWER=[Ll][Oo][Ww][Ee][Rr]
+export RESTART=[Rr][Ee][Ss][Tt][Aa][Rr][Tt]
+export REALEXE=[Rr][Ee][Aa][Ll][Ee][Xx][Ee]
+export NO=[Nn][Oo]
+export YES=[Yy][Ee][Ss]
 
 # Defines YYYYMMDDHH iso regular expression
 export ISO_RE=^[0-9]{10}$

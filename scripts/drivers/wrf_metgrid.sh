@@ -104,9 +104,14 @@
 ##################################################################################
 # Preamble
 ##################################################################################
-# uncomment to run verbose for debugging / testing
-#set -x
-
+# CNST         = Full path to constants used to compile and run WRF / WPS
+# IF_DBG_SCRPT = Switch YES or else, this is NOT A REQUIRED ARGUMENT. Set variable
+#                IF_DBG_SCRPT=Yes within the configuration to initiate debugging,
+#                script will default to normal run behavior otherwise
+# SCHED        = IF_DBG_SCRPT=Yes, SCHED=SLURM or SCHED=PBS will auto-generate
+#                a job submission header in the debugging script to run manually
+#
+##################################################################################
 if [ ! -x ${CNST} ]; then
   printf "ERROR: constants file\n ${CNST}\n does not exist or is not executable.\n"
   exit 1
@@ -114,6 +119,36 @@ else
   # Read constants into the current shell
   cmd=". ${CNST}"
   printf "${cmd}\n"; eval "${cmd}"
+fi
+
+if [[ ${IF_DBG_SCRPT} = ${YES} ]]; then 
+  dbg=1
+  scrpt=$(mktemp /tmp/run_metgrid.XXXXXXX.sh)
+  printf "Driver runs in debug mode.\n"
+  printf "Producing a script and work directory for manual submission.\n"
+
+  if [[ ${SCHED} = SLURM ]]; then
+    # source slurm header from environment directory
+    cat `dirname ${CNST}`/slurm_header.sh >> ${scrpt}
+  elif [[ ${SCHED} = PBS ]]; then
+    # source pbs header from environment directory
+    cat `dirname ${CNST}`/pbs_header.sh >> ${scrpt}
+  fi
+
+  # Read constants and print into run script
+  while read line; do
+    IFS=" " read -ra parsed <<< ${line}
+    char=${parsed[0]}
+    if [[ ! ${char} =~ \# ]]; then
+      cmd=""
+      for char in ${parsed[@]}; do
+        cmd="${cmd}${char} "
+      done
+      printf "${cmd}\n" >> ${scrpt}
+    fi
+  done < ${CNST}
+else
+  dbg=0
 fi
 
 ##################################################################################
@@ -308,7 +343,11 @@ mpiprocs=$(( ${N_NDES} * ${N_PROC} ))
 # define work root and change directories
 work_dir=${CYC_HME}/metgrid/ens_${memid}
 cmd="mkdir -p ${work_dir}; cd ${work_dir}"
-printf "${cmd}\n"; eval "${cmd}"
+if [ ${dbg} = 1 ]; then
+  printf "${cmd}\n" >> ${scrpt}; eval "${cmd}"
+else
+  printf "${cmd}\n"; eval "${cmd}"
+fi
 
 # Check that metgrid executable exists and runs
 metgrid_exe=${WPS_ROOT}/metgrid.exe
@@ -319,9 +358,16 @@ fi
 
 # Make links to the WPS run files
 wps_files=(${WPS_ROOT}/*)
-for file in ${wps_files[@]}; do
-  cmd="ln -sf ${file} ."
+for filename in ${wps_files[@]}; do
+  cmd="rm -f `basename ${filename}`"
   printf "${cmd}\n"; eval "${cmd}"
+
+  cmd="ln -sf ${filename} ."
+  if [ ${dbg} = 0 ]; then
+    printf "${cmd}\n"; eval "${cmd}"
+  else
+    printf "${cmd}\n" >> ${scrpt}
+  fi
 done
 
 # Remove any previous namelists
@@ -329,17 +375,17 @@ cmd="rm -f namelist.wps"
 printf "${cmd}\n"; eval "${cmd}"
 
 # Remove any previous geogrid static files
-cmd="rm -f geo_em.d*"
+cmd="rm -f geo_em.*"
 printf "${cmd}\n"; eval "${cmd}"
 
 # Remove pre-existing metgrid files
-cmd="rm -f met_em.d0*.*.nc"
+cmd="rm -f met_em.*.nc"
 printf "${cmd}\n"; eval "${cmd}"
 
 # Move existing log files to a subdir if there are any
 printf "Checking for pre-existing log files.\n"
 if [ -f metgrid.log.0000 ]; then
-  logdir=metgrid_log.`ls -l --time-style=+%Y-%m-%d_%H_%M%_S ungrib.log | cut -d" " -f 6`
+  logdir=metgrid_log.`ls -l --time-style=+%Y-%m-%d_%H_%M%_S metgrid.log.0000 | cut -d" " -f 6`
   mkdir ${logdir}
   printf "Moving pre-existing log files to ${logdir}.\n"
   cmd="mv metgrid.log.* ${logdir}"
@@ -349,11 +395,8 @@ else
 fi
 
 # Remove any ungrib outputs
-for fcst in ${fcst_seq[@]}; do
-  filename="${BKG_DATA}:`date +%Y-%m-%d_%H -d "${strt_dt} ${fcst} hours"`"
-  cmd="rm -f ${filename}"
-  printf "${cmd}\n"; eval "${cmd}"
-done
+cmd="rm -f ${BKG_DATA}:*"
+printf "${cmd}\n"; eval "${cmd}"
 
 # check for the ungrib case products and link to them
 ungrib_dir=${CYC_HME}/ungrib/ens_${memid}
@@ -368,7 +411,11 @@ else
       exit 1
     else
       cmd="ln -sfr ${filename} ."
-      printf "${cmd}\n"; eval "${cmd}"
+      if [ ${dbg} = 0 ]; then
+        printf "${cmd}\n"; eval "${cmd}"
+      else
+        printf "${cmd}\n" >> ${scrpt}
+      fi
     fi
   done
 fi
@@ -376,13 +423,17 @@ fi
 # Check to make sure the geogrid input files (e.g. geo_em.d01.nc)
 # are available and make links to them
 for dmn in ${dmns[@]}; do
-  geoinput_name=${cfg_dir}/static/geo_em.d${dmn}.nc
-  if [ ! -r "${geoinput_name}" ]; then
-    printf "ERROR: Input file\n ${geoinput_name}\n is missing.\n"
+  filename=${cfg_dir}/static/geo_em.d${dmn}.nc
+  if [ ! -r "${filename}" ]; then
+    printf "ERROR: Input file\n ${filename}\n is missing.\n"
     exit 1
   else
-    cmd="ln -sf ${geoinput_name} ."
-    printf "${cmd}\n"; eval "${cmd}"
+    cmd="ln -sf ${filename} ."
+    if [ ${dbg} = 0 ]; then
+      printf "${cmd}\n"; eval "${cmd}"
+    else
+      printf "${cmd}\n" >> ${scrpt}
+    fi
   fi
 done
 
@@ -390,15 +441,19 @@ done
 #  Build WPS namelist
 ##################################################################################
 # Copy the wps namelist template, NOTE: THIS WILL BE MODIFIED DO NOT LINK TO IT
-namelist_tmp=${cfg_dir}/namelists/namelist.wps
-if [ ! -r ${namelist_tmp} ]; then 
-  msg="WPS namelist template\n ${namelist_tmp}\n is not readable or "
+filename=${cfg_dir}/namelists/namelist.wps
+if [ ! -r ${filename} ]; then 
+  msg="WPS namelist template\n ${filename}\n is not readable or "
   msg+="does not exist.\n"
   printf "${msg}"
   exit 1
 else
-  cmd="cp -L ${namelist_tmp} ."
-  printf "${cmd}\n"; eval "${cmd}"
+  cmd="cp -L ${filename} ."
+  if [ ${dbg} = 0 ]; then
+    printf "${cmd}\n"; eval "${cmd}"
+  else
+    printf "${cmd}\n" >> ${scrpt}
+  fi
 fi
 
 # define start / stop time patterns for namelist.wps
@@ -416,19 +471,32 @@ data_int_sec=$(( ${BKG_INT} * 3600 ))
 if [ ${IF_ECMWF_ML} = ${YES} ]; then
   out_fg_name="'${BKG_DATA}', 'PRES'"
 else
-  out_fg_name="'${BKG_DATA}',"
+  out_fg_name="'${BKG_DATA}'"
 fi
 
-# Update the start and stop date in namelist (propagates settings to three domains)
+# generate here file for template parameter replacement
+cat << EOF > replace_param.tmp
 cat namelist.wps \
-  | sed "s/= STRT_DT,/= ${out_sd},/" \
-  | sed "s/= STOP_DT,/= ${out_ed},/" \
-  | sed "s/= MAX_DOM,/= ${MAX_DOM},/" \
-  | sed "s/= INT_SEC,/= ${data_int_sec},/" \
-  | sed "s/= PREFIX,/= '${BKG_DATA}',/" \
-  | sed "s/= FG_NAME,/= ${out_fg_name},/" \
-  > namelist.wps.tmp
+| sed "s/= STRT_DT,/= ${out_sd},/" \
+| sed "s/= STOP_DT,/= ${out_ed},/" \
+| sed "s/= MAX_DOM,/= ${MAX_DOM},/" \
+| sed "s/= INT_SEC,/= ${data_int_sec},/" \
+| sed "s/= PREFIX,/= '${BKG_DATA}',/" \
+| sed "s/= FG_NAME,/= ${out_fg_name},/" \
+> namelist.wps.tmp
 mv namelist.wps.tmp namelist.wps
+EOF
+
+if [ ${dbg} = 1 ]; then
+  # include the replacement commands in run script
+  cat replace_param.tmp >> ${scrpt}
+  rm replace_param.tmp
+else
+  # update the namelist
+  chmod +x replace_param.tmp
+  ./replace_param.tmp
+  rm replace_param.tmp
+fi
 
 ##################################################################################
 # Run metgrid 
@@ -444,9 +512,18 @@ printf "BKG_DATA = ${BKG_DATA}\n"
 printf "BKG_INT  = ${BKG_INT}\n"
 printf "MAX_DOM  = ${MAX_DOM}\n"
 printf "\n"
+
+cmd="${MPIRUN} -n ${mpiprocs} ${metgrid_exe}"
+
+if [ ${dbg} = 1 ]; then
+  printf "${cmd}\n" >> ${scrpt}
+  mv ${scrpt} ${work_dir}/run_metgrid.sh
+  printf "Setup of metgrid work directory and run script complete.\n"
+  exit 0
+fi
+
 now=`date +%Y-%m-%d_%H_%M_%S`
 printf "metgrid started at ${now}.\n"
-cmd="${MPIRUN} -n ${mpiprocs} ${metgrid_exe}"
 printf "${cmd}\n"
 ${MPIRUN} -n ${mpiprocs} ${metgrid_exe}
 
@@ -466,17 +543,14 @@ cmd="mv namelist.wps ${log_dir}"
 printf "${cmd}\n"; eval "${cmd}"
 
 # Remove links to the WPS run files
-for file in ${wps_files[@]}; do
-  cmd="rm -f `basename ${file}`"
+for filename in ${wps_files[@]}; do
+  cmd="rm -f `basename ${filename}`"
   printf "${cmd}\n"; eval "${cmd}"
 done
 
 # Remove ungrib outputs
-for fcst in ${fcst_seq[@]}; do
-  filename="${BKG_DATA}:`date +%Y-%m-%d_%H -d "${strt_dt} ${fcst} hours"`"
-  cmd="rm -f ${filename}"
-  printf "${cmd}\n"; eval "${cmd}"
-done
+cmd="rm -f ${BKG_DATA}:*"
+printf "${cmd}\n"; eval "${cmd}"
 
 # Remove any previous geogrid static files
 cmd="rm -f geo_em.d*"

@@ -104,9 +104,14 @@
 ##################################################################################
 # Preamble
 ##################################################################################
-# uncomment to run verbose for debugging / testing
-#set -x
-
+# CNST         = Full path to constants used to compile and run WRF / WPS
+# IF_DBG_SCRPT = Switch YES or else, this is NOT A REQUIRED ARGUMENT. Set variable
+#                IF_DBG_SCRPT=Yes within the configuration to initiate debugging,
+#                script will default to normal run behavior otherwise
+# SCHED        = IF_DBG_SCRPT=Yes, SCHED=SLURM or SCHED=PBS will auto-generate
+#                a job submission header in the debugging script to run manually
+#
+##################################################################################
 if [ ! -x ${CNST} ]; then
   printf "ERROR: constants file\n ${CNST}\n does not exist or is not executable.\n"
   exit 1
@@ -114,6 +119,36 @@ else
   # Read constants into the current shell
   cmd=". ${CNST}"
   printf "${cmd}\n"; eval "${cmd}"
+fi
+
+if [[ ${IF_DBG_SCRPT} = ${YES} ]]; then 
+  dbg=1
+  scrpt=$(mktemp /tmp/run_ungrib.XXXXXXX.sh)
+  printf "Driver runs in debug mode.\n"
+  printf "Producing a script and work directory for manual submission.\n"
+
+  if [[ ${SCHED} = SLURM ]]; then
+    # source slurm header from environment directory
+    cat `dirname ${CNST}`/slurm_header.sh >> ${scrpt}
+  elif [[ ${SCHED} = PBS ]]; then
+    # source pbs header from environment directory
+    cat `dirname ${CNST}`/pbs_header.sh >> ${scrpt}
+  fi
+
+  # Read constants and print into run script
+  while read line; do
+    IFS=" " read -ra parsed <<< ${line}
+    char=${parsed[0]}
+    if [[ ! ${char} =~ \# ]]; then
+      cmd=""
+      for char in ${parsed[@]}; do
+        cmd="${cmd}${char} "
+      done
+      printf "${cmd}\n" >> ${scrpt}
+    fi
+  done < ${CNST}
+else
+  dbg=0
 fi
 
 ##################################################################################
@@ -335,7 +370,11 @@ fi
 # define work root and change directories
 work_dir=${CYC_HME}/ungrib/ens_${memid}
 cmd="mkdir -p ${work_dir}; cd ${work_dir}"
-printf "${cmd}\n"; eval "${cmd}"
+if [ ${dbg} = 1 ]; then
+  printf "${cmd}\n" >> ${scrpt}; eval "${cmd}"
+else
+  printf "${cmd}\n"; eval "${cmd}"
+fi
 
 # check that the ungrib executable exists and runs
 ungrib_exe=${WPS_ROOT}/ungrib.exe
@@ -346,9 +385,16 @@ fi
 
 # Make links to the WPS run files
 wps_files=(${WPS_ROOT}/*)
-for file in ${wps_files[@]}; do
-  cmd="ln -sf ${file} ."
+for filename in ${wps_files[@]}; do
+  cmd="rm -f `basename ${filename}`"
   printf "${cmd}\n"; eval "${cmd}"
+
+  cmd="ln -sf ${filename} ."
+  if [ ${dbg} = 0 ]; then
+    printf "${cmd}\n"; eval "${cmd}"
+  else
+    printf "${cmd}\n" >> ${scrpt}
+  fi
 done
 
 # Remove any previous Vtables
@@ -364,19 +410,24 @@ if [ ! -r ${vtable} ]; then
   exit 1
 else
   cmd="ln -sf ${vtable} Vtable"
-  printf "${cmd}\n"; eval "${cmd}"
+  if [ ${dbg} = 0 ]; then
+    printf "${cmd}\n"; eval "${cmd}"
+  else
+    printf "${cmd}\n" >> ${scrpt}
+  fi
 fi
 
 # Remove any ungrib inputs
 cmd="rm -f GRIBFILE.*"
 printf "${cmd}\n"; eval "${cmd}"
 
+# Remove any ungrib temp files
+cmd="rm -f PFILE:*"
+printf "${cmd}\n"; eval "${cmd}"
+
 # Remove any ungrib outputs
-for fcst in ${fcst_seq[@]}; do
-  filename="${BKG_DATA}:`date +%Y-%m-%d_%H -d "${strt_dt} ${fcst} hours"`"
-  cmd="rm -f ${filename}"
-  printf "${cmd}\n"; eval "${cmd}"
-done
+cmd="rm -f ${BKG_DATA}:*"
+printf "${cmd}\n"; eval "${cmd}"
 
 # Remove ECMWF coefficients if processing EC model levels
 if [ ${IF_ECMWF_ML} = ${YES} ]; then
@@ -384,11 +435,8 @@ if [ ${IF_ECMWF_ML} = ${YES} ]; then
   printf "${cmd}\n"; eval "${cmd}"
 
   # Check for ECMWF pressure coefficients 
-  for fcst in ${fcst_seq[@]}; do
-    filename=PRES:`date +%Y-%m-%d_%H -d "${strt_dt} ${fcst} hours"`
-    cmd="rm -f ${filename}"
-    printf "${cmd}\n"; eval "${cmd}"
-  done
+  cmd="rm -f PRES:*"
+  printf "${cmd}\n"; eval "${cmd}"
 fi
 
 # Move existing log files to a subdir if there are any
@@ -420,22 +468,30 @@ elif [ `ls -l ${grib_data}/${fnames} | wc -l` -lt ${n_files} ]; then
 else
   # link the grib data to the working directory
   cmd="./link_grib.csh ${grib_data}/${fnames}"
-  printf "${cmd}\n"; eval "${cmd}"
+  if [ ${dbg} = 0 ]; then
+    printf "${cmd}\n"; eval "${cmd}"
+  else
+    printf "${cmd}\n" >> ${scrpt}
+  fi
 fi
 
 ##################################################################################
 #  Build WPS namelist
 ##################################################################################
 # Copy the wps namelist template, NOTE: THIS WILL BE MODIFIED DO NOT LINK TO IT
-namelist_tmp=${cfg_dir}/namelists/namelist.wps
-if [ ! -r ${namelist_tmp} ]; then 
-  msg="WPS namelist template\n ${namelist_tmp}\n is not readable or "
+filename=${cfg_dir}/namelists/namelist.wps
+if [ ! -r ${filename} ]; then 
+  msg="WPS namelist template\n ${filename}\n is not readable or "
   msg+="does not exist.\n"
   printf "${msg}"
   exit 1
 else
-  cmd="cp -L ${namelist_tmp} ."
-  printf "${cmd}\n"; eval "${cmd}"
+  cmd="cp -L ${filename} ."
+  if [ ${dbg} = 0 ]; then
+    printf "${cmd}\n"; eval "${cmd}"
+  else
+    printf "${cmd}\n" >> ${scrpt}
+  fi
 fi
 
 # define start / stop time patterns for namelist.wps
@@ -453,19 +509,32 @@ MAX_DOM="01"
 if [ ${IF_ECMWF_ML} = ${YES} ]; then
   out_fg_name="'${BKG_DATA}', 'PRES'"
 else
-  out_fg_name="'${BKG_DATA}',"
+  out_fg_name="'${BKG_DATA}'"
 fi
 
-# apply updates
+# generate here file for template parameter replacement
+cat << EOF > replace_param.tmp
 cat namelist.wps \
-  | sed "s/= STRT_DT,/= ${strt_iso},/" \
-  | sed "s/= STOP_DT,/= ${stop_iso},/" \
-  | sed "s/= INT_SEC,/= ${data_int_sec},/" \
-  | sed "s/= MAX_DOM,/= ${MAX_DOM},/" \
-  | sed "s/= PREFIX,/= '${BKG_DATA}',/" \
-  | sed "s/= FG_NAME,/= ${out_fg_name},/" \
-  > namelist.wps.tmp
+| sed "s/= STRT_DT,/= ${strt_iso},/" \
+| sed "s/= STOP_DT,/= ${stop_iso},/" \
+| sed "s/= INT_SEC,/= ${data_int_sec},/" \
+| sed "s/= MAX_DOM,/= ${MAX_DOM},/" \
+| sed "s/= PREFIX,/= '${BKG_DATA}',/" \
+| sed "s/= FG_NAME,/= ${out_fg_name},/" \
+> namelist.wps.tmp
 mv namelist.wps.tmp namelist.wps
+EOF
+
+if [ ${dbg} = 1 ]; then
+  # include the replacement commands in run script
+  cat replace_param.tmp >> ${scrpt}
+  rm replace_param.tmp
+else
+  # update the namelist
+  chmod +x replace_param.tmp
+  ./replace_param.tmp
+  rm replace_param.tmp
+fi
 
 ##################################################################################
 # Run ungrib 
@@ -481,9 +550,18 @@ printf "BKG_DATA    = ${BKG_DATA}\n"
 printf "BKG_STRT_DT = ${BKG_STRT_DT}\n"
 printf "BKG_INT     = ${BKG_INT}\n"
 printf "\n"
+
+cmd="./ungrib.exe"
+
+if [ ${dbg} = 1 ]; then
+  printf "${cmd}\n" >> ${scrpt}
+  mv ${scrpt} ${work_dir}/run_ungrib.sh
+  printf "Setup of ungrib work directory and run script complete.\n"
+  exit 0
+fi
+
 now=`date +%Y-%m-%d_%H_%M_%S`
 printf "ungrib started at ${now}.\n"
-cmd="./ungrib.exe"
 printf "${cmd}\n"
 ./ungrib.exe
 
@@ -503,9 +581,9 @@ cmd="mv namelist.wps ${log_dir}"
 printf "${cmd}\n"; eval "${cmd}"
 
 # Remove links to the WPS run files
-for file in ${wps_files[@]}; do
-    cmd="rm -f `basename ${file}`"
-    printf "${cmd}\n"; eval "${cmd}"
+for filename in ${wps_files[@]}; do
+  cmd="rm -f `basename ${filename}`"
+  printf "${cmd}\n"; eval "${cmd}"
 done
 
 # remove links to grib files

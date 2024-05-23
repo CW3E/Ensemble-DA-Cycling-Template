@@ -7,7 +7,7 @@
 NETCDF_DIR=/expanse/nfs/cw3e/cwp168/SOFT_ROOT/NETCDF
 
 printf "NETCDF lib / includ / bin will be created at \n"
-printf "    ${NETCDF_DIR}"
+printf "    ${NETCDF_DIR}\n"
 
 # netcdf and intel
 module load cpu/0.15.4

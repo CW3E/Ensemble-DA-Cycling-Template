@@ -22,7 +22,7 @@ export PNETCDF=${SOFT_ROOT}/NETCDF
 export PIO=${SOFT_ROOT}/ParallelIO-pio2_5_8
 
 printf "PIO is compiled at \n"
-printf "    ${PIO}"
+printf "    ${PIO}\n"
 rm -rf ${PIO}
 
 # set up for environment for compile

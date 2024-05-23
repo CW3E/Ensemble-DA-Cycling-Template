@@ -62,11 +62,11 @@ export HDF5="/opt/hdf5/1.10.3/intel/intelmpi/"
 
 # setup lapack
 module load lapack
-LAPACK_PATH="/share/apps/compute/lapack"
+export LAPACK_PATH="/share/apps/compute/lapack"
 
 # Yes / No case insensitive switch
-YES=[Yy][Ee][Ss]
-NO=[Nn][Oo]
+export YES=[Yy][Ee][Ss]
+export NO=[Nn][Oo]
 
 # Defines YYYYMMDDHH iso regular expression
 export ISO_RE=^[0-9]{10}$
