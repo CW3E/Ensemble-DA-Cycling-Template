@@ -112,6 +112,7 @@
 #                a job submission header in the debugging script to run manually
 #
 ##################################################################################
+
 if [ ! -x ${CNST} ]; then
   printf "ERROR: constants file\n ${CNST}\n does not exist or is not executable.\n"
   exit 1
@@ -367,6 +368,7 @@ fi
 # grib_data  = Path to the raw data to be processed
 #
 ##################################################################################
+
 # define work root and change directories
 work_dir=${CYC_HME}/ungrib/ens_${memid}
 cmd="mkdir -p ${work_dir}; cd ${work_dir}"
@@ -478,6 +480,7 @@ fi
 ##################################################################################
 #  Build WPS namelist
 ##################################################################################
+
 # Copy the wps namelist template, NOTE: THIS WILL BE MODIFIED DO NOT LINK TO IT
 filename=${cfg_dir}/namelists/namelist.wps
 if [ ! -r ${filename} ]; then 
@@ -539,6 +542,7 @@ fi
 ##################################################################################
 # Run ungrib 
 ##################################################################################
+
 # Print run parameters
 printf "\n"
 printf "EXP_NME     = ${EXP_NME}\n"
@@ -568,16 +572,17 @@ printf "${cmd}\n"
 ##################################################################################
 # Run time error check
 ##################################################################################
+
 error="$?"
 printf "ungrib exited with code ${error}.\n"
 
 # save ungrib logs
-log_dir=ungrib_log_${BKG_DATA}.${now}
-mkdir ${log_dir}
-cmd="mv ungrib.log ${log_dir}"
+logdir=ungrib_log_${BKG_DATA}.${now}
+mkdir ${logdir}
+cmd="mv ungrib.log ${logdir}"
 printf "${cmd}\n"; eval "${cmd}"
 
-cmd="mv namelist.wps ${log_dir}"
+cmd="mv namelist.wps ${logdir}"
 printf "${cmd}\n"; eval "${cmd}"
 
 # Remove links to the WPS run files

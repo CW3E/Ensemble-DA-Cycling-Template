@@ -104,8 +104,14 @@
 ##################################################################################
 # Preamble
 ##################################################################################
-# uncomment to run verbose for debugging / testing
-#set -x
+# CNST         = Full path to constants used to compile and run WRF / WPS
+# IF_DBG_SCRPT = Switch YES or else, this is NOT A REQUIRED ARGUMENT. Set variable
+#                IF_DBG_SCRPT=Yes within the configuration to initiate debugging,
+#                script will default to normal run behavior otherwise
+# SCHED        = IF_DBG_SCRPT=Yes, SCHED=SLURM or SCHED=PBS will auto-generate
+#                a job submission header in the debugging script to run manually
+#
+##################################################################################
 
 if [ ! -x ${CNST} ]; then
   printf "ERROR: constants file\n ${CNST}\n does not exist or is not executable.\n"
@@ -114,6 +120,36 @@ else
   # Read constants into the current shell
   cmd=". ${CNST}"
   printf "${cmd}\n"; eval "${cmd}"
+fi
+
+if [[ ${IF_DBG_SCRPT} = ${YES} ]]; then 
+  dbg=1
+  scrpt=$(mktemp /tmp/run_real.XXXXXXX.sh)
+  printf "Driver runs in debug mode.\n"
+  printf "Producing a script and work directory for manual submission.\n"
+
+  if [[ ${SCHED} = SLURM ]]; then
+    # source slurm header from environment directory
+    cat `dirname ${CNST}`/slurm_header.sh >> ${scrpt}
+  elif [[ ${SCHED} = PBS ]]; then
+    # source pbs header from environment directory
+    cat `dirname ${CNST}`/pbs_header.sh >> ${scrpt}
+  fi
+
+  # Read constants and print into run script
+  while read line; do
+    IFS=" " read -ra parsed <<< ${line}
+    char=${parsed[0]}
+    if [[ ! ${char} =~ \# ]]; then
+      cmd=""
+      for char in ${parsed[@]}; do
+        cmd="${cmd}${char} "
+      done
+      printf "${cmd}\n" >> ${scrpt}
+    fi
+  done < ${CNST}
+else
+  dbg=0
 fi
 
 ##################################################################################
@@ -322,10 +358,15 @@ mpiprocs=$(( ${N_NDES} * ${N_PROC} ))
 # real_exe    = Path and name of working executable
 #
 ##################################################################################
+
 # define work root and change directories
 work_dir=${CYC_HME}/real/ens_${memid}
 cmd="mkdir -p ${work_dir}; cd ${work_dir}"
-printf "${cmd}\n"; eval "${cmd}"
+if [ ${dbg} = 1 ]; then
+  printf "${cmd}\n" >> ${scrpt}; eval "${cmd}"
+else
+  printf "${cmd}\n"; eval "${cmd}"
+fi
 
 # Check that the real executable exists and runs
 real_exe=${WRF_ROOT}/main/real.exe
@@ -336,17 +377,24 @@ fi
 
 # Make links to the WRF run files
 wrf_files=(${WRF_ROOT}/run/*)
-for file in ${wrf_files[@]}; do
-  cmd="ln -sf ${file} ."
+for filename in ${wrf_files[@]}; do
+  cmd="rm -f `basename ${filename}`"
   printf "${cmd}\n"; eval "${cmd}"
+
+  cmd="ln -sf ${filename} ."
+  if [ ${dbg} = 0 ]; then
+    printf "${cmd}\n"; eval "${cmd}"
+  else
+    printf "${cmd}\n" >> ${scrpt}
+  fi
 done
 
 # Remove pre-existing metgrid files
-cmd="rm -f met_em.d0*.*.nc"
+cmd="rm -f met_em.*"
 printf "${cmd}\n"; eval "${cmd}"
 
 # Remove IC/BC in the directory if old data present
-cmd="rm -f wrfinput_d0*; rm -f wrfbdy_d01"
+cmd="rm -f wrfinput_*; rm -f wrfbdy_d01"
 printf "${cmd}\n"; eval "${cmd}"
 
 # Remove any previous namelists
@@ -358,14 +406,18 @@ printf "${cmd}\n"; eval "${cmd}"
 for dmn in ${dmns[@]}; do
   for fcst in ${fcst_seq[@]}; do
     dt_str=`date "+%Y-%m-%d_%H_%M_%S" -d "${strt_dt} ${fcst} hours"`
-    realinput_name=met_em.d${dmn}.${dt_str}.nc
+    filename=met_em.d${dmn}.${dt_str}.nc
     metgrid_dir=${CYC_HME}/metgrid/ens_${memid}
-    if [ ! -r "${metgrid_dir}/${realinput_name}" ]; then
-      printf "ERROR: Input file\n ${CYC_HME}/${realinput_name}\n is missing.\n"
+    if [ ! -r "${metgrid_dir}/${filename}" ]; then
+      printf "ERROR: Input file\n ${CYC_HME}/${filename}\n is missing.\n"
       exit 1
     else
-      cmd="ln -sfr ${metgrid_dir}/${realinput_name} ."
-      printf "${cmd}\n"; eval "${cmd}"
+      cmd="ln -sfr ${metgrid_dir}/${filename} ."
+      if [ ${dbg} = 0 ]; then
+        printf "${cmd}\n"; eval "${cmd}"
+      else
+        printf "${cmd}\n" >> ${scrpt}
+      fi
     fi
   done
 done
@@ -373,12 +425,12 @@ done
 # Move existing rsl files to a subdir if there are any
 printf "Checking for pre-existing rsl files.\n"
 if [ -f rsl.out.0000 ]; then
-  rsldir=rsl.`ls -l --time-style=+%Y-%m-%d_%H_%M_%S rsl.out.0000 | cut -d" " -f 6`
-  mkdir ${rsldir}
-  printf "Moving pre-existing rsl files to ${rsldir}.\n"
-  cmd="mv rsl.out.* ${rsldir}"
+  logdir=rsl.`ls -l --time-style=+%Y-%m-%d_%H_%M_%S rsl.out.0000 | cut -d" " -f 6`
+  mkdir ${logdir}
+  printf "Moving pre-existing rsl files to ${logdir}.\n"
+  cmd="mv rsl.out.* ${logdir}"
   printf "${cmd}\n"; eval "${cmd}"
-  cmd="mv rsl.error.* ${rsldir}"
+  cmd="mv rsl.error.* ${logdir}"
   printf "${cmd}\n"; eval "${cmd}"
 else
   printf "No pre-existing rsl files were found.\n"
@@ -387,16 +439,21 @@ fi
 ##################################################################################
 #  Build real namelist
 ##################################################################################
+
 # Copy the wrf namelist template, NOTE: THIS WILL BE MODIFIED DO NOT LINK TO IT
-namelist_tmp=${cfg_dir}/namelists/namelist.${BKG_DATA}
-if [ ! -r ${namelist_tmp} ]; then 
-  msg="WRF namelist template\n ${namelist_tmp}\n is not readable or "
+filename=${cfg_dir}/namelists/namelist.${BKG_DATA}
+if [ ! -r ${filename} ]; then 
+  msg="WRF namelist template\n ${filename}\n is not readable or "
   msg+="does not exist.\n"
   printf "${msg}"
   exit 1
 else
-  cmd="cp -L ${namelist_tmp} ./namelist.input"
-  printf "${cmd}\n"; eval "${cmd}"
+  cmd="cp -L ${filename} ./namelist.input"
+  if [ ${dbg} = 0 ]; then
+    printf "${cmd}\n"; eval "${cmd}"
+  else
+    printf "${cmd}\n" >> ${scrpt}
+  fi
 fi
 
 # Get the start and stop time components
@@ -425,34 +482,47 @@ auxinput4_minutes=$(( ${BKG_INT} * 60 ))
 aux_out="${auxinput4_minutes}, ${auxinput4_minutes}, ${auxinput4_minutes}"
 
 # Update the wrf namelist (propagates settings to three domains)
-cat namelist.input \
-  | sed "s/= STRT_Y,/= ${s_Y}, ${s_Y}, ${s_Y},/" \
-  | sed "s/= STRT_m,/= ${s_m}, ${s_m}, ${s_m},/" \
-  | sed "s/= STRT_d,/= ${s_d}, ${s_d}, ${s_d},/" \
-  | sed "s/= STRT_H,/= ${s_H}, ${s_H}, ${s_H},/" \
-  | sed "s/= STRT_M,/= ${s_M}, ${s_M}, ${s_M},/" \
-  | sed "s/= STRT_S,/= ${s_S}, ${s_S}, ${s_S},/" \
-  | sed "s/= STOP_Y,/= ${e_Y}, ${e_Y}, ${e_Y},/" \
-  | sed "s/= STOP_m,/= ${e_m}, ${e_m}, ${e_m},/" \
-  | sed "s/= STOP_d,/= ${e_d}, ${e_d}, ${e_d},/" \
-  | sed "s/= STOP_H,/= ${e_H}, ${e_H}, ${e_H},/" \
-  | sed "s/= STOP_M,/= ${e_M}, ${e_M}, ${e_M},/" \
-  | sed "s/= STOP_S,/= ${e_S}, ${e_S}, ${e_S},/" \
-  | sed "s/= MAX_DOM,/= ${MAX_DOM},/" \
-  | sed "s/= INT_SEC,/= ${data_int_sec},/" \
-  | sed "s/= IF_SST_UPDT,/= ${sst_updt},/"\
-  | sed "s/= AUXINPUT4_INT,/= ${aux_out},/" \
-  | sed "s/= AUXHIST2_INT,/= 0,/" \
-  | sed "s/= HIST_INT,/= 0,/" \
-  | sed "s/= RSTRT,/= \.false\.,/" \
-  | sed "s/= RSTRT_INT,/= 0,/" \
-  | sed "s/= IF_FEEDBACK,/= 0,/"\
-  > namelist.input.tmp
+cat << EOF > replace_param.tmp
+| sed "s/= STRT_Y,/= ${s_Y}, ${s_Y}, ${s_Y},/" \
+| sed "s/= STRT_m,/= ${s_m}, ${s_m}, ${s_m},/" \
+| sed "s/= STRT_d,/= ${s_d}, ${s_d}, ${s_d},/" \
+| sed "s/= STRT_H,/= ${s_H}, ${s_H}, ${s_H},/" \
+| sed "s/= STRT_M,/= ${s_M}, ${s_M}, ${s_M},/" \
+| sed "s/= STRT_S,/= ${s_S}, ${s_S}, ${s_S},/" \
+| sed "s/= STOP_Y,/= ${e_Y}, ${e_Y}, ${e_Y},/" \
+| sed "s/= STOP_m,/= ${e_m}, ${e_m}, ${e_m},/" \
+| sed "s/= STOP_d,/= ${e_d}, ${e_d}, ${e_d},/" \
+| sed "s/= STOP_H,/= ${e_H}, ${e_H}, ${e_H},/" \
+| sed "s/= STOP_M,/= ${e_M}, ${e_M}, ${e_M},/" \
+| sed "s/= STOP_S,/= ${e_S}, ${e_S}, ${e_S},/" \
+| sed "s/= MAX_DOM,/= ${MAX_DOM},/" \
+| sed "s/= INT_SEC,/= ${data_int_sec},/" \
+| sed "s/= IF_SST_UPDT,/= ${sst_updt},/"\
+| sed "s/= AUXINPUT4_INT,/= ${aux_out},/" \
+| sed "s/= AUXHIST2_INT,/= 0,/" \
+| sed "s/= HIST_INT,/= 0,/" \
+| sed "s/= RSTRT,/= \.false\.,/" \
+| sed "s/= RSTRT_INT,/= 0,/" \
+| sed "s/= IF_FEEDBACK,/= 0,/"\
+> namelist.input.tmp
 mv namelist.input.tmp namelist.input
+EOF
+
+if [ ${dbg} = 1 ]; then
+  # include the replacement commands in run script
+  cat replace_param.tmp >> ${scrpt}
+  rm replace_param.tmp
+else
+  # update the namelist
+  chmod +x replace_param.tmp
+  ./replace_param.tmp
+  rm replace_param.tmp
+fi
 
 ##################################################################################
 # Run REAL
 ##################################################################################
+
 # Print run parameters
 printf "\n"
 printf "EXP_NME      = ${EXP_NME}\n"
@@ -465,28 +535,38 @@ printf "BKG_INT      = ${BKG_INT}\n"
 printf "MAX_DOM      = ${MAX_DOM}\n"
 printf "IF_SST_UPDT  = ${IF_SST_UPDT}\n"
 printf "\n"
+
+cmd="${MPIRUN} -n ${mpiprocs} ${real_exe}"
+
+if [ ${dbg} = 1 ]; then
+  printf "${cmd}\n" >> ${scrpt}
+  mv ${scrpt} ${work_dir}/run_real.sh
+  printf "Setup of real work directory and run script complete.\n"
+  exit 0
+fi
+
 now=`date +%Y-%m-%d_%H_%M_%S`
 printf "real started at ${now}.\n"
-cmd="${MPIRUN} -n ${mpiprocs} ${real_exe}"
 printf "${cmd}\n"
 ${MPIRUN} -n ${mpiprocs} ${real_exe}
 
 ##################################################################################
 # Run time error check
 ##################################################################################
+
 error="$?"
 printf "real exited with code ${error}.\n"
 
 # Save a copy of the RSL files
-rsldir=rsl.real.${now}
-mkdir ${rsldir}
-cmd="mv rsl.out.* ${rsldir}"
+logdir=rsl.real.${now}
+mkdir ${logdir}
+cmd="mv rsl.out.* ${logdir}"
 printf "${cmd}\n"; eval "${cmd}"
 
-cmd="mv rsl.error.* ${rsldir}"
+cmd="mv rsl.error.* ${logdir}"
 printf "${cmd}\n"; eval "${cmd}"
 
-cmd="mv namelist.* ${rsldir}"
+cmd="mv namelist.* ${logdir}"
 printf "${cmd}\n"; eval "${cmd}"
 
 # Remove the real input files (e.g. met_em.d01.*)
@@ -494,8 +574,8 @@ cmd="rm -f ./met_em.*"
 printf "${cmd}\n"; eval "${cmd}"
 
 # Remove links to the WRF run files
-for file in ${wrf_files[@]}; do
-    cmd="rm -f `basename ${file}`"
+for filename in ${wrf_files[@]}; do
+    cmd="rm -f `basename ${filename}`"
     printf "${cmd}\n"; eval "${cmd}"
 done
 
@@ -506,7 +586,7 @@ if [ ${error} -ne 0 ]; then
 fi
 
 # Look for successful completion messages in rsl files
-nsuccess=`cat ${rsldir}/rsl.* | awk '/SUCCESS COMPLETE REAL/' | wc -l`
+nsuccess=`cat ${logdir}/rsl.* | awk '/SUCCESS COMPLETE REAL/' | wc -l`
 ntotal=$(( ${mpiprocs} * 2 ))
 printf "Found ${nsuccess} of ${ntotal} completion messages.\n"
 if [ ${nsuccess} -ne ${ntotal} ]; then
@@ -529,13 +609,13 @@ fi
 # check to see if the IC output is generated
 error=0
 for dmn in ${dmns[@]}; do
-  ic_file=wrfinput_d${dmn}
-  if [ ! -s ${ic_file} ]; then
-    msg="ERROR:\n ${real_exe}\n failed to generate ${ic_file}.\n"
+  filename=wrfinput_d${dmn}
+  if [ ! -s ${filename} ]; then
+    msg="ERROR:\n ${real_exe}\n failed to generate ${filename}.\n"
     printf "${msg}"
     error=1
   else
-    printf "${real_exe}\n generated ${ic_file}.\n"
+    printf "${real_exe}\n generated ${filename}.\n"
   fi
   if [ ${error} = 1 ]; then
     exit 1
@@ -546,13 +626,13 @@ done
 error=0
 if [[ ${IF_SST_UPDT} = ${YES} ]]; then
   for dmn in ${dmns[@]}; do
-    sst_file=wrflowinp_d${dmn}
-    if [ ! -s ${sst_file} ]; then
-      msg="ERROR:\n ${real_exe}\n failed to generate ${sst_file}.\n"
+    filename=wrflowinp_d${dmn}
+    if [ ! -s ${filename} ]; then
+      msg="ERROR:\n ${real_exe}\n failed to generate ${filename}.\n"
       printf "${msg}"
       error=1
     else
-      printf "${real_exe}\n generated ${sst_file}.\n"
+      printf "${real_exe}\n generated ${filename}.\n"
     fi
     if [ ${error} = 1 ]; then
       exit 1

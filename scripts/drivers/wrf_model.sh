@@ -104,8 +104,14 @@
 ##################################################################################
 # Preamble
 ##################################################################################
-# uncomment to run verbose for debugging / testing
-#set -x
+# CNST         = Full path to constants used to compile and run WRF / WPS
+# IF_DBG_SCRPT = Switch YES or else, this is NOT A REQUIRED ARGUMENT. Set variable
+#                IF_DBG_SCRPT=Yes within the configuration to initiate debugging,
+#                script will default to normal run behavior otherwise
+# SCHED        = IF_DBG_SCRPT=Yes, SCHED=SLURM or SCHED=PBS will auto-generate
+#                a job submission header in the debugging script to run manually
+#
+##################################################################################
 
 if [ ! -x ${CNST} ]; then
   printf "ERROR: constants file\n ${CNST}\n does not exist or is not executable.\n"
@@ -114,6 +120,36 @@ else
   # Read constants into the current shell
   cmd=". ${CNST}"
   printf "${cmd}\n"; eval "${cmd}"
+fi
+
+if [[ ${IF_DBG_SCRPT} = ${YES} ]]; then 
+  dbg=1
+  scrpt=$(mktemp /tmp/run_wrf.XXXXXXX.sh)
+  printf "Driver runs in debug mode.\n"
+  printf "Producing a script and work directory for manual submission.\n"
+
+  if [[ ${SCHED} = SLURM ]]; then
+    # source slurm header from environment directory
+    cat `dirname ${CNST}`/slurm_header.sh >> ${scrpt}
+  elif [[ ${SCHED} = PBS ]]; then
+    # source pbs header from environment directory
+    cat `dirname ${CNST}`/pbs_header.sh >> ${scrpt}
+  fi
+
+  # Read constants and print into run script
+  while read line; do
+    IFS=" " read -ra parsed <<< ${line}
+    char=${parsed[0]}
+    if [[ ! ${char} =~ \# ]]; then
+      cmd=""
+      for char in ${parsed[@]}; do
+        cmd="${cmd}${char} "
+      done
+      printf "${cmd}\n" >> ${scrpt}
+    fi
+  done < ${CNST}
+else
+  dbg=0
 fi
 
 ##################################################################################
@@ -214,7 +250,7 @@ else
 fi
 
 # define the end time based on forecast length control flow above
-end_dt=`date -d "${strt_dt} ${fcst_hrs} hours"`
+stop_dt=`date -d "${strt_dt} ${fcst_hrs} hours"`
 
 if [ ! ${BKG_INT} ]; then
   printf "ERROR: \${BKG_INT} is not defined.\n"
@@ -409,6 +445,7 @@ mpiprocs=$(( ${N_NDES} * ${N_PROC} ))
 # wrf_exe    = Path and name of working executable
 #
 ##################################################################################
+
 # define work root and change directories
 if [[ ${WRF_IC} = ${RESTART} ]]; then
   work_dir=${CYC_HME}/wrfrst/ens_${memid}	
@@ -422,7 +459,11 @@ else
 fi
 
 cmd="mkdir -p ${work_dir}; cd ${work_dir}"
-printf "${cmd}\n"; eval "${cmd}"
+if [ ${dbg} = 1 ]; then
+  printf "${cmd}\n" >> ${scrpt}; eval "${cmd}"
+else
+  printf "${cmd}\n"; eval "${cmd}"
+fi
 
 # Check that the wrf executable exists and runs
 wrf_exe=${WRF_ROOT}/main/wrf.exe
@@ -434,12 +475,19 @@ fi
 # Make links to the WRF run files
 wrf_files=(${WRF_ROOT}/run/*)
 for file in ${wrf_files[@]}; do
-  cmd="ln -sf ${file} ."
+  cmd="rm -f `basename ${filename}`"
   printf "${cmd}\n"; eval "${cmd}"
+
+  cmd="ln -sf ${filename} ."
+  if [ ${dbg} = 0 ]; then
+    printf "${cmd}\n"; eval "${cmd}"
+  else
+    printf "${cmd}\n" >> ${scrpt}
+  fi
 done
 
 # Remove IC/BC in the directory if old data present
-cmd="rm -f wrfinput_d0*; rm -f wrfbdy_d01"
+cmd="rm -f wrfinput_*; rm -f wrfbdy_d01"
 printf "${cmd}\n"; eval "${cmd}"
 
 # Remove any previous namelists
@@ -460,11 +508,15 @@ for dmn in ${dmns[@]}; do
       # obtain the boundary files from the lateral boundary update by WRFDA 
       wrfanlroot=${CYC_HME}/wrfda_bc/lateral_bdy_updt/ens_${memid}
       wrfbdy=${wrfanlroot}/wrfbdy_d01
-      cmd="ln -sfr ${wrfbdy} wrfbdy_d01"
-      printf "${cmd}\n"; eval "${cmd}"
-      if [ ! -r "./wrfbdy_d01" ]; then
+      if [ ! -r "${wrfbdy}" ]; then
         printf "ERROR: wrfinput\n ${wrfbdy}\n does not exist or is not readable.\n"
         exit 1
+      fi
+      cmd="ln -sfr ${wrfbdy} wrfbdy_d01"
+      if [ ${dbg} = 0 ]; then
+        printf "${cmd}\n"; eval "${cmd}"
+      else
+        printf "${cmd}\n" >> ${scrpt}
       fi
 
     else
@@ -480,12 +532,16 @@ for dmn in ${dmns[@]}; do
 
     # link the wrf inputs
     wrfanl=${wrfanlroot}/wrfanl_ens_${memid}_${dt_str}
-    cmd="ln -sfr ${wrfanl} ${wrfinput}"
-    printf "${cmd}\n"; eval "${cmd}"
-
-    if [ ! -r ${wrfinput} ]; then
+    if [ ! -r ${wrfanl} ]; then
       printf "ERROR: wrfinput source\n ${wrfanl}\n does not exist or is not readable.\n"
       exit 1
+    fi
+
+    cmd="ln -sfr ${wrfanl} ${wrfinput}"
+    if [ ${dbg} = 1 ]; then
+      printf "${cmd}\n" >> ${scrpt}; eval "${cmd}"
+    else
+      printf "${cmd}\n"; eval "${cmd}"
     fi
 
   elif [[ ${WRF_IC} = ${RESTART} ]]; then
@@ -494,8 +550,12 @@ for dmn in ${dmns[@]}; do
     if [ ! -r ${wrfrst} ]; then
       printf "ERROR: wrfrst source\n ${wrfrst}\n does not exist or is not readable.\n"
       exit 1
+    fi
+
+    cmd="ln -sfr ${wrfrst} ./"
+    if [ ${dbg} = 1 ]; then
+      printf "${cmd}\n" >> ${scrpt}; eval "${cmd}"
     else
-      cmd="ln -sfr ${wrfrst} ./"
       printf "${cmd}\n"; eval "${cmd}"
     fi
 
@@ -504,11 +564,15 @@ for dmn in ${dmns[@]}; do
       # included for possible re-generation of BCs for longer extended forecast
       wrfanlroot=${CYC_HME}/wrfda_bc/lateral_bdy_updt/ens_${memid}
       wrfbdy=${wrfanlroot}/wrfbdy_d01
-      cmd="ln -sfr ${wrfbdy} wrfbdy_d01"
-      printf "${cmd}\n"; eval "${cmd}"
-      if [ ! -r "./wrfbdy_d01" ]; then
+      if [ ! -r "${wrfbdy}" ]; then
         printf "ERROR: wrfinput\n ${wrfbdy}\n does not exist or is not readable.\n"
         exit 1
+      fi
+      cmd="ln -sfr ${wrfbdy} wrfbdy_d01"
+      if [ ${dbg} = 1 ]; then
+        printf "${cmd}\n" >> ${scrpt}; eval "${cmd}"
+      else
+        printf "${cmd}\n"; eval "${cmd}"
       fi
     fi
 
@@ -518,21 +582,30 @@ for dmn in ${dmns[@]}; do
     if [ ${dmn} = 01 ]; then
       # Link the wrfbdy_d01 file from real
       wrfbdy=${realroot}/wrfbdy_d01
-      cmd="ln -sfr ${wrfbdy} wrfbdy_d01"
-      printf "${cmd}\n"; eval "${cmd}";
-
-      if [ ! -r wrfbdy_d01 ]; then
+      if [ ! -r ${wrfbdy} ]; then
         printf "ERROR:\n ${wrfbdy}\n does not exist or is not readable.\n"
         exit 1
       fi
+
+      cmd="ln -sfr ${wrfbdy} wrfbdy_d01"
+      if [ ${dbg} = 1 ]; then
+        printf "${cmd}\n" >> ${scrpt}; eval "${cmd}"
+      else
+        printf "${cmd}\n"; eval "${cmd}"
+      fi
+
     fi
     realname=${realroot}/${wrfinput}
-    cmd="ln -sfr ${realname} ."
-    printf "${cmd}\n"; eval "${cmd}"
-
-    if [ ! -r ${wrfinput} ]; then
+    if [ ! -r ${realname} ]; then
       printf "ERROR: wrfinput\n ${realname}\n does not exist or is not readable.\n"
       exit 1
+    fi
+
+    cmd="ln -sfr ${realname} ."
+    if [ ${dbg} = 1 ]; then
+      printf "${cmd}\n" >> ${scrpt}; eval "${cmd}"
+    else
+      printf "${cmd}\n"; eval "${cmd}"
     fi
   fi
 
@@ -540,11 +613,16 @@ for dmn in ${dmns[@]}; do
   if [[ ${IF_SST_UPDT} = ${YES} ]]; then
     wrflowinp=wrflowinp_d${dmn}
     realname=${CYC_HME}/real/ens_${memid}/${wrflowinp}
-    cmd="ln -sfr ${realname} ."
-    printf "${cmd}\n"; eval "${cmd}"
-    if [ ! -r ${wrflowinp} ]; then
-      printf "ERROR: wrflwinp\n ${wrflowinp}\n does not exist or is not readable.\n"
+    if [ ! -r ${realname} ]; then
+      printf "ERROR: wrflwinp\n ${realname}\n does not exist or is not readable.\n"
       exit 1
+    fi
+
+    cmd="ln -sfr ${realname} ."
+    if [ ${dbg} = 1 ]; then
+      printf "${cmd}\n" >> ${scrpt}; eval "${cmd}"
+    else
+      printf "${cmd}\n"; eval "${cmd}"
     fi
   fi
 done
@@ -552,12 +630,12 @@ done
 # Move existing rsl files to a subdir if there are any
 printf "Checking for pre-existing rsl files.\n"
 if [ -f rsl.out.0000 ]; then
-  rsldir=rsl.wrf.`ls -l --time-style=+%Y-%m-%d_%H_%M%_S rsl.out.0000 | cut -d" " -f 6`
-  mkdir ${rsldir}
-  printf "Moving pre-existing rsl files to ${rsldir}.\n"
-  cmd="mv rsl.out.* ${rsldir}"
+  logdir=rsl.wrf.`ls -l --time-style=+%Y-%m-%d_%H_%M%_S rsl.out.0000 | cut -d" " -f 6`
+  mkdir ${logdir}
+  printf "Moving pre-existing rsl files to ${logdir}.\n"
+  cmd="mv rsl.out.* ${logdir}"
   printf "${cmd}\n"; eval "${cmd}"
-  cmd="mv rsl.error.* ${rsldir}"
+  cmd="mv rsl.error.* ${logdir}"
   printf "${cmd}\n"; eval "${cmd}"
 else
   printf "No pre-existing rsl files were found.\n"
@@ -566,35 +644,40 @@ fi
 ##################################################################################
 #  Build WRF namelist
 ##################################################################################
+
 # Copy the wrf namelist template, NOTE: THIS WILL BE MODIFIED DO NOT LINK TO IT
-namelist_tmp=${cfg_dir}/namelists/namelist.${BKG_DATA}
-if [ ! -r ${namelist_tmp} ]; then 
-  msg="WRF namelist template\n ${namelist_tmp}\n is not readable or "
+filename=${cfg_dir}/namelists/namelist.${BKG_DATA}
+if [ ! -r ${filename} ]; then 
+  msg="WRF namelist template\n ${filename}\n is not readable or "
   msg+="does not exist.\n"
   printf "${msg}"
   exit 1
 else
-  cmd="cp -L ${namelist_tmp} ./namelist.input"
-  printf "${cmd}\n"; eval "${cmd}"
+  cmd="cp -L ${filename} ./namelist.input"
+  if [ ${dbg} = 0 ]; then
+    printf "${cmd}\n"; eval "${cmd}"
+  else
+    printf "${cmd}\n" >> ${scrpt}
+  fi
 fi
 
-# Get the start and end time components
+# Get the start and stop time components
 s_Y=`date +%Y -d "${strt_dt}"`
 s_m=`date +%m -d "${strt_dt}"`
 s_d=`date +%d -d "${strt_dt}"`
 s_H=`date +%H -d "${strt_dt}"`
 s_M=`date +%M -d "${strt_dt}"`
 s_S=`date +%S -d "${strt_dt}"`
-e_Y=`date +%Y -d "${end_dt}"`
-e_m=`date +%m -d "${end_dt}"`
-e_d=`date +%d -d "${end_dt}"`
-e_H=`date +%H -d "${end_dt}"`
-e_M=`date +%M -d "${end_dt}"`
-e_S=`date +%S -d "${end_dt}"`
+e_Y=`date +%Y -d "${stop_dt}"`
+e_m=`date +%m -d "${stop_dt}"`
+e_d=`date +%d -d "${stop_dt}"`
+e_H=`date +%H -d "${stop_dt}"`
+e_M=`date +%M -d "${stop_dt}"`
+e_S=`date +%S -d "${stop_dt}"`
 
-# define start / end time iso patterns
+# define start / stop time iso patterns
 strt_iso=`date +%Y-%m-%d_%H_%M_%S -d "${strt_dt}"`
-end_iso=`date +%Y-%m-%d_%H_%M_%S -d "${end_dt}"`
+stop_iso=`date +%Y-%m-%d_%H_%M_%S -d "${stop_dt}"`
 
 # Update interval in namelist
 data_int_sec=$(( ${BKG_INT} * 3600 ))
@@ -618,70 +701,92 @@ else
 fi
 
 # Update the wrf namelist (propagates settings to three domains)
-cat namelist.input \
-  | sed "s/= STRT_Y,/= ${s_Y}, ${s_Y}, ${s_Y},/" \
-  | sed "s/= STRT_m,/= ${s_m}, ${s_m}, ${s_m},/" \
-  | sed "s/= STRT_d,/= ${s_d}, ${s_d}, ${s_d},/" \
-  | sed "s/= STRT_H,/= ${s_H}, ${s_H}, ${s_H},/" \
-  | sed "s/= STRT_M,/= ${s_M}, ${s_M}, ${s_M},/" \
-  | sed "s/= STRT_S,/= ${s_S}, ${s_S}, ${s_S},/" \
-  | sed "s/= STOP_Y,/= ${e_Y}, ${e_Y}, ${e_Y},/" \
-  | sed "s/= STOP_m,/= ${e_m}, ${e_m}, ${e_m},/" \
-  | sed "s/= STOP_d,/= ${e_d}, ${e_d}, ${e_d},/" \
-  | sed "s/= STOP_H,/= ${e_H}, ${e_H}, ${e_H},/" \
-  | sed "s/= STOP_M,/= ${e_M}, ${e_M}, ${e_M},/" \
-  | sed "s/= STOP_S,/= ${e_S}, ${e_S}, ${e_S},/" \
-  | sed "s/= MAX_DOM,/= ${MAX_DOM},/" \
-  | sed "s/= INT_SEC,/= ${data_int_sec},/" \
-  | sed "s/= IF_SST_UPDT,/= ${sst_updt},/"\
-  | sed "s/= AUXINPUT4_INT,/= ${aux_out},/" \
-  | sed "s/= AUXHIST2_INT,/= ${out_hist},/" \
-  | sed "s/= HIST_INT,/= ${out_hist},/" \
-  | sed "s/= RSTRT,/= ${wrf_restart},/" \
-  | sed "s/= RSTRT_INT,/= ${rstrt_int},/" \
-  | sed "s/= IF_FEEDBACK,/= ${feedback},/"\
-  | sed "s/= NIO_TPG,/= ${NIO_TPG},/" \
-  | sed "s/= NIO_GRPS,/= ${NIO_GRPS},/" \
-  > namelist.input.tmp
+cat << EOF > replace_param.tmp
+| sed "s/= STRT_Y,/= ${s_Y}, ${s_Y}, ${s_Y},/" \
+| sed "s/= STRT_m,/= ${s_m}, ${s_m}, ${s_m},/" \
+| sed "s/= STRT_d,/= ${s_d}, ${s_d}, ${s_d},/" \
+| sed "s/= STRT_H,/= ${s_H}, ${s_H}, ${s_H},/" \
+| sed "s/= STRT_M,/= ${s_M}, ${s_M}, ${s_M},/" \
+| sed "s/= STRT_S,/= ${s_S}, ${s_S}, ${s_S},/" \
+| sed "s/= STOP_Y,/= ${e_Y}, ${e_Y}, ${e_Y},/" \
+| sed "s/= STOP_m,/= ${e_m}, ${e_m}, ${e_m},/" \
+| sed "s/= STOP_d,/= ${e_d}, ${e_d}, ${e_d},/" \
+| sed "s/= STOP_H,/= ${e_H}, ${e_H}, ${e_H},/" \
+| sed "s/= STOP_M,/= ${e_M}, ${e_M}, ${e_M},/" \
+| sed "s/= STOP_S,/= ${e_S}, ${e_S}, ${e_S},/" \
+| sed "s/= MAX_DOM,/= ${MAX_DOM},/" \
+| sed "s/= INT_SEC,/= ${data_int_sec},/" \
+| sed "s/= IF_SST_UPDT,/= ${sst_updt},/"\
+| sed "s/= AUXINPUT4_INT,/= ${aux_out},/" \
+| sed "s/= AUXHIST2_INT,/= ${out_hist},/" \
+| sed "s/= HIST_INT,/= ${out_hist},/" \
+| sed "s/= RSTRT,/= ${wrf_restart},/" \
+| sed "s/= RSTRT_INT,/= ${rstrt_int},/" \
+| sed "s/= IF_FEEDBACK,/= ${feedback},/"\
+| sed "s/= NIO_TPG,/= ${NIO_TPG},/" \
+| sed "s/= NIO_GRPS,/= ${NIO_GRPS},/" \
+> namelist.input.tmp
 mv namelist.input.tmp namelist.input
+EOF
+
+if [ ${dbg} = 1 ]; then
+  # include the replacement commands in run script
+  cat replace_param.tmp >> ${scrpt}
+  rm replace_param.tmp
+else
+  # update the namelist
+  chmod +x replace_param.tmp
+  ./replace_param.tmp
+  rm replace_param.tmp
+fi
 
 ##################################################################################
 # Run WRF
 ##################################################################################
+
 # Print run parameters
 printf "\n"
 printf "EXP_NME     = ${EXP_NME}\n"
 printf "MEMID       = ${MEMID}\n"
 printf "CYC_HME     = ${CYC_HME}\n"
 printf "STRT_DT     = ${strt_iso}\n"
-printf "STOP_DT     = ${end_iso}\n"
-printf "HIST_INT  = ${HIST_INT}\n"
+printf "STOP_DT     = ${stop_iso}\n"
+printf "HIST_INT    = ${HIST_INT}\n"
 printf "BKG_DATA    = ${BKG_DATA}\n"
 printf "MAX_DOM     = ${MAX_DOM}\n"
 printf "WRF_IC      = ${WRF_IC}\n"
 printf "IF_SST_UPDT = ${IF_SST_UPDT}\n"
 printf "IF_FEEDBACK = ${IF_FEEDBACK}\n"
 printf "\n"
+
+cmd="${MPIRUN} -n ${mpiprocs} ${wrf_exe}"
+
+if [ ${dbg} = 1 ]; then
+  printf "${cmd}\n" >> ${scrpt}
+  mv ${scrpt} ${work_dir}/run_wrf.sh
+  printf "Setup of wrf work directory and run script complete.\n"
+  exit 0
+fi
+
 now=`date +%Y-%m-%d_%H_%M_%S`
 printf "wrf started at ${now}.\n"
-cmd="${MPIRUN} -n ${mpiprocs} ${wrf_exe}"
-printf "${cmd}\n"
 ${MPIRUN} -n ${mpiprocs} ${wrf_exe}
 
 ##################################################################################
 # Run time error check
 ##################################################################################
+
 error="$?"
 printf "wrf exited with code ${error}.\n"
 
 # Save a copy of the RSL files
-rsldir=rsl.wrf.${now}
-mkdir ${rsldir}
-cmd="mv rsl.out.* ${rsldir}"
+logdir=rsl.wrf.${now}
+mkdir ${logdir}
+cmd="mv rsl.out.* ${logdir}"
 printf "${cmd}\n"; eval "${cmd}"
-cmd="mv rsl.error.* ${rsldir}"
+cmd="mv rsl.error.* ${logdir}"
 printf "${cmd}\n"; eval "${cmd}"
-cmd="mv namelist.* ${rsldir}"
+cmd="mv namelist.* ${logdir}"
 printf "${cmd}\n"; eval "${cmd}"
 
 # Remove links to the WRF run files
@@ -705,7 +810,7 @@ if [ ${error} -ne 0 ]; then
 fi
 
 # Look for successful completion messages adjusted for quilting processes
-nsuccess=`cat ${rsldir}/rsl.* | awk '/SUCCESS COMPLETE WRF/' | wc -l`
+nsuccess=`cat ${logdir}/rsl.* | awk '/SUCCESS COMPLETE WRF/' | wc -l`
 ntotal=$(( (${mpiprocs} - ${NIO_GRPS} * ${NIO_TPG} ) * 2 ))
 printf "Found ${nsuccess} of ${ntotal} completion messages.\n"
 if [ ${nsuccess} -ne ${ntotal} ]; then

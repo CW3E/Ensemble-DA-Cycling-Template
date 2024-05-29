@@ -49,9 +49,14 @@
 ##################################################################################
 # Preamble
 ##################################################################################
-# uncomment to run verbose for debugging / testing
-#set -x
-
+# CNST         = Full path to constants used to compile and run MPAS
+# IF_DBG_SCRPT = Switch YES or else, this is NOT A REQUIRED ARGUMENT. Set variable
+#                IF_DBG_SCRPT=Yes within the configuration to initiate debugging,
+#                script will default to normal run behavior otherwise
+# SCHED        = IF_DBG_SCRPT=Yes, SCHED=SLURM or SCHED=PBS will auto-generate
+#                a job submission header in the debugging script to run manually
+#
+##################################################################################
 if [ ! -x ${CNST} ]; then
   printf "ERROR: constants file\n ${CNST}\n does not exist or is not executable.\n"
   exit 1
@@ -59,6 +64,36 @@ else
   # Read constants into the current shell
   cmd=". ${CNST}"
   printf "${cmd}\n"; eval "${cmd}"
+fi
+
+if [[ ${IF_DBG_SCRPT} = ${YES} ]]; then 
+  dbg=1
+  scrpt=$(mktemp /tmp/run_ungrib.XXXXXXX.sh)
+  printf "Driver runs in debug mode.\n"
+  printf "Producing a script and work directory for manual submission.\n"
+
+  if [[ ${SCHED} = SLURM ]]; then
+    # source slurm header from environment directory
+    cat `dirname ${CNST}`/slurm_header.sh >> ${scrpt}
+  elif [[ ${SCHED} = PBS ]]; then
+    # source pbs header from environment directory
+    cat `dirname ${CNST}`/pbs_header.sh >> ${scrpt}
+  fi
+
+  # Read constants and print into run script
+  while read line; do
+    IFS=" " read -ra parsed <<< ${line}
+    char=${parsed[0]}
+    if [[ ! ${char} =~ \# ]]; then
+      cmd=""
+      for char in ${parsed[@]}; do
+        cmd="${cmd}${char} "
+      done
+      printf "${cmd}\n" >> ${scrpt}
+    fi
+  done < ${CNST}
+else
+  dbg=0
 fi
 
 ##################################################################################

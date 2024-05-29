@@ -112,6 +112,7 @@
 #                a job submission header in the debugging script to run manually
 #
 ##################################################################################
+
 if [ ! -x ${CNST} ]; then
   printf "ERROR: constants file\n ${CNST}\n does not exist or is not executable.\n"
   exit 1
@@ -340,6 +341,7 @@ mpiprocs=$(( ${N_NDES} * ${N_PROC} ))
 # metgrid_exe = Path and name of working executable
 #
 ##################################################################################
+
 # define work root and change directories
 work_dir=${CYC_HME}/metgrid/ens_${memid}
 cmd="mkdir -p ${work_dir}; cd ${work_dir}"
@@ -501,6 +503,7 @@ fi
 ##################################################################################
 # Run metgrid 
 ##################################################################################
+
 # Print run parameters
 printf "\n"
 printf "EXP_NME  = ${EXP_NME}\n"
@@ -530,6 +533,7 @@ ${MPIRUN} -n ${mpiprocs} ${metgrid_exe}
 ##################################################################################
 # Run time error check
 ##################################################################################
+
 error="$?"
 printf "metgrid exited with code ${error}.\n"
 

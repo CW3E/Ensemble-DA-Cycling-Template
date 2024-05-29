@@ -46,6 +46,7 @@ Thumbs.db
 ##################
 *~
 *.swp
+*.swo
 
 # no output from nohup #
 ########################
