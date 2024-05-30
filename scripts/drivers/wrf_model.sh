@@ -474,7 +474,7 @@ fi
 
 # Make links to the WRF run files
 wrf_files=(${WRF_ROOT}/run/*)
-for file in ${wrf_files[@]}; do
+for filename in ${wrf_files[@]}; do
   cmd="rm -f `basename ${filename}`"
   printf "${cmd}\n"; eval "${cmd}"
 
@@ -539,7 +539,7 @@ for dmn in ${dmns[@]}; do
 
     cmd="ln -sfr ${wrfanl} ${wrfinput}"
     if [ ${dbg} = 1 ]; then
-      printf "${cmd}\n" >> ${scrpt}; eval "${cmd}"
+      printf "${cmd}\n" >> ${scrpt}
     else
       printf "${cmd}\n"; eval "${cmd}"
     fi
@@ -554,7 +554,7 @@ for dmn in ${dmns[@]}; do
 
     cmd="ln -sfr ${wrfrst} ./"
     if [ ${dbg} = 1 ]; then
-      printf "${cmd}\n" >> ${scrpt}; eval "${cmd}"
+      printf "${cmd}\n" >> ${scrpt}
     else
       printf "${cmd}\n"; eval "${cmd}"
     fi
@@ -570,7 +570,7 @@ for dmn in ${dmns[@]}; do
       fi
       cmd="ln -sfr ${wrfbdy} wrfbdy_d01"
       if [ ${dbg} = 1 ]; then
-        printf "${cmd}\n" >> ${scrpt}; eval "${cmd}"
+        printf "${cmd}\n" >> ${scrpt}
       else
         printf "${cmd}\n"; eval "${cmd}"
       fi
@@ -589,7 +589,7 @@ for dmn in ${dmns[@]}; do
 
       cmd="ln -sfr ${wrfbdy} wrfbdy_d01"
       if [ ${dbg} = 1 ]; then
-        printf "${cmd}\n" >> ${scrpt}; eval "${cmd}"
+        printf "${cmd}\n" >> ${scrpt}
       else
         printf "${cmd}\n"; eval "${cmd}"
       fi
@@ -603,7 +603,7 @@ for dmn in ${dmns[@]}; do
 
     cmd="ln -sfr ${realname} ."
     if [ ${dbg} = 1 ]; then
-      printf "${cmd}\n" >> ${scrpt}; eval "${cmd}"
+      printf "${cmd}\n" >> ${scrpt}
     else
       printf "${cmd}\n"; eval "${cmd}"
     fi
@@ -620,7 +620,7 @@ for dmn in ${dmns[@]}; do
 
     cmd="ln -sfr ${realname} ."
     if [ ${dbg} = 1 ]; then
-      printf "${cmd}\n" >> ${scrpt}; eval "${cmd}"
+      printf "${cmd}\n" >> ${scrpt}
     else
       printf "${cmd}\n"; eval "${cmd}"
     fi
@@ -702,6 +702,7 @@ fi
 
 # Update the wrf namelist (propagates settings to three domains)
 cat << EOF > replace_param.tmp
+cat namelist.input \
 | sed "s/= STRT_Y,/= ${s_Y}, ${s_Y}, ${s_Y},/" \
 | sed "s/= STRT_m,/= ${s_m}, ${s_m}, ${s_m},/" \
 | sed "s/= STRT_d,/= ${s_d}, ${s_d}, ${s_d},/" \
@@ -790,8 +791,8 @@ cmd="mv namelist.* ${logdir}"
 printf "${cmd}\n"; eval "${cmd}"
 
 # Remove links to the WRF run files
-for file in ${wrf_files[@]}; do
-    cmd="rm -f `basename ${file}`"
+for filename in ${wrf_files[@]}; do
+    cmd="rm -f `basename ${filename}`"
     printf "${cmd}\n"; eval "${cmd}"
 done
 

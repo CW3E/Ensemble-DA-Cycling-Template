@@ -382,10 +382,10 @@ for filename in ${wrf_files[@]}; do
   printf "${cmd}\n"; eval "${cmd}"
 
   cmd="ln -sf ${filename} ."
-  if [ ${dbg} = 0 ]; then
-    printf "${cmd}\n"; eval "${cmd}"
-  else
+  if [ ${dbg} = 1 ]; then
     printf "${cmd}\n" >> ${scrpt}
+  else
+    printf "${cmd}\n"; eval "${cmd}"
   fi
 done
 
@@ -413,10 +413,10 @@ for dmn in ${dmns[@]}; do
       exit 1
     else
       cmd="ln -sfr ${metgrid_dir}/${filename} ."
-      if [ ${dbg} = 0 ]; then
-        printf "${cmd}\n"; eval "${cmd}"
-      else
+      if [ ${dbg} = 1 ]; then
         printf "${cmd}\n" >> ${scrpt}
+      else
+        printf "${cmd}\n"; eval "${cmd}"
       fi
     fi
   done
@@ -449,10 +449,10 @@ if [ ! -r ${filename} ]; then
   exit 1
 else
   cmd="cp -L ${filename} ./namelist.input"
-  if [ ${dbg} = 0 ]; then
-    printf "${cmd}\n"; eval "${cmd}"
-  else
+  if [ ${dbg} = 1 ]; then
     printf "${cmd}\n" >> ${scrpt}
+  else
+    printf "${cmd}\n"; eval "${cmd}"
   fi
 fi
 
@@ -483,6 +483,7 @@ aux_out="${auxinput4_minutes}, ${auxinput4_minutes}, ${auxinput4_minutes}"
 
 # Update the wrf namelist (propagates settings to three domains)
 cat << EOF > replace_param.tmp
+cat namelist.input \
 | sed "s/= STRT_Y,/= ${s_Y}, ${s_Y}, ${s_Y},/" \
 | sed "s/= STRT_m,/= ${s_m}, ${s_m}, ${s_m},/" \
 | sed "s/= STRT_d,/= ${s_d}, ${s_d}, ${s_d},/" \

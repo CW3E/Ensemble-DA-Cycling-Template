@@ -392,10 +392,10 @@ for filename in ${wps_files[@]}; do
   printf "${cmd}\n"; eval "${cmd}"
 
   cmd="ln -sf ${filename} ."
-  if [ ${dbg} = 0 ]; then
-    printf "${cmd}\n"; eval "${cmd}"
-  else
+  if [ ${dbg} = 1 ]; then
     printf "${cmd}\n" >> ${scrpt}
+  else
+    printf "${cmd}\n"; eval "${cmd}"
   fi
 done
 
@@ -412,10 +412,10 @@ if [ ! -r ${vtable} ]; then
   exit 1
 else
   cmd="ln -sf ${vtable} Vtable"
-  if [ ${dbg} = 0 ]; then
-    printf "${cmd}\n"; eval "${cmd}"
-  else
+  if [ ${dbg} = 1 ]; then
     printf "${cmd}\n" >> ${scrpt}
+  else
+    printf "${cmd}\n"; eval "${cmd}"
   fi
 fi
 
@@ -470,10 +470,10 @@ elif [ `ls -l ${grib_data}/${fnames} | wc -l` -lt ${n_files} ]; then
 else
   # link the grib data to the working directory
   cmd="./link_grib.csh ${grib_data}/${fnames}"
-  if [ ${dbg} = 0 ]; then
-    printf "${cmd}\n"; eval "${cmd}"
-  else
+  if [ ${dbg} = 1 ]; then
     printf "${cmd}\n" >> ${scrpt}
+  else
+    printf "${cmd}\n"; eval "${cmd}"
   fi
 fi
 
@@ -490,10 +490,10 @@ if [ ! -r ${filename} ]; then
   exit 1
 else
   cmd="cp -L ${filename} ."
-  if [ ${dbg} = 0 ]; then
-    printf "${cmd}\n"; eval "${cmd}"
-  else
+  if [ ${dbg} = 1 ]; then
     printf "${cmd}\n" >> ${scrpt}
+  else
+    printf "${cmd}\n"; eval "${cmd}"
   fi
 fi
 

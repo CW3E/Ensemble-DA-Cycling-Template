@@ -365,10 +365,10 @@ for filename in ${wps_files[@]}; do
   printf "${cmd}\n"; eval "${cmd}"
 
   cmd="ln -sf ${filename} ."
-  if [ ${dbg} = 0 ]; then
-    printf "${cmd}\n"; eval "${cmd}"
-  else
+  if [ ${dbg} = 1 ]; then
     printf "${cmd}\n" >> ${scrpt}
+  else
+    printf "${cmd}\n"; eval "${cmd}"
   fi
 done
 
@@ -413,10 +413,10 @@ else
       exit 1
     else
       cmd="ln -sfr ${filename} ."
-      if [ ${dbg} = 0 ]; then
-        printf "${cmd}\n"; eval "${cmd}"
-      else
+      if [ ${dbg} = 1 ]; then
         printf "${cmd}\n" >> ${scrpt}
+      else
+        printf "${cmd}\n"; eval "${cmd}"
       fi
     fi
   done
@@ -431,10 +431,10 @@ for dmn in ${dmns[@]}; do
     exit 1
   else
     cmd="ln -sf ${filename} ."
-    if [ ${dbg} = 0 ]; then
-      printf "${cmd}\n"; eval "${cmd}"
-    else
+    if [ ${dbg} = 1 ]; then
       printf "${cmd}\n" >> ${scrpt}
+    else
+      printf "${cmd}\n"; eval "${cmd}"
     fi
   fi
 done
@@ -451,10 +451,10 @@ if [ ! -r ${filename} ]; then
   exit 1
 else
   cmd="cp -L ${filename} ."
-  if [ ${dbg} = 0 ]; then
-    printf "${cmd}\n"; eval "${cmd}"
-  else
+  if [ ${dbg} = 1 ]; then
     printf "${cmd}\n" >> ${scrpt}
+  else
+    printf "${cmd}\n"; eval "${cmd}"
   fi
 fi
 
