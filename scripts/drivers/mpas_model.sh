@@ -49,8 +49,14 @@
 ##################################################################################
 # Preamble
 ##################################################################################
-# uncomment to run verbose for debugging / testing
-#set -x
+# CNST         = Full path to constants used to compile and run WRF / WPS
+# IF_DBG_SCRPT = Switch YES or else, this is NOT A REQUIRED ARGUMENT. Set variable
+#                IF_DBG_SCRPT=Yes within the configuration to initiate debugging,
+#                script will default to normal run behavior otherwise
+# SCHED        = IF_DBG_SCRPT=Yes, SCHED=SLURM or SCHED=PBS will auto-generate
+#                a job submission header in the debugging script to run manually
+#
+##################################################################################
 
 if [ ! -x ${CNST} ]; then
   printf "ERROR: constants file\n ${CNST}\n does not exist or is not executable.\n"
@@ -59,6 +65,34 @@ else
   # Read constants into the current shell
   cmd=". ${CNST}"
   printf "${cmd}\n"; eval "${cmd}"
+fi
+
+if [[ ${IF_DBG_SCRPT} = ${YES} ]]; then 
+  dbg=1
+  scrpt=$(mktemp /tmp/run_dbg.XXXXXXX.sh)
+  printf "Driver runs in debug mode.\n"
+  printf "Producing a script and work directory for manual submission.\n"
+  if [[ ${SCHED} = SLURM ]]; then
+    # source slurm header from environment directory
+    cat `dirname ${CNST}`/slurm_header.sh >> ${scrpt}
+  elif [[ ${SCHED} = PBS ]]; then
+    # source pbs header from environment directory
+    cat `dirname ${CNST}`/pbs_header.sh >> ${scrpt}
+  fi
+  # Read constants and print into run script
+  while read line; do
+    IFS=" " read -ra parsed <<< ${line}
+    char=${parsed[0]}
+    if [[ ! ${char} =~ \# ]]; then
+      cmd=""
+      for char in ${parsed[@]}; do
+        cmd="${cmd}${char} "
+      done
+      printf "${cmd}\n" >> ${scrpt}
+    fi
+  done < ${CNST}
+else
+  dbg=0
 fi
 
 ##################################################################################
@@ -163,7 +197,6 @@ else
   printf "\${IF_DYN_LEN} must be set to 'Yes' or 'No' (case insensitive).\n"
   exit 1
 fi
-
 # define the end time based on forecast length control flow above
 stop_dt=`date -d "${strt_dt} ${fcst_hrs} hours"`
 
@@ -171,11 +204,9 @@ if [[ ${IF_RGNL} = ${NO} ]]; then
   printf "MPAS-A is run as a global simulation.\n"
   if_rgnl="false"
   lbc_int="none"
-
 elif [[ ${IF_RGNL} = ${YES} ]]; then
   printf "MPAS-A is run as a regional simulation.\n"
   if_rgnl="true"
-
   # check that interval for background lbc data is defined
   if [ ! ${BKG_INT} ]; then
     printf "ERROR: \${BKG_INT} is not defined.\n"
@@ -251,11 +282,9 @@ fi
 if [[ ${IF_RSTRT} = ${NO} ]]; then 
   printf "MPAS-A is run from init_atmosphere initial conditions.\n"
   if_rstrt="false"
-
 elif [[ ${IF_RSTRT} = ${YES} ]]; then
   printf "MPAS-A is run as a restart simulation.\n"
   if_rstrt="true"
-
 else
   printf "\${IF_RSTRT} must be set to 'Yes' or 'No' (case insensitive).\n"
   exit 1
@@ -266,19 +295,15 @@ if [[ ${IF_DA} = ${NO} ]]; then
   if_da="false"
   if_dacyc="false"
   if_iau="off"
-
 elif [[ ${IF_DA} = ${YES} ]]; then
   printf "MPAS-A writes out temperature and specific humidity as diagnostics.\n"
   if_da="true"
-
   if [[ ${IF_DA_CYC} = ${YES} ]]; then
     printf "MPAS-A recomputes coupled fields from analyzed fields in DA update.\n"
     if_dacyc="true"
-
   elif [[ ${IF_DA_CYC} = ${NO} ]]; then
     printf "MPAS-A does not update coupled fields from analyzed fields.\n"
     if_dacyc="false"
-
   else
     printf "\${IF_DA_CYC} must be set to 'Yes' or 'No' (case insensitive).\n"
     exit 1
@@ -286,11 +311,9 @@ elif [[ ${IF_DA} = ${YES} ]]; then
   if [[ ${IF_IAU} = ${YES} ]]; then
     printf "MPAS-A performs the Incremental Analysis Update scheme.\n"
     if_iau="on"
-
   elif [[ ${IF_IAU} = ${NO} ]]; then
     printf "MPAS-A does not perform the Incremental Analysis Update scheme.\n"
     if_iau="off"
-
   else
     printf "\${IF_IAU} must be set to 'Yes' or 'No' (case insensitive).\n"
     exit 1
@@ -306,11 +329,9 @@ if [[ ${IF_SST_UPDT} = ${NO} ]]; then
   if_sst_diurn="false"
   if_deepsoil="false"
   sfc_int="none"
-
 elif [[ ${IF_SST_UPDT} = ${YES} ]]; then
   printf "MPAS-A updates lower boundary conditions.\n"
   if_sst_updt="true"
-
   # check that interval for background surface data is defined
   if [ ! ${BKG_INT} ]; then
     printf "ERROR: \${BKG_INT} is not defined.\n"
@@ -320,17 +341,13 @@ elif [[ ${IF_SST_UPDT} = ${YES} ]]; then
     exit 1
   else
     sfc_int="${BKG_INT}:00:00"
-
   fi
-
   if [[ ${IF_SST_DIURN} = ${YES} ]]; then
     printf "MPAS-A updates SST on diurnal cycle.\n"
     if_sst_diurn="true"
-
   elif [[ ${IF_SST_DIURN} = ${NO} ]]; then
     printf "MPAS-A does not update SST on diurnal cycle.\n"
     if_sst_diurn="false"
-
   else
     printf "\${IF_SST_DIURN} must be set to 'Yes' or 'No' (case insensitive).\n"
     exit 1
@@ -338,11 +355,9 @@ elif [[ ${IF_SST_UPDT} = ${YES} ]]; then
   if [[ ${IF_DEEPSOIL} = ${YES} ]]; then
     printf "MPAS-A slowly updates lower boundary deep soil temperatures.\n"
     if_deepsoil="true"
-
   elif [[ ${IF_DEEPSOIL} = ${NO} ]]; then
     printf "MPAS-A does not update lower boundary deep soil temperatures.\n"
     if_deepsoil="false"
-
   else
     printf "\${IF_DEEPSOIL} must be set to 'Yes' or 'No' (case insensitive).\n"
     exit 1
@@ -444,10 +459,16 @@ mpiprocs=$(( ${N_NDES} * ${N_PROC} ))
 # phys_files = All files from WRF physics directory, incl Thompson MP
 #
 ##################################################################################
+
 # Create work root and change directory
 work_dir=${CYC_HME}/atmosphere_model/ens_${memid}
 cmd="mkdir -p ${work_dir}; cd ${work_dir}"
 printf "${cmd}\n"; eval "${cmd}"
+if [ ${dbg} = 1 ]; then
+  printf "${cmd}\n" >> ${scrpt}; eval "${cmd}"
+else
+  printf "${cmd}\n"; eval "${cmd}"
+fi
 
 # check that the atmosphere_model executable exists and can be run
 atmos_exe=${MPAS_ROOT}/atmosphere_model
@@ -458,15 +479,15 @@ fi
 
 # Make links to the model run files
 mpas_files=(${MPAS_ROOT}/*)
-for file in ${mpas_files[@]}; do
-  cmd="ln -sf ${file} ."
+for filename in ${mpas_files[@]}; do
+  cmd="ln -sf ${filename} ."
   printf "${cmd}\n"; eval "${cmd}"
 done
 
 # Make links to the model physics files
 phys_files=(${MPAS_ROOT}/src/core_atmosphere/physics/physics_wrf/files/*)
-for phys_f in ${phys_files[@]}; do
-  cmd="ln -sf ${phys_f} ."
+for filename in ${phys_files[@]}; do
+  cmd="ln -sf ${filename} ."
   printf "${cmd}\n"; eval "${cmd}"
 done
 
@@ -525,81 +546,106 @@ if [[ ${IF_RGNL} = ${YES} ]]; then
   bkg_seq=`seq -f "%03g" 0 ${BKG_INT} ${fcst_hrs}`
   for fcst in ${fcst_seq[@]}; do
     lbc_time="`date +%Y-%m-%d_%H_%M_%S -d "${strt_dt} ${fcst} hours"`"
-    input_files+=( "${lbs_root}/${DMN}.lbc.${lbc_time}.nc" )
+    input_files+=( "${lbc_root}/${DMN}.lbc.${lbc_time}.nc" )
   done
 fi
 
-for input_f in ${input_files[@]}; do
-  if [ ! -r ${input_f} ]; then
-    printf "ERROR: ${input_f} is missing or is not readable.\n"
+for filename in ${input_files[@]}; do
+  if [ ! -r ${filename} ]; then
+    printf "ERROR: ${filename} is missing or is not readable.\n"
     exit 1
-  elif [ ! -s ${input_f} ]; then
-    printf "ERROR: ${input_f} is missing or emtpy.\n"
+  elif [ ! -s ${filename} ]; then
+    printf "ERROR: ${filename} is missing or emtpy.\n"
     exit 1
   else
-    cmd="ln -sfr ${input_f} ."
-    printf "${cmd}\n"; eval "${cmd}"
+    cmd="ln -sfr ${filename} ."
+    if [ ${dbg} = 1 ]; then
+      printf "${cmd}\n" >> ${scrpt}
+    else
+      printf "${cmd}\n"; eval "${cmd}"
+    fi
   fi
 done
 
 # Check to make sure the graph partitioning file is available and link
 # NOTE: ${mpiprocs} must match the number of MPI processes
-graph_part=${CFG_ROOT}/meshes/${MSH_NME}.graph.info.part.${mpiprocs}
-if [ ! -r "${graph_part}" ]; then
-  printf "ERROR: Input file\n ${graph_part}\n is missing.\n"
+filename=${CFG_ROOT}/meshes/${MSH_NME}.graph.info.part.${mpiprocs}
+if [ ! -r "${filename}" ]; then
+  printf "ERROR: Input file\n ${filename}\n is missing.\n"
   exit 1
 else
-  cmd="ln -sf ${graph_part} ."
-  printf "${cmd}\n"; eval "${cmd}"
+  cmd="ln -sf ${filename} ."
+  if [ ${dbg} = 1 ]; then
+    printf "${cmd}\n" >> ${scrpt}
+  else
+    printf "${cmd}\n"; eval "${cmd}"
+  fi
 fi
 
 ##################################################################################
 #  Build atmosphere namelist
 ##################################################################################
+
 # Copy the atmosphere namelist / streams templates,
 # NOTE: THESE WILL BE MODIFIED DO NOT LINK TO THEM
-namelist_tmp=${cfg_dir}/namelists/namelist.atmosphere
-streams_tmp=${cfg_dir}/namelists/streams.atmosphere
-if [ ! -r ${namelist_tmp} ]; then 
-  msg="atmosphere namelist template\n ${namelist_tmp}\n is not readable or "
+filename=${cfg_dir}/namelists/namelist.atmosphere
+if [ ! -r ${filename} ]; then 
+  msg="atmosphere namelist template\n ${filename}\n is not readable or "
   msg+="does not exist.\n"
   printf "${msg}"
   exit 1
 else
-  cmd="cp -L ${namelist_tmp} ./namelist.atmosphere"
-  printf "${cmd}\n"; eval "${cmd}"
+  cmd="cp -L ${filename} ./namelist.atmosphere"
+  if [ ${dbg} = 1 ]; then
+    printf "${cmd}\n" >> ${scrpt}
+  else
+    printf "${cmd}\n"; eval "${cmd}"
+  fi
 fi
 
-if [ ! -r ${streams_tmp} ]; then 
-  msg="atmosphere streams template\n ${streams_tmp}\n is not readable or "
+filename=${cfg_dir}/namelists/streams.atmosphere
+if [ ! -r ${filename} ]; then 
+  msg="atmosphere streams template\n ${filename}\n is not readable or "
   msg+="does not exist.\n"
   printf "${msg}"
   exit 1
 else
-  cmd="cp -L ${streams_tmp} ./streams.atmosphere"
-  printf "${cmd}\n"; eval "${cmd}"
+  cmd="cp -L ${filename} ./streams.atmosphere"
+  if [ ${dbg} = 1 ]; then
+    printf "${cmd}\n" >> ${scrpt}
+  else
+    printf "${cmd}\n"; eval "${cmd}"
+  fi
 fi
 
-streamlist_out_tmp=${cfg_dir}/namelists/stream_list.atmosphere.output
-if [ ! -r ${streamlist_out_tmp} ]; then 
-  msg="atmosphere stream_list.atmosphere.output\n ${streamlist_out_tmp}\n"
+filename=${cfg_dir}/namelists/stream_list.atmosphere.output
+if [ ! -r ${filename} ]; then 
+  msg="atmosphere stream_list.atmosphere.output\n ${filename}\n"
   msg+=" is not readable or does not exist.\n"
   printf "${msg}"
   exit 1
 else
-  cmd="cp -L ${streamlist_out_tmp} ./stream_list.atmosphere.output"
-  printf "${cmd}\n"; eval "${cmd}"
+  cmd="cp -L ${filename} ./stream_list.atmosphere.output"
+  if [ ${dbg} = 1 ]; then
+    printf "${cmd}\n" >> ${scrpt}
+  else
+    printf "${cmd}\n"; eval "${cmd}"
+  fi
 fi
 
-streamlist_sfc_tmp=${cfg_dir}/namelists/stream_list.atmosphere.surface
-if [ ! -r ${streamlist_sfc_tmp} ]; then 
-  msg="atmosphere stream_list.atmosphere.surface\n ${streamlist_sfc_tmp}\n"
+filename=${cfg_dir}/namelists/stream_list.atmosphere.surface
+if [ ! -r ${filename} ]; then 
+  msg="atmosphere stream_list.atmosphere.surface\n ${filename}\n"
   msg+=" is not readable or does not exist.\n"
   printf "${msg}"
   exit 1
 else
-  cmd="cp -L ${streamlist_sfc_tmp} ./stream_list.atmosphere.surface"
-  printf "${cmd}\n"; eval "${cmd}"
+  cmd="cp -L ${filename} ./stream_list.atmosphere.surface"
+  if [ ${dbg} = 1 ]; then
+    printf "${cmd}\n" >> ${scrpt}
+  else
+    printf "${cmd}\n"; eval "${cmd}"
+  fi
 fi
 
 streamlist_diag_tmp=${cfg_dir}/namelists/stream_list.atmosphere.diagnostics
@@ -610,7 +656,11 @@ if [ ! -r ${streamlist_diag_tmp} ]; then
   exit 1
 else
   cmd="cp -L ${streamlist_diag_tmp} ./stream_list.atmosphere.diagnostics"
-  printf "${cmd}\n"; eval "${cmd}"
+  if [ ${dbg} = 1 ]; then
+    printf "${cmd}\n" >> ${scrpt}
+  else
+    printf "${cmd}\n"; eval "${cmd}"
+  fi
 fi
 
 # define start / end time patterns for namelist.atmosphere
@@ -621,37 +671,64 @@ stop_iso=`date +%Y-%m-%d_%H:%M:%S -d "${stop_dt}"`
 data_interval_sec=$(( ${BKG_INT} * 3600 ))
 
 # Update the atmosphere namelist / streams for surface boundary conditions
+cat << EOF > replace_param.tmp
 cat namelist.atmosphere \
-  | sed "s/= STRT_DT,/= '${strt_iso}'/" \
-  | sed "s/= FCST_HRS,/= '${fcst_hrs}:00:00'/" \
-  | sed "s/= IF_RGNL,/= ${if_rgnl}/" \
-  | sed "s/= IF_RSTRT,/= ${if_rstrt}/" \
-  | sed "s/= IF_DA,/= ${if_da}/" \
-  | sed "s/= IF_IAU,/= '${if_iau}'/" \
-  | sed "s/= IF_DACYC,/= ${if_dacyc}/" \
-  | sed "s/= IF_SST_UPDT,/= ${if_sst_updt}/" \
-  | sed "s/= IF_SST_DIURN,/= ${if_sst_diurn}/" \
-  | sed "s/= IF_DEEPSOIL,/= ${if_deepsoil}/" \
-  | sed "s/= SND_INT,/= '${snd_int}'/" \
-  | sed "s/= PIO_NUM,/= ${PIO_NUM}/" \
-  | sed "s/= PIO_STRD,/= ${PIO_STRD}/" \
-  | sed "s/MSH_NME/${MSH_NME}/" \
-  > namelist.atmosphere.tmp
+| sed "s/= STRT_DT,/= '${strt_iso}'/" \
+| sed "s/= FCST_HRS,/= '${fcst_hrs}:00:00'/" \
+| sed "s/= IF_RGNL,/= ${if_rgnl}/" \
+| sed "s/= IF_RSTRT,/= ${if_rstrt}/" \
+| sed "s/= IF_DA,/= ${if_da}/" \
+| sed "s/= IF_IAU,/= '${if_iau}'/" \
+| sed "s/= IF_DACYC,/= ${if_dacyc}/" \
+| sed "s/= IF_SST_UPDT,/= ${if_sst_updt}/" \
+| sed "s/= IF_SST_DIURN,/= ${if_sst_diurn}/" \
+| sed "s/= IF_DEEPSOIL,/= ${if_deepsoil}/" \
+| sed "s/= SND_INT,/= '${snd_int}'/" \
+| sed "s/= PIO_NUM,/= ${PIO_NUM}/" \
+| sed "s/= PIO_STRD,/= ${PIO_STRD}/" \
+| sed "s/MSH_NME/${MSH_NME}/" \
+> namelist.atmosphere.tmp
 mv namelist.atmosphere.tmp namelist.atmosphere
+EOF
 
+if [ ${dbg} = 1 ]; then
+  # include the replacement commands in run script
+  cat replace_param.tmp >> ${scrpt}
+  rm replace_param.tmp
+else
+  # update the namelist
+  chmod +x replace_param.tmp
+  ./replace_param.tmp
+  rm replace_param.tmp
+fi
+
+cat << EOF > replace_param.tmp
 cat streams.atmosphere \
-  | sed "s/CFG_NME/${cfg_nme}/" \
-  | sed "s/=RSTRT_INT,/=\"${rstrt_int}\"/" \
-  | sed "s/=HIST_INT,/=\"${hist_int}\"/" \
-  | sed "s/=DIAG_INT,/=\"${diag_int}\"/" \
-  | sed "s/=SFC_INT,/=\"${sfc_int}\"/" \
-  | sed "s/=LBC_INT,/=\"${lbc_int}\"/" \
-  > streams.atmosphere.tmp
+| sed "s/CFG_NME/${cfg_nme}/" \
+| sed "s/=RSTRT_INT,/=\"${rstrt_int}\"/" \
+| sed "s/=HIST_INT,/=\"${hist_int}\"/" \
+| sed "s/=DIAG_INT,/=\"${diag_int}\"/" \
+| sed "s/=SFC_INT,/=\"${sfc_int}\"/" \
+| sed "s/=LBC_INT,/=\"${lbc_int}\"/" \
+> streams.atmosphere.tmp
 mv streams.atmosphere.tmp streams.atmosphere
+EOF
+
+if [ ${dbg} = 1 ]; then
+  # include the replacement commands in run script
+  cat replace_param.tmp >> ${scrpt}
+  rm replace_param.tmp
+else
+  # update the namelist
+  chmod +x replace_param.tmp
+  ./replace_param.tmp
+  rm replace_param.tmp
+fi
 
 ##################################################################################
 # Run atmosphere
 ##################################################################################
+
 # Print run parameters
 printf "\n"
 printf "EXP_NME = ${EXP_NME}\n"
@@ -662,15 +739,25 @@ printf "STRT_DT = ${strt_iso}\n"
 printf "STOP_DT = ${stop_iso}\n"
 printf "BKG_INT = ${BKG_INT}\n"
 printf "\n"
+
+cmd="${MPIRUN} -n ${mpiprocs} ${atmos_exe}"
+
+if [ ${dbg} = 1 ]; then
+  printf "${cmd}\n" >> ${scrpt}
+  mv ${scrpt} ${work_dir}/run_atmosphere.sh
+  printf "Setup of init_atmosphere work directory and run script complete.\n"
+  exit 0
+fi
+
 now=`date +%Y-%m-%d_%H_%M_%S`
 printf "atmosphere_model started at ${now}.\n"
-cmd="${MPIRUN} -n ${mpiprocs} ${atmos_exe}"
 printf "${cmd}\n"
 ${MPIRUN} -n ${mpiprocs} ${atmos_exe}
 
 ##################################################################################
 # Run time error check
 ##################################################################################
+
 error="$?"
 printf "atmosphere_model exited with code ${error}.\n"
 
@@ -690,20 +777,20 @@ cmd="mv stream_list.* ${log_dir}"
 printf "${cmd}\n"; eval "${cmd}"
 
 # Remove links to the model run files
-for file in ${mpas_files[@]}; do
-  cmd="rm -f `basename ${file}`"
+for filename in ${mpas_files[@]}; do
+  cmd="rm -f `basename ${filename}`"
   printf "${cmd}\n"; eval "${cmd}"
 done
 
 # Remove links to the model physics files
-for phys_f in ${phys_files[@]}; do
-  cmd="rm -f `basename ${phys_f}`"
+for filename in ${phys_files[@]}; do
+  cmd="rm -f `basename ${filename}`"
   printf "${cmd}\n"; eval "${cmd}"
 done
 
 # remove links to input files
-for input_f in ${input_files[@]}; do
-  cmd="rm -f `basename ${input_f}`"
+for filename in ${input_files[@]}; do
+  cmd="rm -f `basename ${filename}`"
   printf "${cmd}\n"; eval "${cmd}"
 done
 
@@ -719,7 +806,6 @@ fi
 if [ ! ${HIST_INT} = 00 ]; then
   # verify all history outputs
   hist_seq=`seq -f "%03g" 0 ${HIST_INT} ${fcst_hrs}`
-  
   for hist in ${hist_seq[@]}; do
     filename="${cfg_nme}.history.`date +%Y-%m-%d_%H_%M_%S -d "${strt_dt} ${hist} hours"`.nc"
     if [ ! -s ${filename} ]; then
@@ -732,7 +818,6 @@ fi
 if [ ! ${DIAG_INT} = 00 ]; then
   # verify all diagnostic outputs
   diag_seq=`seq -f "%03g" 0 ${DIAG_INT} ${fcst_hrs}`
-  
   for diag in ${diag_seq[@]}; do
     filename="${cfg_nme}.diag.`date +%Y-%m-%d_%H_%M_%S -d "${strt_dt} ${diag} hours"`.nc"
     if [ ! -s ${filename} ]; then
@@ -745,7 +830,6 @@ fi
 if [ ! ${RSTRT_INT} = 00 ]; then
   # verify all diagnostic outputs
   rstrt_seq=`seq -f "%03g" ${RSTRT_INT} ${RSTRT_INT} ${fcst_hrs}`
-  
   for rstrt in ${rstrt_seq[@]}; do
     filename="${cfg_nme}.restart.`date +%Y-%m-%d_%H_%M_%S -d "${strt_dt} ${rstrt} hours"`.nc"
     if [ ! -s ${filename} ]; then
@@ -759,7 +843,6 @@ fi
 if [ ! ${SND_INT} = 00 ]; then
   # verify all sounding outputs
   snd_seq=`seq -f "%03g" 0 ${SND_INT} ${fcst_hrs}`
-  
   for snd in ${snd_seq[@]}; do
     filename="${cfg_nme}.snd.`date +%Y-%m-%d_%H_%M_%S -d "${strt_dt} ${snd} hours"`.nc"
     if [ ! -s ${filename} ]; then

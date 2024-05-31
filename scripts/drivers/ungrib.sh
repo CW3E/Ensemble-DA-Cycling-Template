@@ -124,10 +124,9 @@ fi
 
 if [[ ${IF_DBG_SCRPT} = ${YES} ]]; then 
   dbg=1
-  scrpt=$(mktemp /tmp/run_ungrib.XXXXXXX.sh)
+  scrpt=$(mktemp /tmp/run_dbg.XXXXXXX.sh)
   printf "Driver runs in debug mode.\n"
   printf "Producing a script and work directory for manual submission.\n"
-
   if [[ ${SCHED} = SLURM ]]; then
     # source slurm header from environment directory
     cat `dirname ${CNST}`/slurm_header.sh >> ${scrpt}
@@ -135,7 +134,6 @@ if [[ ${IF_DBG_SCRPT} = ${YES} ]]; then
     # source pbs header from environment directory
     cat `dirname ${CNST}`/pbs_header.sh >> ${scrpt}
   fi
-
   # Read constants and print into run script
   while read line; do
     IFS=" " read -ra parsed <<< ${line}
@@ -238,7 +236,6 @@ else
   printf "\${IF_DYN_LEN} must be set to 'Yes' or 'No' (case insensitive).\n"
   exit 1
 fi
-
 # define the stop time based on forecast length control flow above
 stop_dt=`date -d "${strt_dt} ${fcst_hrs} hours"`
 
@@ -265,15 +262,12 @@ if [[ ${IF_RGNL} = ${NO} && ${IF_SST_UPDT} = ${NO} ]]; then
   printf "Ungribbing only initial condition data data.\n"
   # create a multiplier for the file count
   rgnl=0
-
   # define a sequence containing only the formatted initial conditions hour
   fcst_seq=`seq -f "%03g" 0 1 0`
-
 elif [[ ${IF_RGNL} = ${YES} || ${IF_SST_UPDT} = ${YES} ]]; then
   printf "Ungribbing data for initial and boundary conditions.\n"
   # create a multiplier for the file count
   rgnl=1
-
   # define a sequence of all forecast hours with background interval spacing
   fcst_seq=`seq -f "%03g" 0 ${BKG_INT} ${fcst_hrs}`
 fi
@@ -289,10 +283,8 @@ fi
 if [ ${BKG_DATA} = GFS ]; then
   # GFS has single control trajectory
   fnames="gfs.0p25.${BKG_STRT_DT}.f*"
-
   # compute the number of input files to ungrib (incld. first/last times)
   n_files=$(( (${fcst_hrs} / ${BKG_INT}) * ${rgnl} + 1 ))
-
 elif [ ${BKG_DATA} = GEFS ]; then
   if [ ${memid} = 00 ]; then
     # 00 perturbation is the control forecast
@@ -303,7 +295,6 @@ elif [ ${BKG_DATA} = GEFS ]; then
   fi
   # GEFS comes in a/b files for each valid time, AWS 0p50 supports initialization
   n_files=$(( (2 * ${fcst_hrs} / ${BKG_INT}) * ${rgnl} + 2 ))
-
 else
   msg="ERROR: \${BKG_DATA} must equal 'GFS' or 'GEFS'"
   msg+=" as currently supported inputs.\n"
@@ -390,7 +381,6 @@ wps_files=(${WPS_ROOT}/*)
 for filename in ${wps_files[@]}; do
   cmd="rm -f `basename ${filename}`"
   printf "${cmd}\n"; eval "${cmd}"
-
   cmd="ln -sf ${filename} ."
   if [ ${dbg} = 1 ]; then
     printf "${cmd}\n" >> ${scrpt}
@@ -435,7 +425,6 @@ printf "${cmd}\n"; eval "${cmd}"
 if [ ${IF_ECMWF_ML} = ${YES} ]; then
   cmd="rm -f ecmwf_coeffs"
   printf "${cmd}\n"; eval "${cmd}"
-
   # Check for ECMWF pressure coefficients 
   cmd="rm -f PRES:*"
   printf "${cmd}\n"; eval "${cmd}"
@@ -621,7 +610,6 @@ if [ ${IF_ECMWF_ML} = ${YES} ]; then
   printf "${cmd}\n"; eval "${cmd}"
   cmd="./util/calc_ecmwf_p.exe"
   printf "${cmd}\n"; eval "${cmd}"
-
   # Check for ECMWF pressure coefficients 
   for fcst in ${fcst_seq[@]}; do
     filename=PRES:`date +%Y-%m-%d_%H -d "${strt_dt} ${fcst} hours"`

@@ -124,7 +124,7 @@ fi
 
 if [[ ${IF_DBG_SCRPT} = ${YES} ]]; then 
   dbg=1
-  scrpt=$(mktemp /tmp/run_metgrid.XXXXXXX.sh)
+  scrpt=$(mktemp /tmp/run_dbg.XXXXXXX.sh)
   printf "Driver runs in debug mode.\n"
   printf "Producing a script and work directory for manual submission.\n"
 

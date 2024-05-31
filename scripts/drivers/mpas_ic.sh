@@ -57,6 +57,7 @@
 #                a job submission header in the debugging script to run manually
 #
 ##################################################################################
+
 if [ ! -x ${CNST} ]; then
   printf "ERROR: constants file\n ${CNST}\n does not exist or is not executable.\n"
   exit 1
@@ -68,10 +69,9 @@ fi
 
 if [[ ${IF_DBG_SCRPT} = ${YES} ]]; then 
   dbg=1
-  scrpt=$(mktemp /tmp/run_ungrib.XXXXXXX.sh)
+  scrpt=$(mktemp /tmp/run_dbg.XXXXXXX.sh)
   printf "Driver runs in debug mode.\n"
   printf "Producing a script and work directory for manual submission.\n"
-
   if [[ ${SCHED} = SLURM ]]; then
     # source slurm header from environment directory
     cat `dirname ${CNST}`/slurm_header.sh >> ${scrpt}
@@ -79,7 +79,6 @@ if [[ ${IF_DBG_SCRPT} = ${YES} ]]; then
     # source pbs header from environment directory
     cat `dirname ${CNST}`/pbs_header.sh >> ${scrpt}
   fi
-
   # Read constants and print into run script
   while read line; do
     IFS=" " read -ra parsed <<< ${line}
@@ -186,7 +185,6 @@ else
   printf "\${IF_DYN_LEN} must be set to 'Yes' or 'No' (case insensitive).\n"
   exit 1
 fi
-
 # define the stop time based on forecast length control flow above
 stop_dt=`date -d "${strt_dt} ${fcst_len} hours"`
 
@@ -213,10 +211,8 @@ elif [[ ${IF_ZETA_LIST} = ${YES} ]]; then
   else
     zeta_list=${zeta_list[0]}
   fi
-
   # define string replacement for the namelist
   if_zeta_list="config_specified_zeta_levels = `basename ${zeta_list}`"
-
   printf "Uses explicitly defined zeta levels for vertical grid spacing in file\n"
   printf "`basename ${zeta_list}`\n"
 else
@@ -322,10 +318,15 @@ mpiprocs=$(( ${N_NDES} * ${N_PROC} ))
 # init_exe   = Path and name of init_atmosphere_model executable
 #
 ##################################################################################
+
 # Create work root and change directory
 work_dir=${CYC_HME}/init_atmosphere_ic/ens_${memid}
 cmd="mkdir -p ${work_dir}; cd ${work_dir}"
-printf "${cmd}\n"; eval "${cmd}"
+if [ ${dbg} = 1 ]; then
+  printf "${cmd}\n" >> ${scrpt}; eval "${cmd}"
+else
+  printf "${cmd}\n"; eval "${cmd}"
+fi
 
 # Check that the executable exists and can be run
 init_exe=${MPAS_ROOT}/init_atmosphere_model
@@ -336,9 +337,13 @@ fi
 
 # Make links to the init_atmos run files
 mpas_files=(${MPAS_ROOT}/*)
-for file in ${mpas_files[@]}; do
-  cmd="ln -sf ${file} ."
-  printf "${cmd}\n"; eval "${cmd}"
+for filename in ${mpas_files[@]}; do
+  cmd="ln -sf ${filename} ."
+  if [ ${dbg} = 1 ]; then
+    printf "${cmd}\n" >> ${scrpt}
+  else
+    printf "${cmd}\n"; eval "${cmd}"
+  fi
 done
 
 # Remove any mpas static files following ${cfg_nme}.static.nc pattern
@@ -369,9 +374,8 @@ else
   printf "No pre-existing log files were found.\n"
 fi
 
-# Remove pre-existing ungrib case data
-filename="${BKG_DATA}:`date +%Y-%m-%d_%H -d "${strt_dt} 0 hours"`"
-cmd="rm -f ./${filename}"
+# Remove any ungrib outputs
+cmd="rm -f ${BKG_DATA}:*"
 printf "${cmd}\n"; eval "${cmd}"
 
 # Link case ungrib data from ungrib root
@@ -386,7 +390,11 @@ else
     exit 1
   else
     cmd="ln -sfr ${filename} ."
-    printf "${cmd}\n"; eval "${cmd}"
+    if [ ${dbg} = 1 ]; then
+      printf "${cmd}\n" >> ${scrpt}
+    else
+      printf "${cmd}\n"; eval "${cmd}"
+    fi
   fi
 fi
 
@@ -397,7 +405,11 @@ if [ ! -r "${static_input}" ]; then
   exit 1
 else
   cmd="ln -sf ${static_input} ."
-  printf "${cmd}\n"; eval "${cmd}"
+  if [ ${dbg} = 1 ]; then
+    printf "${cmd}\n" >> ${scrpt}
+  else
+    printf "${cmd}\n"; eval "${cmd}"
+  fi
 fi
 
 # Check to make sure the graph partitioning file is available and link
@@ -408,25 +420,32 @@ if [ ! -r "${graph_part}" ]; then
   exit 1
 else
   cmd="ln -sf ${graph_part} ."
-  printf "${cmd}\n"; eval "${cmd}"
+  if [ ${dbg} = 1 ]; then
+    printf "${cmd}\n" >> ${scrpt}
+  else
+    printf "${cmd}\n"; eval "${cmd}"
+  fi
 fi
 
 ##################################################################################
 #  Build init_atmosphere namelist
 ##################################################################################
+
 # Copy the init_atmosphere namelist / streams templates,
 # NOTE: THESE WILL BE MODIFIED DO NOT LINK TO THEM
-namelist_tmp=${cfg_dir}/namelists/namelist.init_atmosphere.${BKG_DATA}
-streams_tmp=${cfg_dir}/namelists/streams.init_atmosphere
-
-if [ ! -r ${namelist_tmp} ]; then 
-  msg="init_atmosphere namelist template\n ${namelist_tmp}\n is not readable or "
+filename=${cfg_dir}/namelists/namelist.init_atmosphere.${BKG_DATA}
+if [ ! -r ${filename} ]; then 
+  msg="init_atmosphere namelist template\n ${filename}\n is not readable or "
   msg+="does not exist.\n"
   printf "${msg}"
   exit 1
 else
-  cmd="cp -L ${namelist_tmp} ./namelist.init_atmosphere"
-  printf "${cmd}\n"; eval "${cmd}"
+  cmd="cp -L ${filename} ./namelist.init_atmosphere"
+  if [ ${dbg} = 1 ]; then
+    printf "${cmd}\n" >> ${scrpt}
+  else
+    printf "${cmd}\n"; eval "${cmd}"
+  fi
 fi
 
 if [[ ${IF_ZETA_LIST} = ${YES} ]]; then
@@ -437,18 +456,27 @@ if [[ ${IF_ZETA_LIST} = ${YES} ]]; then
     exit 1
   else
     cmd="cp -L ${zeta_list} ./"
-    printf "${cmd}\n"; eval "${cmd}"
+    if [ ${dbg} = 1 ]; then
+      printf "${cmd}\n" >> ${scrpt}
+    else
+      printf "${cmd}\n"; eval "${cmd}"
+    fi
   fi
 fi
 
-if [ ! -r ${streams_tmp} ]; then 
-  msg="init_atmosphere streams template\n ${streams_tmp}\n is not readable or "
+filename=${cfg_dir}/namelists/streams.init_atmosphere
+if [ ! -r ${filename} ]; then 
+  msg="init_atmosphere streams template\n ${filename}\n is not readable or "
   msg+="does not exist.\n"
   printf "${msg}"
   exit 1
 else
-  cmd="cp -L ${streams_tmp} ./streams.init_atmosphere"
-  printf "${cmd}\n"; eval "${cmd}"
+  cmd="cp -L ${filename} ./streams.init_atmosphere"
+  if [ ${dbg} = 1 ]; then
+    printf "${cmd}\n" >> ${scrpt}
+  else
+    printf "${cmd}\n"; eval "${cmd}"
+  fi
 fi
 
 # define start / stop time patterns for namelist.init_atmosphere
@@ -456,35 +484,62 @@ strt_iso=`date +%Y-%m-%d_%H:%M:%S -d "${strt_dt}"`
 stop_iso=`date +%Y-%m-%d_%H:%M:%S -d "${stop_dt}"`
 
 # Update the init_atmosphere namelist / streams for real initial conditions
+cat << EOF > replace_param.tmp
 cat namelist.init_atmosphere \
-  | sed "s/= INIT_CASE,/= 7/" \
-  | sed "s/= STRT_DT,/= '${strt_iso}'/" \
-  | sed "s/= STOP_DT,/= '${stop_iso}'/" \
-  | sed "s/BKG_DATA/${BKG_DATA}/" \
-  | sed "s/= FG_INT,/= 0/" \
-  | sed "s/= IF_STATIC_INTERP,/= false/" \
-  | sed "s/= IF_NATIVE_GWD_STATIC,/= false/" \
-  | sed "s/= IF_VERTICAL_GRID,/= true/" \
-  | sed "s/= IF_MET_INTERP,/= true/" \
-  | sed "s/= IF_INPUT_SST,/= false/" \
-  | sed "s/= IF_FRAC_SEAICE,/= true/" \
-  | sed "s/IF_ZETA_LIST/${if_zeta_list}/" \
-  | sed "s/= PIO_NUM,/= ${PIO_NUM}/" \
-  | sed "s/= PIO_STRD,/= ${PIO_STRD}/" \
-  | sed "s/MSH_NME/${MSH_NME}/" \
-  > namelist.init_atmosphere.tmp
+| sed "s/= INIT_CASE,/= 7/" \
+| sed "s/= STRT_DT,/= '${strt_iso}'/" \
+| sed "s/= STOP_DT,/= '${stop_iso}'/" \
+| sed "s/BKG_DATA/${BKG_DATA}/" \
+| sed "s/= FG_INT,/= 0/" \
+| sed "s/= IF_STATIC_INTERP,/= false/" \
+| sed "s/= IF_NATIVE_GWD_STATIC,/= false/" \
+| sed "s/= IF_VERTICAL_GRID,/= true/" \
+| sed "s/= IF_MET_INTERP,/= true/" \
+| sed "s/= IF_INPUT_SST,/= false/" \
+| sed "s/= IF_FRAC_SEAICE,/= true/" \
+| sed "s/IF_ZETA_LIST/${if_zeta_list}/" \
+| sed "s/= PIO_NUM,/= ${PIO_NUM}/" \
+| sed "s/= PIO_STRD,/= ${PIO_STRD}/" \
+| sed "s/MSH_NME/${MSH_NME}/" \
+> namelist.init_atmosphere.tmp
 mv namelist.init_atmosphere.tmp namelist.init_atmosphere
+EOF
 
+if [ ${dbg} = 1 ]; then
+  # include the replacement commands in run script
+  cat replace_param.tmp >> ${scrpt}
+  rm replace_param.tmp
+else
+  # update the namelist
+  chmod +x replace_param.tmp
+  ./replace_param.tmp
+  rm replace_param.tmp
+fi
+
+cat << EOF > replace_param.tmp
 cat streams.init_atmosphere \
-  | sed "s/CFG_NME/${cfg_nme}/" \
-  | sed "s/=SFC_INT,/=\"00:00:00\"/" \
-  | sed "s/=LBC_INT,/=\"00:00:00\"/" \
-  > streams.init_atmosphere.tmp
+| sed "s/CFG_NME/${cfg_nme}/" \
+| sed "s/=SFC_INT,/=\"00:00:00\"/" \
+| sed "s/=LBC_INT,/=\"00:00:00\"/" \
+> streams.init_atmosphere.tmp
 mv streams.init_atmosphere.tmp streams.init_atmosphere
+EOF
+
+if [ ${dbg} = 1 ]; then
+  # include the replacement commands in run script
+  cat replace_param.tmp >> ${scrpt}
+  rm replace_param.tmp
+else
+  # update the namelist
+  chmod +x replace_param.tmp
+  ./replace_param.tmp
+  rm replace_param.tmp
+fi
 
 ##################################################################################
 # Run init_atmosphere
 ##################################################################################
+
 # Print run parameters
 printf "\n"
 printf "EXP_NME  = ${EXP_NME}\n"
@@ -495,15 +550,25 @@ printf "STRT_DT  = ${strt_iso}\n"
 printf "STOP_DT  = ${stop_iso}\n"
 printf "BKG_DATA = ${BKG_DATA}\n"
 printf "\n"
+
+cmd="${MPIRUN} -n ${mpiprocs} ${init_exe}"
+
+if [ ${dbg} = 1 ]; then
+  printf "${cmd}\n" >> ${scrpt}
+  mv ${scrpt} ${work_dir}/run_init_atmosphere_ic.sh
+  printf "Setup of init_atmosphere work directory and run script complete.\n"
+  exit 0
+fi
+
 now=`date +%Y-%m-%d_%H_%M_%S`
 printf "init_atmpshere started at ${now}.\n"
-cmd="${MPIRUN} -n ${mpiprocs} ${init_exe}"
 printf "${cmd}\n"
 ${MPIRUN} -n ${mpiprocs} ${init_exe}
 
 ##################################################################################
 # Run time error check
 ##################################################################################
+
 error="$?"
 printf "init_atmosphere exited with code ${error}.\n"
 
@@ -525,8 +590,8 @@ if [[ ${IF_ZETA_LIST} = ${YES} ]]; then
 fi
 
 # Remove links to the init_atmos run files
-for file in ${mpas_files[@]}; do
-  cmd="rm -f `basename ${file}`"
+for filename in ${mpas_files[@]}; do
+  cmd="rm -f `basename ${filename}`"
   printf "${cmd}\n"; eval "${cmd}"
 done
 
