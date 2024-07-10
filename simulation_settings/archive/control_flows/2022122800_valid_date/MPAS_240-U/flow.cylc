@@ -1,9 +1,9 @@
 #!jinja2
-
-# Set global workflow parameters in jinja2 here
-
-# Define the valid date YYYYMMDDHH for verification
-{% set EXP_VRF = '2022122800' %}
+##################################################################################
+# CONTROL FLOW NAME / TUNABLE SETTINGS
+##################################################################################
+# Define the valid date YYYY-MM-DDTHH for verification
+{% set EXP_VRF = '2022-12-28T00' %}
 
 # Define the MPAS mesh name
 {% set MSH_NME = 'x1.10242' %}
@@ -17,22 +17,138 @@
 # Experiment logs and data are defined in the case / configuration nested structure
 {% set EXP_NME = '{{CSE_NME}}/{{CFG_NME}}' %}
 
+##################################################################################
+# WORKFLOW SETTINGS
+##################################################################################
+{% set EXP_LOG = '&CLNE_ROOT;/logs/&EXP_NME;' %} # Root directory of workflow task logs 
+{% set CFG_ROOT = '&CLNE_ROOT;/simulation_settings' %} # Root directory of experiment configuration files 
+{% set SCRIPTS = '&CLNE_ROOT;/scripts' %} # Root directory of workflow framework scripts 
+{% set DRIVERS = '&SCRIPTS;/drivers' %} # Root directory of task driver scripts 
+{% set UTILITY = '&SCRIPTS;/utilities' %} # Root directory of utility scripts for hacking rocoto to work 
+{% set ENVRNMTS = '&SCRIPTS;/environments' %} # Root directory of software stack environment scripts 
+
+##################################################################################
+# CYCLING SETTINGS
+##################################################################################
+# First initial time for a forecast YYYY-MM-DDTHH
+{% set CYC_STRT = '2022-12-23T00' %}
+
+# Last initial time for a forecast YYYY-MM-DDTHH
+{% set CYC_STOP = '2022-12-27T00' %}
+
+# Interval between cycle start times XXH
+{% set CYC_INC = '24H' %}
+
+##################################################################################
+# Ensemble SETTINGS
+##################################################################################
 # Define the max ensemble index
 {% set ENS_MAX = 2 %}
+
+# GFS and GEFS currently supported
+{% set ENS_BKG_DATA = 'GEFS' %}
+
+# Data file frequency for ensemble simulation forcing in HH
+{% set ENS_BKG_INT = '03' %}
+
+##################################################################################
+# MPAS SETTINGS
+##################################################################################
+# Output interval for history files in HH, suppressed = 00
+{% set HIST_INT = '03' %}
+
+# Output interval for diagnostic files in HH, suppressed = 00
+{% set DIAG_INT = '03' %}
+
+# Output interval for sounding files in HH, suppressed = 00
+{% set SND_INT = '00' %}
+
+# Output interval for restart files in HH, suppressed = 00
+{% set RSTRT_INT = '24' %}
 
 # Define if MPAS is run in regional mode
 {% set IF_RGNL = 'No' %}
 
+# Forecast lengths are defined to a specified verification valid date
+{% set IF_DYN_LEN = 'Yes' %}
+
+# Lower boundary condition updates from background data
+{% set IF_SST_UPDT = 'No' %}
+
+# Diurnal updates to lower boundary conditions
+{% set IF_SST_DIURN = 'No' %}
+
+# Slowly varying deep soil temperatures
+{% set IF_DEEPSOIL = 'No' %}
+
+# If zeta levels are explicitly set
+{% set IF_ZETA_LIST = 'Yes' %}
+
+# Number of tasks devoted to IO, set to 0 for all tasks run IO
+{% set PIO_NUM = '0' %}
+
+# Parallel IO stride
+{% set PIO_STRD = '1' %}
+
+##################################################################################
+# MPAS SETTINGS
+##################################################################################
+# Project billing account
+{% set PROJECT = 'cwp168'%}
+
+# Compute queue for standard mpi jobs
+{% set PART_CMP = 'cw3e-compute'%}
+
+# Debug queue for small / rapid parallel jobs
+{% set PART_DBG = 'cw3e-shared'%}
+
+# Serial queue for non-mpi jobs
+{% set PART_SRL = 'cw3e-shared'%}
+
+# MPI exec command
+{% set MPIRUN = 'mpiexec'%}
+
+# ungrib mem-per-cpu argument
+{% set GRIB_MEM = '1750M'%}
+
+# Wallclock limit for ungrib jobs
+{% set GRIB_WC = '00:30:00'%}
+
+# init_atmosphere number of procs-per-node
+{% set INIT_PROC = '64'%}
+
+# init_atmosphere mem-per-cpu argument
+{% set INIT_MEM = '1750M'%}
+
+# Number of nodes for init_atmosphere
+{% set INIT_NDES = '1'%}
+
+# Wallclock limit for init_atmosphere jobs
+{% set INIT_WC = '00:30:00'%}
+
+# atmosphere_model number of procs-per-node
+{% set MPAS_PROC = '64'%}
+
+# atmosphere_model mem-per-cpu argument
+{% set MPAS_MEM = '1750M'%}
+
+# Number of nodes for atmosphere_model jobs
+{% set MPAS_NDES = '1'%}
+
+# Wallclock limit for atmosphere_model
+{% set MPAS_WC = '00:30:00'%}
+
+##################################################################################
+# CYLC SETTINGS
+##################################################################################
 [scheduler]
     UTC mode = True
     allow implicit tasks = True
 [scheduling]
-    initial cycle point = \
-        2022-12-23T00Z
-    final cycle point = \
-        2022-12-27T00Z
+    initial cycle point = {{CYC_STRT}}
+    final cycle point = {{CYC_STOP}}
     [[graph]]
-        P1D = """
+        P{{CYC_INC}} = """
         {% for mem in range(0,ENS_MAX) %}
             {% set idx = mem | pad(2,'0') %}
             ungrib_ens_{{idx}}  => mpas_ic_ens_{{idx}}
@@ -45,8 +161,13 @@
             EXP_NME = {{EXP_NME}}
             EXP_VRF = {{EXP_VRF}}
             CFG_ROOT = {{environ['CFG_ROOT']}}
-            IF_DYN_LEN = 'Yes'
+            CYC_DT = $(cylc isodatetime cyclepoint --f 'CCYYMMDDhh')
+            CYC_HME = {{environ['WORK_ROOT']}}/{{EXP_NME}}/$CYC_DT
+            STRT_DT = $CYC_DT
+            IF_DYN_LEN = {{IF_DYN_LEN}}
+            IF_SST_UPDT = {{IF_SST_UPDT}}
             IF_RGNL = {{IF_RGNL}}
+            MPI_RUN = {{environ['MPI_RUN']}}
 
     [[WPS]]
         [[[environment]]]
@@ -57,44 +178,31 @@
         [[[environment]]]
             CNST = {{environ['MPAS_CNST']}}
             MPAS_ROOT = {{environ['MPAS_ROOT']}}
+            MSH_NME = {{MSH_NME}}
 
     {% for mem in range(0,ENS_MAX) %}
         {% set idx = mem | pad(2,'0') %}
         [[ungrib_ens_{{idx}}]]
-            script = /expanse/nfs/cw3e/cwp168/Ensemble-DA-Cycling-Template/scripts/drivers/ungrib.sh
+            inherit = WPS
+            script = {{environ['DRIVERS']}}/ungrib.sh
             [[[environment]]]
                 MEMID = {{idx}}
                 GRIB_ROOT = {{environ['GRIB_ROOT']}}
-              <name>STRT_DT</name>
-              <value><cyclestr>@Y@m@d@H</cyclestr></value>
-              <name>BKG_STRT_DT</name>
-              <value><cyclestr>@Y@m@d@H</cyclestr></value>
-              <name>IF_SST_UPDT</name>
-              <value>&IF_SST_UPDT;</value>
-              <name>BKG_INT</name>
-              <value>&ENS_BKG_INT;</value>
-              <name>BKG_DATA</name>
-              <value>&ENS_BKG_DATA;</value>
-              <name>IF_ECMWF_ML</name>
-              <value>No</value>
-              <name>WPS_ROOT</name>
-              <value>&WPS_ROOT;</value>
-              <name>CYC_HME</name>
-              <value><cyclestr>&WORK_ROOT;/@Y@m@d@H</cyclestr></value>
+                BKG_STRT_DT = $CYC_DT
+                IF_SST_UPDT = {{IF_SST_UPDT}}
+                BKG_DATA = {{ENS_BKG_DATA}}
+                BKG_INT = {{ENS_BKG_INT}}
+                IF_ECMWF_ML = 'No'
 
         [[mpas_ic_ens_{{idx}}]]
-            script = /expanse/nfs/cw3e/cwp168/Ensemble-DA-Cycling-Template/scripts/drivers/mpas_ic.sh
+            inherit = MPAS
+            script = {{environ['DRIVERS']}}/mpas_ic.sh
+            [[[environment]]]
                 MEMID = {{idx}}
-              <name>MSH_NME</name>
-              <value>&MSH_NME;</value>
-              <name>STRT_DT</name>
-              <value><cyclestr>@Y@m@d@H</cyclestr></value>
               <name>IF_ZETA_LIST</name>
               <value>&IF_ZETA_LIST;</value>
               <name>BKG_DATA</name>
               <value>&ENS_BKG_DATA;</value>
-              <name>CYC_HME</name>
-              <value><cyclestr>&WORK_ROOT;/@Y@m@d@H</cyclestr></value>
               <name>MPIRUN</name>
               <value>&MPIRUN;</value>
               <name>N_NDES</name>
@@ -111,13 +219,11 @@
               <value>SLURM</value>
 
         [[mpas_model_ens_{{idx}}]]
-            script = /expanse/nfs/cw3e/cwp168/Ensemble-DA-Cycling-Template/scripts/drivers/mpas_model.sh
+            inherit = MPAS
+            script = {{environ['DRIVERS']}}/mpas_model.sh
+            [[[environment]]]
                 CNST = {{environ['MPAS_CNST']}}
                 MEMID = {{idx}}
-              <name>MSH_NME</name>
-              <value>&MSH_NME;</value>
-              <name>STRT_DT</name>
-              <value><cyclestr>@Y@m@d@H</cyclestr></value>
               <name>DIAG_INT</name>
               <value>&DIAG_INT;</value>
               <name>HIST_INT</name>
@@ -138,8 +244,6 @@
               <value>&IF_SST_DIURN;</value>
               <name>IF_DEEPSOIL</name>
               <value>&IF_DEEPSOIL;</value>
-              <name>CYC_HME</name>
-              <value><cyclestr>&WORK_ROOT;/@Y@m@d@H</cyclestr></value>
               <name>MPIRUN</name>
               <value>&MPIRUN;</value>
               <name>N_NDES</name>

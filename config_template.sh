@@ -75,9 +75,6 @@ if [[ $- =~ i && -f ${CYLC_ROOT}/cylc-completion.bash ]]; then
     . ${CYLC_ROOT}/cylc-completion.bash
 fi
 
-# System scheduler
-export SCHED="slurm"
-
 # Root directory of workflow task logs
 export LOG_ROOT="${CLNE_ROOT}/logs"
 
@@ -99,6 +96,12 @@ export ENVRNMTS="${SCRIPTS}/environments"
 ##################################################################################
 # SOFTWARE SETTINGS 
 ##################################################################################
+# System scheduler
+export SCHED="slurm"
+
+# MPI execute command
+export MPI_RUN = "mpiexec"
+
 # Full path to WRF software environment sourced file
 export WRF_CNST="${ENVRNMTS}/WRF_constants.sh" 
 
