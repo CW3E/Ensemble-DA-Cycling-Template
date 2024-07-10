@@ -142,7 +142,7 @@ CTR_FLWS = [
 #
 # with a specified end date.  If running on a scheduler, set this out to an
 # arbitrary far end date and let the wall clock limit terminate the process.
-END = dt(2025, 1, 1, 0)
+END = dt(2024, 6,12,10)
 
 ##################################################################################
 # Rocoto utility commands

@@ -1,0 +1,154 @@
+#!jinja2
+
+# Set global workflow parameters in jinja2 here
+
+# Define the valid date YYYYMMDDHH for verification
+{% set EXP_VRF = '2022122800' %}
+
+# Define the MPAS mesh name
+{% set MSH_NME = 'x1.10242' %}
+
+# Define the name of case study / experiment group
+{% set CSE_NME = '{{EXP_VRF}}_valid_date' %}
+
+# Configuration name including tunable parameters
+{% set CFG_NME = 'MPAS_240-U' %}
+
+# Experiment logs and data are defined in the case / configuration nested structure
+{% set EXP_NME = '{{CSE_NME}}/{{CFG_NME}}' %}
+
+# Define the max ensemble index
+{% set ENS_MAX = 2 %}
+
+# Define if MPAS is run in regional mode
+{% set IF_RGNL = 'No' %}
+
+[scheduler]
+    UTC mode = True
+    allow implicit tasks = True
+[scheduling]
+    initial cycle point = \
+        2022-12-23T00Z
+    final cycle point = \
+        2022-12-27T00Z
+    [[graph]]
+        P1D = """
+        {% for mem in range(0,ENS_MAX) %}
+            {% set idx = mem | pad(2,'0') %}
+            ungrib_ens_{{idx}}  => mpas_ic_ens_{{idx}}
+            mpas_ic_ens_{{idx}} => mpas_model_ens_{{idx}}
+        {% endfor %}
+        """
+[runtime]
+    [[root]]
+        [[[environment]]]
+            EXP_NME = {{EXP_NME}}
+            EXP_VRF = {{EXP_VRF}}
+            CFG_ROOT = {{environ['CFG_ROOT']}}
+            IF_DYN_LEN = 'Yes'
+            IF_RGNL = {{IF_RGNL}}
+
+    [[WPS]]
+        [[[environment]]]
+            CNST = {{environ['WRF_CNST']}}
+            WPS_ROOT = {{environ['WPS_ROOT']}}
+
+    [[MPAS]]
+        [[[environment]]]
+            CNST = {{environ['MPAS_CNST']}}
+            MPAS_ROOT = {{environ['MPAS_ROOT']}}
+
+    {% for mem in range(0,ENS_MAX) %}
+        {% set idx = mem | pad(2,'0') %}
+        [[ungrib_ens_{{idx}}]]
+            script = /expanse/nfs/cw3e/cwp168/Ensemble-DA-Cycling-Template/scripts/drivers/ungrib.sh
+            [[[environment]]]
+                MEMID = {{idx}}
+                GRIB_ROOT = {{environ['GRIB_ROOT']}}
+              <name>STRT_DT</name>
+              <value><cyclestr>@Y@m@d@H</cyclestr></value>
+              <name>BKG_STRT_DT</name>
+              <value><cyclestr>@Y@m@d@H</cyclestr></value>
+              <name>IF_SST_UPDT</name>
+              <value>&IF_SST_UPDT;</value>
+              <name>BKG_INT</name>
+              <value>&ENS_BKG_INT;</value>
+              <name>BKG_DATA</name>
+              <value>&ENS_BKG_DATA;</value>
+              <name>IF_ECMWF_ML</name>
+              <value>No</value>
+              <name>WPS_ROOT</name>
+              <value>&WPS_ROOT;</value>
+              <name>CYC_HME</name>
+              <value><cyclestr>&WORK_ROOT;/@Y@m@d@H</cyclestr></value>
+
+        [[mpas_ic_ens_{{idx}}]]
+            script = /expanse/nfs/cw3e/cwp168/Ensemble-DA-Cycling-Template/scripts/drivers/mpas_ic.sh
+                MEMID = {{idx}}
+              <name>MSH_NME</name>
+              <value>&MSH_NME;</value>
+              <name>STRT_DT</name>
+              <value><cyclestr>@Y@m@d@H</cyclestr></value>
+              <name>IF_ZETA_LIST</name>
+              <value>&IF_ZETA_LIST;</value>
+              <name>BKG_DATA</name>
+              <value>&ENS_BKG_DATA;</value>
+              <name>CYC_HME</name>
+              <value><cyclestr>&WORK_ROOT;/@Y@m@d@H</cyclestr></value>
+              <name>MPIRUN</name>
+              <value>&MPIRUN;</value>
+              <name>N_NDES</name>
+              <value>&INIT_NDES;</value>
+              <name>N_PROC</name>
+              <value>&INIT_PROC;</value>
+              <name>PIO_NUM</name>
+              <value>&PIO_NUM;</value>
+              <name>PIO_STRD</name>
+              <value>&PIO_STRD;</value>
+              <name>IF_DBG_SCRPT</name>
+              <value>Yes</value>
+              <name>SCHED</name>
+              <value>SLURM</value>
+
+        [[mpas_model_ens_{{idx}}]]
+            script = /expanse/nfs/cw3e/cwp168/Ensemble-DA-Cycling-Template/scripts/drivers/mpas_model.sh
+                CNST = {{environ['MPAS_CNST']}}
+                MEMID = {{idx}}
+              <name>MSH_NME</name>
+              <value>&MSH_NME;</value>
+              <name>STRT_DT</name>
+              <value><cyclestr>@Y@m@d@H</cyclestr></value>
+              <name>DIAG_INT</name>
+              <value>&DIAG_INT;</value>
+              <name>HIST_INT</name>
+              <value>&HIST_INT;</value>
+              <name>SND_INT</name>
+              <value>&SND_INT;</value>
+              <name>RSTRT_INT</name>
+              <value>&RSTRT_INT;</value>
+              <name>BKG_INT</name>
+              <value>&ENS_BKG_INT;</value>
+              <name>IF_RSTRT</name>
+              <value>No</value>
+              <name>IF_DA</name>
+              <value>No</value>
+              <name>IF_SST_UPDT</name>
+              <value>&IF_SST_UPDT;</value>
+              <name>IF_SST_DIURN</name>
+              <value>&IF_SST_DIURN;</value>
+              <name>IF_DEEPSOIL</name>
+              <value>&IF_DEEPSOIL;</value>
+              <name>CYC_HME</name>
+              <value><cyclestr>&WORK_ROOT;/@Y@m@d@H</cyclestr></value>
+              <name>MPIRUN</name>
+              <value>&MPIRUN;</value>
+              <name>N_NDES</name>
+              <value>&MPAS_NDES;</value>
+              <name>N_PROC</name>
+              <value>&MPAS_PROC;</value>
+              <name>PIO_NUM</name>
+              <value>&PIO_NUM;</value>
+              <name>PIO_STRD</name>
+              <value>&PIO_STRD;</value>
+
+    {% endfor %}
