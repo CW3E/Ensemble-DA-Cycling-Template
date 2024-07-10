@@ -4,3 +4,4 @@
 !.gitignore
 !cylc
 !cylc-completion.bash
+!cylc_init.sh
