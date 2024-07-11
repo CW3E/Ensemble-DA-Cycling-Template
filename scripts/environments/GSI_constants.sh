@@ -70,3 +70,6 @@ export NO=[Nn][Oo]
 
 # Defines YYYYMMDDHH iso regular expression
 export ISO_RE=^[0-9]{10}$
+
+export SLURM=[Ss][Ll][Uu][Rr][Mm]
+export PBS=[Pp][Bb][Ss]

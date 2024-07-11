@@ -20,12 +20,15 @@
 ##################################################################################
 # WORKFLOW SETTINGS
 ##################################################################################
-{% set EXP_LOG = '&CLNE_ROOT;/logs/&EXP_NME;' %} # Root directory of workflow task logs 
-{% set CFG_ROOT = '&CLNE_ROOT;/simulation_settings' %} # Root directory of experiment configuration files 
-{% set SCRIPTS = '&CLNE_ROOT;/scripts' %} # Root directory of workflow framework scripts 
-{% set DRIVERS = '&SCRIPTS;/drivers' %} # Root directory of task driver scripts 
-{% set UTILITY = '&SCRIPTS;/utilities' %} # Root directory of utility scripts for hacking rocoto to work 
-{% set ENVRNMTS = '&SCRIPTS;/environments' %} # Root directory of software stack environment scripts 
+# Set workflow to debugging mode for generating batch submit templates
+{% set IF_DBG = 'Yes' %}
+
+{% set EXP_LOG = '{{CLNE_ROOT}}/logs/{{EXP_NME}}' %} # Root directory of workflow task logs 
+{% set CFG_ROOT = '{{CLNE_ROOT}}/simulation_settings' %} # Root directory of experiment configuration files 
+{% set SCRIPTS = '{{CLNE_ROOT}}/scripts' %} # Root directory of workflow framework scripts 
+{% set DRIVERS = '{{SCRIPTS}}/drivers' %} # Root directory of task driver scripts 
+{% set UTILITY = '{{SCRIPTS}}/utilities' %} # Root directory of utility scripts for hacking rocoto to work 
+{% set ENVRNMTS = '{{SCRIPTS}}/environments' %} # Root directory of software stack environment scripts 
 
 ##################################################################################
 # CYCLING SETTINGS
@@ -91,7 +94,7 @@
 {% set PIO_STRD = '1' %}
 
 ##################################################################################
-# MPAS SETTINGS
+# JOB SETTINGS
 ##################################################################################
 # Project billing account
 {% set PROJECT = 'cwp168'%}
@@ -168,6 +171,8 @@
             IF_SST_UPDT = {{IF_SST_UPDT}}
             IF_RGNL = {{IF_RGNL}}
             MPI_RUN = {{environ['MPI_RUN']}}
+            IF_DBG_SCRPT = 'Yes'
+            SCHED = {{environ['SCHED']}}
 
     [[WPS]]
         [[[environment]]]
@@ -199,24 +204,13 @@
             script = {{environ['DRIVERS']}}/mpas_ic.sh
             [[[environment]]]
                 MEMID = {{idx}}
-              <name>IF_ZETA_LIST</name>
-              <value>&IF_ZETA_LIST;</value>
-              <name>BKG_DATA</name>
-              <value>&ENS_BKG_DATA;</value>
-              <name>MPIRUN</name>
-              <value>&MPIRUN;</value>
-              <name>N_NDES</name>
-              <value>&INIT_NDES;</value>
-              <name>N_PROC</name>
-              <value>&INIT_PROC;</value>
-              <name>PIO_NUM</name>
-              <value>&PIO_NUM;</value>
-              <name>PIO_STRD</name>
-              <value>&PIO_STRD;</value>
-              <name>IF_DBG_SCRPT</name>
-              <value>Yes</value>
-              <name>SCHED</name>
-              <value>SLURM</value>
+                IF_ZETA_LIST = {{IF_ZETA_LIST}}
+                BKG_DATA = {{ENS_BKG_DATA}}
+                MPIRUN = {{MPIRUN}}
+                N_NDES = {{INIT_NDES}}
+                N_PROC = {{INIT_PROC}}
+                PIO_NUM = {{PIO_NUM}}
+                PIO_STRD = {{PIO_STRD}}
 
         [[mpas_model_ens_{{idx}}]]
             inherit = MPAS
@@ -224,35 +218,20 @@
             [[[environment]]]
                 CNST = {{environ['MPAS_CNST']}}
                 MEMID = {{idx}}
-              <name>DIAG_INT</name>
-              <value>&DIAG_INT;</value>
-              <name>HIST_INT</name>
-              <value>&HIST_INT;</value>
-              <name>SND_INT</name>
-              <value>&SND_INT;</value>
-              <name>RSTRT_INT</name>
-              <value>&RSTRT_INT;</value>
-              <name>BKG_INT</name>
-              <value>&ENS_BKG_INT;</value>
-              <name>IF_RSTRT</name>
-              <value>No</value>
-              <name>IF_DA</name>
-              <value>No</value>
-              <name>IF_SST_UPDT</name>
-              <value>&IF_SST_UPDT;</value>
-              <name>IF_SST_DIURN</name>
-              <value>&IF_SST_DIURN;</value>
-              <name>IF_DEEPSOIL</name>
-              <value>&IF_DEEPSOIL;</value>
-              <name>MPIRUN</name>
-              <value>&MPIRUN;</value>
-              <name>N_NDES</name>
-              <value>&MPAS_NDES;</value>
-              <name>N_PROC</name>
-              <value>&MPAS_PROC;</value>
-              <name>PIO_NUM</name>
-              <value>&PIO_NUM;</value>
-              <name>PIO_STRD</name>
-              <value>&PIO_STRD;</value>
+                DIAG_INT = {{DIAG_INT}}
+                HIST_INT = {{HIST_INT}}
+                SND_INT = {{SND_INT}}
+                RSTRT_INT = {{RSTRT_INT}}
+                BKG_INT = {{ENS_BKG_INT}}
+                IF_RSTRT = 'No'
+                IF_DA = 'No'
+                IF_SST_UPDT = {{IF_SST_UPDT}}
+                IF_SST_DIURN = {{IF_SST_DIURN}}
+                IF_DEEPSOIL = {{IF_DEEPSOIL}}
+                MPIRUN = {{MPIRUN}}
+                N_NDES = {{MPAS_NDES}}
+                N_PROC = {{MPAS_PROC}}
+                PIO_NUM = {{PIO_NUM}}
+                PIO_STRD = {{PIO_STRD}}
 
     {% endfor %}

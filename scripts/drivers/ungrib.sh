@@ -127,10 +127,10 @@ if [[ ${IF_DBG_SCRPT} = ${YES} ]]; then
   scrpt=$(mktemp /tmp/run_dbg.XXXXXXX.sh)
   printf "Driver runs in debug mode.\n"
   printf "Producing a script and work directory for manual submission.\n"
-  if [[ ${SCHED} = SLURM ]]; then
+  if [[ ${SCHED} = ${SLURM} ]]; then
     # source slurm header from environment directory
     cat `dirname ${CNST}`/slurm_header.sh >> ${scrpt}
-  elif [[ ${SCHED} = PBS ]]; then
+  elif [[ ${SCHED} = ${PBS} ]]; then
     # source pbs header from environment directory
     cat `dirname ${CNST}`/pbs_header.sh >> ${scrpt}
   fi
