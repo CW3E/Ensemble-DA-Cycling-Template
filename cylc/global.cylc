@@ -1,0 +1,23 @@
+#!jinja2
+
+[platforms]
+    [[slurm_platform]]
+        job runner = slurm
+        install target = slurm_platform
+        global init-script = """
+            export CYLC_RUN_DIR={{environ['CYLC_ROOT']}}/cylc-run
+        """
+
+    [[pbs_platform]]
+        job runner = pbs
+        install target = pbs_platform
+        global init-script = """
+            export CYLC_RUN_DIR={{environ['CYLC_ROOT']}}/cylc-run
+        """
+
+[install]
+    source dirs = {{environ['CFG_ROOT']}}
+    [[symlink dirs]]
+        [[[slurm_platform]]]
+            run = {{environ['CYLC_ROOT']}}/
+

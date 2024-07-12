@@ -70,13 +70,13 @@ export CYLC_HOME_ROOT_ALT="${CYLC_ROOT}/Micromamba/envs"
 # Cylc environment name
 export CYLC_ENV_NAME="cylc-8.3"
 
+# Set Cylc global.cylc configuration path to template
+export CYLC_CONF_PATH="${CYLC_ROOT}/global.cylc"
+
 # Cylc auto-completion prompts
 if [[ $- =~ i && -f ${CYLC_ROOT}/cylc-completion.bash ]]; then
     . ${CYLC_ROOT}/cylc-completion.bash
 fi
-
-# Root directory of workflow task logs
-export LOG_ROOT="${CLNE_ROOT}/logs"
 
 # Root directory of experiment configuration files
 export CFG_ROOT="${CLNE_ROOT}/simulation_settings"
@@ -100,7 +100,7 @@ export ENVRNMTS="${SCRIPTS}/environments"
 export SCHED="slurm"
 
 # MPI execute command
-export MPI_RUN = "mpiexec"
+export MPI_RUN="mpiexec"
 
 # Full path to WRF software environment sourced file
 export WRF_CNST="${ENVRNMTS}/WRF_constants.sh" 
