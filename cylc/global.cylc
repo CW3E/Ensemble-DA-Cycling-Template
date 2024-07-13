@@ -1,23 +1,25 @@
 #!jinja2
 
-[platforms]
-    [[slurm_platform]]
-        job runner = slurm
-        install target = slurm_platform
-        global init-script = """
-            export CYLC_RUN_DIR={{environ['CYLC_ROOT']}}/cylc-run
-        """
+# Define platform templates
+{% set platforms = 'slurm', 'pbs' %}
 
-    [[pbs_platform]]
-        job runner = pbs
-        install target = pbs_platform
-        global init-script = """
-            export CYLC_RUN_DIR={{environ['CYLC_ROOT']}}/cylc-run
-        """
+{% for platform in platforms %}
+    [platforms]
+        [[{{platform}}_platform]]
+            job runner = {{platform}}
+            install target = {{platform}}_platform
+            global init-script = """
+                export CYLC_RUN_DIR={{environ['CYLC_ROOT']}}/cylc-run
+            """
+            [[[directives]]]
+                {% if platform == 'slurm' %}
+                    --account = {{environ['PROJECT']}}
+                {% elif platform == 'pbs' %}
+                    -A = {{environ['PROJECT']}}
+                {% endif %}
+    [install]
+        [[symlink dirs]]
+            [[[{{platform}}_platform]]]
+                run = {{environ['CYLC_ROOT']}}/
 
-[install]
-    source dirs = {{environ['CFG_ROOT']}}
-    [[symlink dirs]]
-        [[[slurm_platform]]]
-            run = {{environ['CYLC_ROOT']}}/
-
+{% endfor %}

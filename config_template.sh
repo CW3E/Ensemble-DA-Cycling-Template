@@ -57,6 +57,15 @@ export GRIB_ROOT="${DATA_ROOT}/GRIB"
 # Root directory of simulation_io
 export WORK_ROOT="/expanse/lustre/scratch/cgrudzien/temp_project/cwp168/SIMULATION_IO"
 
+# System scheduler
+export SCHED="slurm"
+
+# MPI execute command
+export MPI_RUN="mpiexec"
+
+# Project billing account
+export PROJECT="cwp168"
+
 ##################################################################################
 # WORKFLOW SETTINGS
 ##################################################################################
@@ -71,7 +80,7 @@ export CYLC_HOME_ROOT_ALT="${CYLC_ROOT}/Micromamba/envs"
 export CYLC_ENV_NAME="cylc-8.3"
 
 # Set Cylc global.cylc configuration path to template
-export CYLC_CONF_PATH="${CYLC_ROOT}/global.cylc"
+export CYLC_CONF_PATH="${CYLC_ROOT}"
 
 # Cylc auto-completion prompts
 if [[ $- =~ i && -f ${CYLC_ROOT}/cylc-completion.bash ]]; then
@@ -96,12 +105,6 @@ export ENVRNMTS="${SCRIPTS}/environments"
 ##################################################################################
 # SOFTWARE SETTINGS 
 ##################################################################################
-# System scheduler
-export SCHED="slurm"
-
-# MPI execute command
-export MPI_RUN="mpiexec"
-
 # Full path to WRF software environment sourced file
 export WRF_CNST="${ENVRNMTS}/WRF_constants.sh" 
 

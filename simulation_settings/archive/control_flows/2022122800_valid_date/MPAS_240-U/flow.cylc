@@ -2,8 +2,8 @@
 ##################################################################################
 # CONTROL FLOW NAME / TUNABLE SETTINGS
 ##################################################################################
-# Define the valid date YYYY-MM-DDTHH for verification
-{% set EXP_VRF = '2022-12-28T00' %}
+# Define the valid date YYYYMMDDHH for verification
+{% set EXP_VRF = '2022122800' %}
 
 # Define the MPAS mesh name
 {% set MSH_NME = 'x1.10242' %}
@@ -18,19 +18,6 @@
 {% set EXP_NME = '{{CSE_NME}}/{{CFG_NME}}' %}
 
 ##################################################################################
-# WORKFLOW SETTINGS
-##################################################################################
-# Set workflow to debugging mode for generating batch submit templates
-{% set IF_DBG = 'Yes' %}
-
-{% set EXP_LOG = '{{CLNE_ROOT}}/logs/{{EXP_NME}}' %} # Root directory of workflow task logs 
-{% set CFG_ROOT = '{{CLNE_ROOT}}/simulation_settings' %} # Root directory of experiment configuration files 
-{% set SCRIPTS = '{{CLNE_ROOT}}/scripts' %} # Root directory of workflow framework scripts 
-{% set DRIVERS = '{{SCRIPTS}}/drivers' %} # Root directory of task driver scripts 
-{% set UTILITY = '{{SCRIPTS}}/utilities' %} # Root directory of utility scripts for hacking rocoto to work 
-{% set ENVRNMTS = '{{SCRIPTS}}/environments' %} # Root directory of software stack environment scripts 
-
-##################################################################################
 # CYCLING SETTINGS
 ##################################################################################
 # First initial time for a forecast YYYY-MM-DDTHH
@@ -39,14 +26,14 @@
 # Last initial time for a forecast YYYY-MM-DDTHH
 {% set CYC_STOP = '2022-12-27T00' %}
 
-# Interval between cycle start times XXH
-{% set CYC_INC = '24H' %}
+# Interval between cycle start times PTXXH
+{% set CYC_INC = 'PT24H' %}
 
 ##################################################################################
 # Ensemble SETTINGS
 ##################################################################################
-# Define the max ensemble index
-{% set ENS_MAX = 2 %}
+# Define the ensemble size
+{% set ENS_MAX = 3 %}
 
 # GFS and GEFS currently supported
 {% set ENS_BKG_DATA = 'GEFS' %}
@@ -96,9 +83,6 @@
 ##################################################################################
 # JOB SETTINGS
 ##################################################################################
-# Project billing account
-{% set PROJECT = 'cwp168'%}
-
 # Compute queue for standard mpi jobs
 {% set PART_CMP = 'cw3e-compute'%}
 
@@ -108,38 +92,38 @@
 # Serial queue for non-mpi jobs
 {% set PART_SRL = 'cw3e-shared'%}
 
-# MPI exec command
-{% set MPIRUN = 'mpiexec'%}
-
 # ungrib mem-per-cpu argument
-{% set GRIB_MEM = '1750M'%}
+{% set GRIB_MEM = '20000M'%}
 
 # Wallclock limit for ungrib jobs
-{% set GRIB_WC = '00:30:00'%}
+{% set GRIB_WC = 'PT30M'%}
 
 # init_atmosphere number of procs-per-node
 {% set INIT_PROC = '64'%}
 
 # init_atmosphere mem-per-cpu argument
-{% set INIT_MEM = '1750M'%}
+{% set INIT_MEM = '249000M'%}
 
 # Number of nodes for init_atmosphere
 {% set INIT_NDES = '1'%}
 
 # Wallclock limit for init_atmosphere jobs
-{% set INIT_WC = '00:30:00'%}
+{% set INIT_WC = 'PT30M'%}
 
 # atmosphere_model number of procs-per-node
 {% set MPAS_PROC = '64'%}
 
 # atmosphere_model mem-per-cpu argument
-{% set MPAS_MEM = '1750M'%}
+{% set MPAS_MEM = '249000M'%}
 
 # Number of nodes for atmosphere_model jobs
 {% set MPAS_NDES = '1'%}
 
 # Wallclock limit for atmosphere_model
-{% set MPAS_WC = '00:30:00'%}
+{% set MPAS_WC = 'PT30M'%}
+
+# Set workflow to debugging mode for generating batch submit templates
+{% set IF_DBG = 'Yes' %}
 
 ##################################################################################
 # CYLC SETTINGS
@@ -151,7 +135,7 @@
     initial cycle point = {{CYC_STRT}}
     final cycle point = {{CYC_STOP}}
     [[graph]]
-        P{{CYC_INC}} = """
+        {{CYC_INC}} = """
         {% for mem in range(0,ENS_MAX) %}
             {% set idx = mem | pad(2,'0') %}
             ungrib_ens_{{idx}}  => mpas_ic_ens_{{idx}}
@@ -189,7 +173,9 @@
         {% set idx = mem | pad(2,'0') %}
         [[ungrib_ens_{{idx}}]]
             inherit = WPS
-            script = {{environ['DRIVERS']}}/ungrib.sh
+            platform = {{environ['SCHED']}}_platform
+            execution time limit = {{GRIB_WC}}
+            script = "echo {{environ['DRIVERS']}}/ungrib.sh"
             [[[environment]]]
                 MEMID = {{idx}}
                 GRIB_ROOT = {{environ['GRIB_ROOT']}}
@@ -198,23 +184,47 @@
                 BKG_DATA = {{ENS_BKG_DATA}}
                 BKG_INT = {{ENS_BKG_INT}}
                 IF_ECMWF_ML = 'No'
+            [[[directives]]]
+                {% if environ['SCHED'] == 'slurm' %}
+                    --partition = {{PART_SRL}}
+                    --nodes = 1
+                    --tasks-per-node = 1
+                    --mem={{GRIB_MEM}}
+                {% elif environ['SCHED'] == 'pbs' %}
+                    -l select=1:mpiprocs=1:ncpus=1
+                {% endif %}
 
         [[mpas_ic_ens_{{idx}}]]
             inherit = MPAS
-            script = {{environ['DRIVERS']}}/mpas_ic.sh
+            platform = {{environ['SCHED']}}_platform
+            execution time limit = {{INIT_WC}}
+            script = "echo {{environ['DRIVERS']}}/mpas_ic.sh"
             [[[environment]]]
                 MEMID = {{idx}}
                 IF_ZETA_LIST = {{IF_ZETA_LIST}}
                 BKG_DATA = {{ENS_BKG_DATA}}
-                MPIRUN = {{MPIRUN}}
+                MPIRUN = $MPIRUN
                 N_NDES = {{INIT_NDES}}
                 N_PROC = {{INIT_PROC}}
                 PIO_NUM = {{PIO_NUM}}
                 PIO_STRD = {{PIO_STRD}}
+            [[[directives]]]
+                {% if environ['SCHED'] == 'slurm' %}
+                    --partition = {{PART_CMP}}
+                    --nodes = {{INIT_NDES}}
+                    --tasks-per-node = {{INIT_PROC}}
+                    --mem={{INIT_MEM}}
+                {% elif environ['SCHED'] == 'pbs' %}
+                    -l select={{INIT_NDES}}
+                    -l mpiprocs={{INIT_PROC}}
+                    -l ncpus={{INIT_PROC}}
+                {% endif %}
 
         [[mpas_model_ens_{{idx}}]]
             inherit = MPAS
-            script = {{environ['DRIVERS']}}/mpas_model.sh
+            platform = {{environ['SCHED']}}_platform
+            execution time limit = {{MPAS_WC}}
+            script = "echo {{environ['DRIVERS']}}/mpas_model.sh"
             [[[environment]]]
                 CNST = {{environ['MPAS_CNST']}}
                 MEMID = {{idx}}
@@ -228,10 +238,21 @@
                 IF_SST_UPDT = {{IF_SST_UPDT}}
                 IF_SST_DIURN = {{IF_SST_DIURN}}
                 IF_DEEPSOIL = {{IF_DEEPSOIL}}
-                MPIRUN = {{MPIRUN}}
+                MPIRUN = $MPIRUN
                 N_NDES = {{MPAS_NDES}}
                 N_PROC = {{MPAS_PROC}}
                 PIO_NUM = {{PIO_NUM}}
                 PIO_STRD = {{PIO_STRD}}
+            [[[directives]]]
+                {% if environ['SCHED'] == 'slurm' %}
+                    --partition = {{PART_CMP}}
+                    --nodes = {{MPAS_NDES}}
+                    --tasks-per-node = {{MPAS_PROC}}
+                    --mem = {{MPAS_MEM}}
+                {% elif environ['SCHED'] == 'pbs' %}
+                    -l select={{MPAS_NDES}}
+                    -l mpiprocs={{MPAS_PROC}}
+                    -l ncpus={{MPAS_PROC}}
+                {% endif %}
 
     {% endfor %}
