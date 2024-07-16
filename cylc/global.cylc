@@ -7,7 +7,8 @@
     [platforms]
         [[{{platform}}_platform]]
             job runner = {{platform}}
-            install target = {{platform}}_platform
+            hosts = localhost
+            install target = localhost
             global init-script = """
                 export CYLC_RUN_DIR={{environ['CYLC_ROOT']}}/cylc-run
             """

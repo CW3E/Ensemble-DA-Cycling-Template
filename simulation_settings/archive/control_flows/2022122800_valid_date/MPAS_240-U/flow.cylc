@@ -175,7 +175,7 @@
             inherit = WPS
             platform = {{environ['SCHED']}}_platform
             execution time limit = {{GRIB_WC}}
-            script = "echo {{environ['DRIVERS']}}/ungrib.sh"
+            script = {{environ['DRIVERS']}}/ungrib.sh
             [[[environment]]]
                 MEMID = {{idx}}
                 GRIB_ROOT = {{environ['GRIB_ROOT']}}
@@ -198,7 +198,7 @@
             inherit = MPAS
             platform = {{environ['SCHED']}}_platform
             execution time limit = {{INIT_WC}}
-            script = "echo {{environ['DRIVERS']}}/mpas_ic.sh"
+            script = {{environ['DRIVERS']}}/mpas_ic.sh
             [[[environment]]]
                 MEMID = {{idx}}
                 IF_ZETA_LIST = {{IF_ZETA_LIST}}
@@ -224,7 +224,7 @@
             inherit = MPAS
             platform = {{environ['SCHED']}}_platform
             execution time limit = {{MPAS_WC}}
-            script = "echo {{environ['DRIVERS']}}/mpas_model.sh"
+            script = {{environ['DRIVERS']}}/mpas_model.sh
             [[[environment]]]
                 CNST = {{environ['MPAS_CNST']}}
                 MEMID = {{idx}}
