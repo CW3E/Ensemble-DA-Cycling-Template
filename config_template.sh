@@ -61,7 +61,7 @@ export WORK_ROOT="/expanse/lustre/scratch/cgrudzien/temp_project/cwp168/SIMULATI
 export SCHED="slurm"
 
 # MPI execute command
-export MPI_RUN="mpiexec"
+export MPIRUN="mpiexec"
 
 # Project billing account
 export PROJECT="cwp168"
@@ -72,6 +72,9 @@ export PROJECT="cwp168"
 # Root directory of Cylc installation
 export CYLC_ROOT="${CLNE_ROOT}/cylc"
 export PATH="${CYLC_ROOT}:${PATH}"
+
+# Change home directory to the Cylc root to remove the user dependence
+export HOME="${CYLC_ROOT}"
 
 # Location of Micromamba cylc environment
 export CYLC_HOME_ROOT_ALT="${CYLC_ROOT}/Micromamba/envs"
