@@ -15,7 +15,7 @@ from datetime import timedelta as td
 @{
 EXP_VRF = '2022-12-28T00' # Define the valid date YYYY-MM-DDTHH for verification
 CSE_NME = 'valid_date_' + EXP_VRF # Define the name of case study
-CFG_NME = 'MPAS_240-U' # Configuration name including tunable parameters
+CFG_NME = 'MPAS_240-U_LwrBnd' # Configuration name including tunable parameters
 EXP_NME = CSE_NME + '/' + CFG_NME # Case / configuration structure
 }
 
@@ -210,6 +210,33 @@ EXP_NME = CSE_NME + '/' + CFG_NME # Case / configuration structure
                 MEMID = @(idx)
                 IF_ZETA_LIST = @(IF_ZETA_LIST)
                 BKG_DATA = @(ENS_BKG_DATA)
+                N_NDES = @(INIT_NDES)
+                N_PROC = @(INIT_PROC)
+                PIO_NUM = @(PIO_NUM)
+                PIO_STRD = @(PIO_STRD)
+            [[[directives]]]
+                @[ if os.environ['SCHED'] == 'slurm' ]
+                    --partition = @(PART_CMP)
+                    --nodes = @(INIT_NDES)
+                    --tasks-per-node = @(INIT_PROC)
+                    --mem=@(INIT_MEM)
+                @[ elif os.environ['SCHED'] == 'pbs' ]
+                    -l select=@(INIT_NDES)
+                    -l mpiprocs=@(INIT_PROC)
+                    -l ncpus=@(INIT_PROC)
+                @[ end if ]
+
+        [[mpas_sfc_ens_@(idx)]]
+            inherit = MPAS
+            platform = @(os.environ['SCHED'])_platform
+            execution time limit = @(INIT_WC)
+            script = @(os.environ['DRIVERS'])/mpas_sfc.sh
+            execution retry delays = 3*PT5M
+            [[[environment]]]
+                MEMID = @(idx)
+                IF_ZETA_LIST = @(IF_ZETA_LIST)
+                BKG_DATA = @(ENS_BKG_DATA)
+                BKG_INT = @(ENS_BKG_INT)
                 N_NDES = @(INIT_NDES)
                 N_PROC = @(INIT_PROC)
                 PIO_NUM = @(PIO_NUM)
