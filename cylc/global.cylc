@@ -1,23 +1,21 @@
-#!EmPy
-
-@{ import os }
+#!jinja2
 
 # Define platform templates
-@{ platforms = 'slurm', 'pbs' }
+{% set platforms = 'slurm', 'pbs' %}
 
-@[ for platform in platforms ]
+{% for platform in platforms %}
     [platforms]
-        [[@(platform)_platform]]
-            job runner = @(platform)
+        [[{{platform}}_platform]]
+            job runner = {{platform}}
             hosts = localhost
             install target = localhost
             submission polling intervals = PT5M
             [[[directives]]]
-                @[ if platform == 'slurm' ]
-                    --account = @(os.environ['PROJECT'])
-                @[ elif platform == 'pbs' ]
-                    -A = @(os.environ['PROJECT'])
-                @[ end if ]
+                {% if platform == 'slurm' %}
+                    --account = {{environ['PROJECT']}}
+                {% elif platform == 'pbs' %}
+                    -A = {{environ['PROJECT']}}
+                {% endif %}
     [install]
-        source dirs = @(os.environ['CFG_ROOT'])
-@[ end for ]
+        source dirs = {{environ['CFG_ROOT']}}
+{% endfor %}
