@@ -92,7 +92,7 @@
 # Serial queue for non-mpi jobs
 {% set PART_SRL = 'cw3e-shared' %}
 
-# ungrib mem-per-cpu argument
+# ungrib mem argument
 {% set GRIB_MEM = '20000M' %}
 
 # Wallclock limit for ungrib jobs
@@ -101,7 +101,7 @@
 # init_atmosphere number of procs-per-node
 {% set INIT_PROC = 64 %}
 
-# init_atmosphere mem-per-cpu argument
+# init_atmosphere mem argument
 {% set INIT_MEM = '249000M' %}
 
 # Number of nodes for init_atmosphere
@@ -113,7 +113,7 @@
 # atmosphere_model number of procs-per-node
 {% set MPAS_PROC = 64 %}
 
-# atmosphere_model mem-per-cpu argument
+# atmosphere_model mem argument
 {% set MPAS_MEM = '249000M' %}
 
 # Number of nodes for atmosphere_model jobs
@@ -190,7 +190,7 @@
                     --partition = {{PART_SRL}}
                     --nodes = 1
                     --tasks-per-node = 1
-                    --mem={{GRIB_MEM}}
+                    --mem = {{GRIB_MEM}}
                 {% elif environ['SCHED'] == 'pbs' %}
                     -l select=1:mpiprocs=1:ncpus=1
                 {% endif %}
@@ -214,7 +214,7 @@
                     --partition = {{PART_CMP}}
                     --nodes = {{INIT_NDES}}
                     --tasks-per-node = {{INIT_PROC}}
-                    --mem={{INIT_MEM}}
+                    --mem = {{INIT_MEM}}
                 {% elif environ['SCHED'] == 'pbs' %}
                     -l select={{INIT_NDES}}
                     -l mpiprocs={{INIT_PROC}}
@@ -228,7 +228,6 @@
             script = {{environ['DRIVERS']}}/mpas_model.sh
             execution retry delays = 3*PT5M
             [[[environment]]]
-                CNST = {{environ['MPAS_CNST']}}
                 MEMID = {{idx}}
                 DIAG_INT = {{DIAG_INT}}
                 HIST_INT = {{HIST_INT}}

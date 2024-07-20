@@ -14,13 +14,10 @@
 @{ CSE_NME = 'valid_date_' + EXP_VRF }
 
 # Configuration name including tunable parameters
-@{ CFG_NME = 'MPAS_240-U' }
+@{ CFG_NME = 'WRF_9_WestCoast' }
 
 # Case / configuration structure
 @{ EXP_NME = CSE_NME + '/' + CFG_NME }
-
-# Define the MPAS mesh name
-@{ MSH_NME = 'x1.10242' }
 
 ##################################################################################
 # CYCLING SETTINGS
@@ -38,7 +35,7 @@
 # Ensemble SETTINGS
 ##################################################################################
 # Define the ensemble size
-@{ ENS_MAX = 3 }
+@{ ENS_MAX = 1 }
 
 # GFS and GEFS currently supported
 @{ ENS_BKG_DATA = 'GEFS' }
@@ -46,44 +43,35 @@
 # Data file frequency for ensemble simulation forcing in HH
 @{ ENS_BKG_INT = '03' }
 
+# Max domain for ensemble simulation 
+@{ WRF_ENS_DOM = '01'}
+
+# First domain index to have ICs downscaled from parent's initial conditions (>01) 
+@{ DOWN_DOM = '02'}
+
 ##################################################################################
-# MPAS SETTINGS
+# WRF SETTINGS
 ##################################################################################
 # Output interval for history files in HH, suppressed = 00
 @{ HIST_INT = '03' }
 
-# Output interval for diagnostic files in HH, suppressed = 00
-@{ DIAG_INT = '03' }
-
-# Output interval for sounding files in HH, suppressed = 00
-@{ SND_INT = '00' }
-
 # Output interval for restart files in HH, suppressed = 00
 @{ RSTRT_INT = '24' }
-
-# Define if MPAS is run in regional mode
-@{ IF_RGNL = 'No' }
 
 # Forecast lengths are defined to a specified verification valid date
 @{ IF_DYN_LEN = 'Yes' }
 
+# This setting defines Yes / No for nested domain 2-way coupling
+@{ IF_FEEDBACK = 'No' } 
+
 # Lower boundary condition updates from background data
 @{ IF_SST_UPDT = 'No' }
 
-# Diurnal updates to lower boundary conditions
-@{ IF_SST_DIURN = 'No' }
+# Quilting tasks per group, set NIO_TPG=0 for default TURN OFF QUILTING
+@{ NIO_TPG = 0 }
 
-# Slowly varying deep soil temperatures
-@{ IF_DEEPSOIL = 'No' }
-
-# If zeta levels are explicitly set
-@{ IF_ZETA_LIST = 'Yes' }
-
-# Number of tasks devoted to IO, set to 0 for all tasks run IO
-@{ PIO_NUM = 0 }
-
-# Parallel IO stride
-@{ PIO_STRD = 1 }
+# Quilting number of groups
+@{ NIO_GRPS = 4 }
 
 ##################################################################################
 # JOB SETTINGS
@@ -103,29 +91,29 @@
 # Wallclock limit for ungrib jobs
 @{ GRIB_WC = 'PT30M' }
 
-# init_atmosphere number of procs-per-node
-@{ INIT_PROC = 64 }
+# WPS parallel / REAL number of procs-per-node
+@{ WPS_PROC = 64 }
 
-# init_atmosphere mem argument
-@{ INIT_MEM = '249000M' }
+# WPS mem argument 
+@{ WPS_MEM = '249000M' }
 
-# Number of nodes for init_atmosphere
-@{ INIT_NDES = 1}
+# Number of nodes for WPS parallel / REAL jobs
+@{ WPS_NDES = 1}
 
 # Wallclock limit for init_atmosphere jobs
-@{ INIT_WC = 'PT30M' }
+@{ WPS_WC = 'PT30M' }
 
-# atmosphere_model number of procs-per-node
-@{ MPAS_PROC = 64 }
+# WRF model number of procs-per-node
+@{ WRF_PROC = 128 }
 
-# atmosphere_model mem argument
-@{ MPAS_MEM = '249000M' }
+# WRF model mem argument
+@{ WRF_MEM = '249000M' }
 
-# Number of nodes for atmosphere_model jobs
-@{ MPAS_NDES = 1 }
+# Number of nodes for WRF model jobs
+@{ WRF_NDES = 3 }
 
-# Wallclock limit for atmosphere_model
-@{ MPAS_WC = 'PT30M' }
+# Wallclock limit for WRF model
+@{ WRF_WC = 'PT2H30M' }
 
 # Set workflow to debugging mode for generating batch submit templates
 @{ IF_DBG = 'No' }
@@ -143,36 +131,39 @@
         @(CYC_INC) = """
         @[ for mem in range(0,ENS_MAX) ]
             @{ idx = str(mem).zfill(2) }
-            ungrib_ens_@(idx)  => mpas_ic_ens_@(idx)
-            mpas_ic_ens_@(idx) => mpas_model_ens_@(idx)
+            ungrib_ens_@(idx)  => wrf_metgrid_ens_@(idx)
+            wrf_metgrid_ens_@(idx) => wrf_real_ens_@(idx)
+            wrf_real_ens_@(idx) => wrf_model_ens_@(idx)
         @[ end for ]
         """
 [runtime]
     [[root]]
         [[[environment]]]
+            CNST = @(os.environ['WRF_CNST'])
             EXP_NME = @(EXP_NME)
             EXP_VRF = $(isodatetime @(EXP_VRF) --f '%Y%m%d%H')
             CFG_ROOT = @(os.environ['CFG_ROOT'])
             CYC_DT = $(isodatetime ${CYLC_TASK_CYCLE_POINT} --f '%Y%m%d%H')
             CYC_HME = @(os.environ['WORK_ROOT'])/@(EXP_NME)/$CYC_DT
             STRT_DT = $CYC_DT
+            BKG_DATA = @(ENS_BKG_DATA)
             IF_DYN_LEN = @(IF_DYN_LEN)
             IF_SST_UPDT = @(IF_SST_UPDT)
-            IF_RGNL = @(IF_RGNL)
+            IF_RGNL = 'Yes'
+            MAX_DOM = @(WRF_ENS_DOM)
             MPIRUN = @(os.environ['MPIRUN'])
             IF_DBG_SCRPT = @(IF_DBG)
             SCHED = @(os.environ['SCHED'])
 
     [[WPS]]
         [[[environment]]]
-            CNST = @(os.environ['WRF_CNST'])
             WPS_ROOT = @(os.environ['WPS_ROOT'])
+            IF_ECMWF_ML = 'No'
+            BKG_INT = @(ENS_BKG_INT)
 
-    [[MPAS]]
+    [[WRF]]
         [[[environment]]]
-            CNST = @(os.environ['MPAS_CNST'])
-            MPAS_ROOT = @(os.environ['MPAS_ROOT'])
-            MSH_NME = @(MSH_NME)
+            WRF_ROOT = @(os.environ['WRF_ROOT'])
 
     @[ for mem in range(0,ENS_MAX) ]
         @{ idx = str(mem).zfill(2) }
@@ -187,9 +178,6 @@
                 GRIB_ROOT = @(os.environ['GRIB_ROOT'])
                 BKG_STRT_DT = $CYC_DT
                 IF_SST_UPDT = @(IF_SST_UPDT)
-                BKG_DATA = @(ENS_BKG_DATA)
-                BKG_INT = @(ENS_BKG_INT)
-                IF_ECMWF_ML = 'No'
             [[[directives]]]
                 @[ if os.environ['SCHED'] == 'slurm' ]
                     --partition = @(PART_SRL)
@@ -200,64 +188,83 @@
                     -l select=1:mpiprocs=1:ncpus=1
                 @[ end if ]
 
-        [[mpas_ic_ens_@(idx)]]
-            inherit = MPAS
+        [[wrf_metgrid_ens_@(idx)]]
+            inherit = WPS
             platform = @(os.environ['SCHED'])_platform
-            execution time limit = @(INIT_WC)
-            script = @(os.environ['DRIVERS'])/mpas_ic.sh
+            execution time limit = @(WPS_WC)
+            script = @(os.environ['DRIVERS'])/wrf_metgrid.sh
             execution retry delays = 3*PT5M
             [[[environment]]]
                 MEMID = @(idx)
-                IF_ZETA_LIST = @(IF_ZETA_LIST)
-                BKG_DATA = @(ENS_BKG_DATA)
-                N_NDES = @(INIT_NDES)
-                N_PROC = @(INIT_PROC)
-                PIO_NUM = @(PIO_NUM)
-                PIO_STRD = @(PIO_STRD)
+                N_NDES = @(WPS_NDES)
+                N_PROC = @(WPS_PROC)
             [[[directives]]]
                 @[ if os.environ['SCHED'] == 'slurm' ]
-                    --partition = @(PART_CMP)
-                    --nodes = @(INIT_NDES)
-                    --tasks-per-node = @(INIT_PROC)
-                    --mem = @(INIT_MEM)
+                    --partition = @(PART_DBG)
+                    --nodes = @(WPS_NDES)
+                    --tasks-per-node = @(WPS_PROC)
+                    --mem = @(WPS_MEM)
                 @[ elif os.environ['SCHED'] == 'pbs' ]
-                    -l select=@(INIT_NDES)
-                    -l mpiprocs=@(INIT_PROC)
-                    -l ncpus=@(INIT_PROC)
+                    -l select=@(WPS_NDES)
+                    -l mpiprocs=@(WPS_PROC)
+                    -l ncpus=@(WPS_PROC)
                 @[ end if ]
 
-        [[mpas_model_ens_@(idx)]]
-            inherit = MPAS
+        [[wrf_real_ens_@(idx)]]
+            inherit = WPS
             platform = @(os.environ['SCHED'])_platform
-            execution time limit = @(MPAS_WC)
-            script = @(os.environ['DRIVERS'])/mpas_model.sh
+            execution time limit = @(WPS_WC)
+            script = @(os.environ['DRIVERS'])/wrf_real.sh
             execution retry delays = 3*PT5M
             [[[environment]]]
                 MEMID = @(idx)
-                DIAG_INT = @(DIAG_INT)
+                N_NDES = @(WPS_NDES)
+                N_PROC = @(WPS_PROC)
+                NIO_GRPS = @(NIO_GRPS)
+                NIO_TPG = @(NIO_TPG)
+            [[[directives]]]
+                @[ if os.environ['SCHED'] == 'slurm' ]
+                    --partition = @(PART_DBG)
+                    --nodes = @(WPS_NDES)
+                    --tasks-per-node = @(WPS_PROC)
+                    --mem = @(WPS_MEM)
+                @[ elif os.environ['SCHED'] == 'pbs' ]
+                    -l select=@(WPS_NDES)
+                    -l mpiprocs=@(WPS_PROC)
+                    -l ncpus=@(WPS_PROC)
+                @[ end if ]
+
+        [[wrf_model_ens_@(idx)]]
+            platform = @(os.environ['SCHED'])_platform
+            execution time limit = @(WRF_WC)
+            script = @(os.environ['DRIVERS'])/wrf_model.sh
+            execution retry delays = 3*PT5M
+            [[[environment]]]
+                MEMID = @(idx)
                 HIST_INT = @(HIST_INT)
-                SND_INT = @(SND_INT)
                 RSTRT_INT = @(RSTRT_INT)
                 BKG_INT = @(ENS_BKG_INT)
                 IF_RSTRT = 'No'
-                IF_DA = 'No'
                 IF_SST_UPDT = @(IF_SST_UPDT)
-                IF_SST_DIURN = @(IF_SST_DIURN)
-                IF_DEEPSOIL = @(IF_DEEPSOIL)
-                N_NDES = @(MPAS_NDES)
-                N_PROC = @(MPAS_PROC)
-                PIO_NUM = @(PIO_NUM)
-                PIO_STRD = @(PIO_STRD)
+                CYC_INC = 00
+                DOWN_DOM = @(DOWN_DOM)
+                WRF_IC = 'REALEXE'
+                IF_FEEDBACK = @(IF_FEEDBACK)
+                N_NDES = @(WRF_NDES)
+                N_PROC = @(WRF_PROC)
+                NIO_GRPS = @(NIO_GRPS)
+                NIO_TPG = @(NIO_TPG)
+                
             [[[directives]]]
                 @[ if os.environ['SCHED'] == 'slurm' ]
                     --partition = @(PART_CMP)
-                    --nodes = @(MPAS_NDES)
-                    --tasks-per-node = @(MPAS_PROC)
-                    --mem = @(MPAS_MEM)
+                    --nodes = @(WRF_NDES)
+                    --tasks-per-node = @(WRF_PROC)
+                    --mem = @(WRF_MEM)
                 @[ elif os.environ['SCHED'] == 'pbs' ]
-                    -l select=@(MPAS_NDES)
-                    -l mpiprocs=@(MPAS_PROC)
-                    -l ncpus=@(MPAS_PROC)
+                    -l select=@(WRF_NDES)
+                    -l mpiprocs=@(WRF_PROC)
+                    -l ncpus=@(WRF_PROC)
                 @[ end if ]
 
     @[ end for ]
