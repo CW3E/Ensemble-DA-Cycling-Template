@@ -80,7 +80,7 @@
 @{ PART_CMP = 'cw3e-compute' }
 
 # Debug queue for small / rapid parallel jobs
-@{ PART_DBG = 'cw3e-shared' }
+@{ PART_DBG = 'cw3e-compute' }
 
 # Serial queue for non-mpi jobs
 @{ PART_SRL = 'cw3e-shared' }
@@ -185,6 +185,7 @@
                     --tasks-per-node = 1
                     --mem = @(GRIB_MEM)
                 @[ elif os.environ['SCHED'] == 'pbs' ]
+                    -q = @(PART_SRL)
                     -l select=1:mpiprocs=1:ncpus=1
                 @[ end if ]
 
@@ -205,6 +206,7 @@
                     --tasks-per-node = @(WPS_PROC)
                     --mem = @(WPS_MEM)
                 @[ elif os.environ['SCHED'] == 'pbs' ]
+                    -q = @(PART_DBG)
                     -l select=@(WPS_NDES)
                     -l mpiprocs=@(WPS_PROC)
                     -l ncpus=@(WPS_PROC)
@@ -229,6 +231,7 @@
                     --tasks-per-node = @(WPS_PROC)
                     --mem = @(WPS_MEM)
                 @[ elif os.environ['SCHED'] == 'pbs' ]
+                    -q = @(PART_DBG)
                     -l select=@(WPS_NDES)
                     -l mpiprocs=@(WPS_PROC)
                     -l ncpus=@(WPS_PROC)
@@ -254,7 +257,7 @@
                 N_PROC = @(WRF_PROC)
                 NIO_GRPS = @(NIO_GRPS)
                 NIO_TPG = @(NIO_TPG)
-                
+
             [[[directives]]]
                 @[ if os.environ['SCHED'] == 'slurm' ]
                     --partition = @(PART_CMP)
@@ -262,6 +265,7 @@
                     --tasks-per-node = @(WRF_PROC)
                     --mem = @(WRF_MEM)
                 @[ elif os.environ['SCHED'] == 'pbs' ]
+                    -q = @(PART_CMP)
                     -l select=@(WRF_NDES)
                     -l mpiprocs=@(WRF_PROC)
                     -l ncpus=@(WRF_PROC)

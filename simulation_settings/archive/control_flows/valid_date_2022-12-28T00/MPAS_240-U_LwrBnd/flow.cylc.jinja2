@@ -87,7 +87,7 @@
 {% set PART_CMP = 'cw3e-compute' %}
 
 # Debug queue for small / rapid parallel jobs
-{% set PART_DBG = 'cw3e-shared' %}
+{% set PART_DBG = 'cw3e-compute' %}
 
 # Serial queue for non-mpi jobs
 {% set PART_SRL = 'cw3e-shared' %}
@@ -193,6 +193,7 @@
                     --tasks-per-node = 1
                     --mem = {{GRIB_MEM}}
                 {% elif environ['SCHED'] == 'pbs' %}
+                    -q = @(PART_SRL)
                     -l select=1:mpiprocs=1:ncpus=1
                 {% endif %}
 
@@ -217,6 +218,7 @@
                     --tasks-per-node = {{INIT_PROC}}
                     --mem = {{INIT_MEM}}
                 {% elif environ['SCHED'] == 'pbs' %}
+                    -q = @(PART_DBG)
                     -l select={{INIT_NDES}}
                     -l mpiprocs={{INIT_PROC}}
                     -l ncpus={{INIT_PROC}}
@@ -244,6 +246,7 @@
                     --tasks-per-node = {{INIT_PROC}}
                     --mem = {{INIT_MEM}}
                 @[ elif environ['SCHED'] == 'pbs' ]
+                    -q = @(PART_DBG)
                     -l select={{INIT_NDES}}
                     -l mpiprocs={{INIT_PROC}}
                     -l ncpus={{INIT_PROC}}
@@ -278,6 +281,7 @@
                     --tasks-per-node = {{MPAS_PROC}}
                     --mem = {{MPAS_MEM}}
                 {% elif environ['SCHED'] == 'pbs' %}
+                    -q = @(PART_CMP)
                     -l select={{MPAS_NDES}}
                     -l mpiprocs={{MPAS_PROC}}
                     -l ncpus={{MPAS_PROC}}
