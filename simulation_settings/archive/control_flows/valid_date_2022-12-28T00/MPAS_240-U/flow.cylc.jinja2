@@ -218,9 +218,7 @@
                     --mem = {{INIT_MEM}}
                 {% elif environ['SCHED'] == 'pbs' %}
                     -q = @(PART_DBG)
-                    -l select={{INIT_NDES}}
-                    -l mpiprocs={{INIT_PROC}}
-                    -l ncpus={{INIT_PROC}}
+                    -l select=@(INIT_NDES):mpiprocs=@(INIT_PROC):ncpus=@(INIT_PROC)
                 {% endif %}
 
         [[mpas_model_ens_{{idx}}]]
@@ -253,9 +251,7 @@
                     --mem = {{MPAS_MEM}}
                 {% elif environ['SCHED'] == 'pbs' %}
                     -q = @(PART_CMP)
-                    -l select={{MPAS_NDES}}
-                    -l mpiprocs={{MPAS_PROC}}
-                    -l ncpus={{MPAS_PROC}}
+                    -l select=@(MPAS_NDES):mpiprocs=@(MPAS_PROC):ncpus=@(MPAS_PROC)
                 {% endif %}
 
     {% endfor %}

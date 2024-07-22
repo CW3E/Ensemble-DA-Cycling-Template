@@ -10,6 +10,9 @@
             hosts = localhost
             install target = localhost
             submission polling intervals = PT5M
+            global init-script = """
+                source {{environ['CLNE_ROOT']}}/config_template.sh
+            """
             [[[directives]]]
                 {% if platform == 'slurm' %}
                     --account = {{environ['PROJECT']}}

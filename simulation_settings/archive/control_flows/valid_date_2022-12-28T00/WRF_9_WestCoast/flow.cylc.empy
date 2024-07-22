@@ -46,7 +46,7 @@
 # Max domain for ensemble simulation 
 @{ WRF_ENS_DOM = '01'}
 
-# First domain index to have ICs downscaled from parent's initial conditions (>01) 
+# First domain index to have ICs downscaled from parent's initial conditions (>01)
 @{ DOWN_DOM = '02'}
 
 ##################################################################################
@@ -62,7 +62,7 @@
 @{ IF_DYN_LEN = 'Yes' }
 
 # This setting defines Yes / No for nested domain 2-way coupling
-@{ IF_FEEDBACK = 'No' } 
+@{ IF_FEEDBACK = 'No' }
 
 # Lower boundary condition updates from background data
 @{ IF_SST_UPDT = 'No' }
@@ -207,9 +207,7 @@
                     --mem = @(WPS_MEM)
                 @[ elif os.environ['SCHED'] == 'pbs' ]
                     -q = @(PART_DBG)
-                    -l select=@(WPS_NDES)
-                    -l mpiprocs=@(WPS_PROC)
-                    -l ncpus=@(WPS_PROC)
+                    -l select=@(WPS_NDES):mpiprocs=@(WPS_PROC):ncpus=@(WPS_PROC)
                 @[ end if ]
 
         [[wrf_real_ens_@(idx)]]
@@ -232,9 +230,7 @@
                     --mem = @(WPS_MEM)
                 @[ elif os.environ['SCHED'] == 'pbs' ]
                     -q = @(PART_DBG)
-                    -l select=@(WPS_NDES)
-                    -l mpiprocs=@(WPS_PROC)
-                    -l ncpus=@(WPS_PROC)
+                    -l select=@(WPS_NDES):mpiprocs=@(WPS_PROC):ncpus=@(WPS_PROC)
                 @[ end if ]
 
         [[wrf_model_ens_@(idx)]]
@@ -266,9 +262,7 @@
                     --mem = @(WRF_MEM)
                 @[ elif os.environ['SCHED'] == 'pbs' ]
                     -q = @(PART_CMP)
-                    -l select=@(WRF_NDES)
-                    -l mpiprocs=@(WRF_PROC)
-                    -l ncpus=@(WRF_PROC)
+                    -l select=@(WRF_NDES):mpiprocs=@(WRF_PROC):ncpus=@(WRF_PROC)
                 @[ end if ]
 
     @[ end for ]
