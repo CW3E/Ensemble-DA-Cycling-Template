@@ -242,7 +242,7 @@
                 @[ if os.environ['SCHED'] == 'slurm' ]
                     @[ if os.environ['SYS_TYPE' ] == 'penguin' ]
                         --partition = general
-                        --quos = @(PART_DBG)
+                        --qos = @(PART_DBG)
                         --nodes = @(WPS_NDES)
                         --tasks-per-node = @(WPS_PROC)
                         --mem = @(WPS_MEM)
