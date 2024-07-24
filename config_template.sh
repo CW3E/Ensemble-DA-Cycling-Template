@@ -42,8 +42,8 @@
 ##################################################################################
 # COMPUTER-DEPENDENT ITEMS
 ##################################################################################
-# Full path of framework git clone
-export CLNE_ROOT="/expanse/nfs/cw3e/cwp168/Ensemble-DA-Cycling-Template"
+# Full path of framework git clone, is used for embedded Cylc installation
+export HOME="/expanse/nfs/cw3e/cwp168/Ensemble-DA-Cycling-Template"
 
 # Root directory of software stack executables
 export SOFT_ROOT="/expanse/nfs/cw3e/cwp168/SOFT_ROOT"
@@ -73,11 +73,8 @@ export SYS_TYPE=""
 # WORKFLOW SETTINGS
 ##################################################################################
 # Root directory of Cylc installation
-export CYLC_ROOT="${CLNE_ROOT}/cylc"
+export CYLC_ROOT="${HOME}/cylc"
 export PATH="${CYLC_ROOT}:${PATH}"
-
-# Change home directory to the Cylc root to remove the user dependence
-export HOME="${CYLC_ROOT}"
 
 # Location of Micromamba cylc environment
 export CYLC_HOME_ROOT_ALT="${CYLC_ROOT}/Micromamba/envs"
@@ -94,10 +91,10 @@ if [[ $- =~ i && -f ${CYLC_ROOT}/cylc-completion.bash ]]; then
 fi
 
 # Root directory of experiment configuration files
-export CFG_ROOT="${CLNE_ROOT}/simulation_settings"
+export CFG_ROOT="${HOME}/simulation_settings"
 
 # Root directory of workflow framework scripts
-export SCRIPTS="${CLNE_ROOT}/scripts"
+export SCRIPTS="${HOME}/scripts"
 
 # Root directory of task driver scripts
 export DRIVERS="${SCRIPTS}/drivers"

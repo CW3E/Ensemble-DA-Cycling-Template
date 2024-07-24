@@ -2,7 +2,7 @@
 #SBATCH --account=
 #SBATCH --nodes=
 #SBATCH --ntasks-per-node=
-#SBATCH --mem-per-cpu=
+#SBATCH --mem=
 #SBATCH -p 
 #SBATCH -t 
 #SBATCH -J 
