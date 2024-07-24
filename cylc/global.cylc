@@ -6,7 +6,7 @@
 {% for sched in scheds %}
     [platforms]
         [[{{sched}}]]
-            job runner = {{platform}}
+            job runner = {{sched}}
             hosts = localhost
             install target = localhost
             submission polling intervals = PT5M
