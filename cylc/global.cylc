@@ -11,7 +11,7 @@
             install target = localhost
             submission polling intervals = PT5M
             global init-script = """
-                source {{environ['CLNE_ROOT']}}/config_template.sh
+                source {{environ['HOME']}}/config_template.sh
             """
             [[[directives]]]
                 {% if sched == 'slurm' %}
