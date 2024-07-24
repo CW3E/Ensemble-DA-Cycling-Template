@@ -14,9 +14,9 @@
                 source {{environ['CLNE_ROOT']}}/config_template.sh
             """
             [[[directives]]]
-                {% if platform == 'slurm' %}
+                {% if sched == 'slurm' %}
                     --account = {{environ['PROJECT']}}
-                {% elif platform == 'pbs' %}
+                {% elif sched == 'pbs' %}
                     -A = {{environ['PROJECT']}}
                 {% endif %}
     [install]
