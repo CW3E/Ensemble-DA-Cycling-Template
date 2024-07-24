@@ -50,7 +50,7 @@ curl -Ls https://micro.mamba.pm/api/micromamba/linux-64/latest \
 mv bin/micromamba ./; rmdir bin
 
 micromamba create -n ${CYLC_ENV_NAME} -y -f \
-  ${CLNE_ROOT}/docs/build_examples/${CYLC_ENV_NAME}.yml
+  ${HOME}/docs/build_examples/${CYLC_ENV_NAME}.yml
 
 cd ${CYLC_ROOT}
 ln -sf cylc rose
