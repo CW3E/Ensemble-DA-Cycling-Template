@@ -179,7 +179,7 @@
         @{ idx = str(mem).zfill(2) }
         [[ungrib_ens_@(idx)]]
             inherit = WPS
-            platform = @(os.environ['SCHED'])_platform
+            platform = @(os.environ['SCHED'])
             execution time limit = @(GRIB_WC)
             script = @(os.environ['DRIVERS'])/ungrib.sh
             execution retry delays = 3*PT5M
@@ -193,10 +193,18 @@
                 IF_ECMWF_ML = 'No'
             [[[directives]]]
                 @[ if os.environ['SCHED'] == 'slurm' ]
-                    --partition = @(PART_SRL)
-                    --nodes = 1
-                    --tasks-per-node = 1
-                    --mem = @(GRIB_MEM)
+                    @[ if os.environ['SYS_TYPE' ] == 'penguin' ]
+                        --partition = general
+                        --qos = @(PART_SRL)
+                        --nodes = 1
+                        --tasks-per-node = 1
+                        --mem = @(GRIB_MEM)
+                    @[ else ]
+                        --partition = @(PART_SRL)
+                        --nodes = 1
+                        --tasks-per-node = 1
+                        --mem = @(GRIB_MEM)
+                    @[ end if ]
                 @[ elif os.environ['SCHED'] == 'pbs' ]
                     -q = @(PART_SRL)
                     -l select=1:mpiprocs=1:ncpus=1
@@ -204,7 +212,7 @@
 
         [[mpas_ic_ens_@(idx)]]
             inherit = MPAS
-            platform = @(os.environ['SCHED'])_platform
+            platform = @(os.environ['SCHED'])
             execution time limit = @(INIT_WC)
             script = @(os.environ['DRIVERS'])/mpas_ic.sh
             execution retry delays = 3*PT5M
@@ -218,10 +226,18 @@
                 PIO_STRD = @(PIO_STRD)
             [[[directives]]]
                 @[ if os.environ['SCHED'] == 'slurm' ]
-                    --partition = @(PART_CMP)
-                    --nodes = @(INIT_NDES)
-                    --tasks-per-node = @(INIT_PROC)
-                    --mem = @(INIT_MEM)
+                    @[ if os.environ['SYS_TYPE' ] == 'penguin' ]
+                        --partition = general
+                        --qos = @(PART_CMP)
+                        --nodes = @(INIT_NDES)
+                        --tasks-per-node = @(INIT_PROC)
+                        --mem = @(INIT_MEM)
+                    @[ else ]
+                        --partition = @(PART_CMP)
+                        --nodes = @(INIT_NDES)
+                        --tasks-per-node = @(INIT_PROC)
+                        --mem = @(INIT_MEM)
+                    @[ end if ]
                 @[ elif os.environ['SCHED'] == 'pbs' ]
                     -q = @(PART_DBG)
                     -l select=@(INIT_NDES):mpiprocs=@(INIT_PROC):ncpus=@(INIT_PROC)
@@ -229,7 +245,7 @@
 
         [[mpas_sfc_ens_@(idx)]]
             inherit = MPAS
-            platform = @(os.environ['SCHED'])_platform
+            platform = @(os.environ['SCHED'])
             execution time limit = @(INIT_WC)
             script = @(os.environ['DRIVERS'])/mpas_sfc.sh
             execution retry delays = 3*PT5M
@@ -244,10 +260,18 @@
                 PIO_STRD = @(PIO_STRD)
             [[[directives]]]
                 @[ if os.environ['SCHED'] == 'slurm' ]
-                    --partition = @(PART_CMP)
-                    --nodes = @(INIT_NDES)
-                    --tasks-per-node = @(INIT_PROC)
-                    --mem = @(INIT_MEM)
+                    @[ if os.environ['SYS_TYPE' ] == 'penguin' ]
+                        --partition = general
+                        --qos = @(PART_CMP)
+                        --nodes = @(INIT_NDES)
+                        --tasks-per-node = @(INIT_PROC)
+                        --mem = @(INIT_MEM)
+                    @[ else ]
+                        --partition = @(PART_CMP)
+                        --nodes = @(INIT_NDES)
+                        --tasks-per-node = @(INIT_PROC)
+                        --mem = @(INIT_MEM)
+                    @[ end if ]
                 @[ elif os.environ['SCHED'] == 'pbs' ]
                     -q = @(PART_DBG)
                     -l select=@(INIT_NDES):mpiprocs=@(INIT_PROC):ncpus=@(INIT_PROC)
@@ -255,7 +279,7 @@
 
         [[mpas_model_ens_@(idx)]]
             inherit = MPAS
-            platform = @(os.environ['SCHED'])_platform
+            platform = @(os.environ['SCHED'])
             execution time limit = @(MPAS_WC)
             script = @(os.environ['DRIVERS'])/mpas_model.sh
             execution retry delays = 3*PT5M
@@ -277,10 +301,18 @@
                 PIO_STRD = @(PIO_STRD)
             [[[directives]]]
                 @[ if os.environ['SCHED'] == 'slurm' ]
-                    --partition = @(PART_CMP)
-                    --nodes = @(MPAS_NDES)
-                    --tasks-per-node = @(MPAS_PROC)
-                    --mem = @(MPAS_MEM)
+                    @[ if os.environ['SYS_TYPE' ] == 'penguin' ]
+                        --partition = general
+                        --qos = @(PART_CMP)
+                        --nodes = @(MPAS_NDES)
+                        --tasks-per-node = @(MPAS_PROC)
+                        --mem = @(MPAS_MEM)
+                    @[ else ]
+                        --partition = @(PART_CMP)
+                        --nodes = @(MPAS_NDES)
+                        --tasks-per-node = @(MPAS_PROC)
+                        --mem = @(MPAS_MEM)
+                    @[ end if ]
                 @[ elif os.environ['SCHED'] == 'pbs' ]
                     -q = @(PART_CMP)
                     -l select=@(MPAS_NDES):mpiprocs=@(MPAS_PROC):ncpus=@(MPAS_PROC)

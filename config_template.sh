@@ -66,6 +66,9 @@ export MPIRUN="mpiexec"
 # Project billing account
 export PROJECT="cwp168"
 
+# System type, special options for 'penguin' currently, leave blank otherwise
+export SYS_TYPE=""
+
 ##################################################################################
 # WORKFLOW SETTINGS
 ##################################################################################

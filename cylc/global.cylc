@@ -1,11 +1,11 @@
 #!jinja2
 
-# Define platform templates
-{% set platforms = 'slurm', 'pbs' %}
+# Define platform templates for scheduling systems
+{% set scheds = 'slurm', 'pbs' %}
 
-{% for platform in platforms %}
+{% for sched in scheds %}
     [platforms]
-        [[{{platform}}_platform]]
+        [[{{sched}}]]
             job runner = {{platform}}
             hosts = localhost
             install target = localhost
