@@ -46,6 +46,7 @@
 ##########################################################################
 # Using GMT time zone for time computations
 export TZ="GMT"
+ulimit -s unlimited
 
 # Defines expanse environment with intel compilers
 module purge

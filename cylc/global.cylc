@@ -9,7 +9,7 @@
             job runner = {{sched}}
             hosts = localhost
             install target = localhost
-            submission polling intervals = PT5M
+            submission polling intervals = PT3M
             global init-script = """
                 source {{environ['HOME']}}/config_template.sh
             """

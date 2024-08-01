@@ -391,7 +391,11 @@ done
 
 # Remove any previous Vtables
 cmd="rm -f Vtable"
-printf "${cmd}\n"; eval "${cmd}"
+if [ ${dbg} = 1 ]; then
+  printf "${cmd}\n" >> ${scrpt}; eval "${cmd}"
+else
+  printf "${cmd}\n"; eval "${cmd}"
+fi
 
 # Check to make sure the variable table is available
 vtable=${CFG_ROOT}/variable_tables/Vtable.${BKG_DATA}
@@ -411,23 +415,43 @@ fi
 
 # Remove any ungrib inputs
 cmd="rm -f GRIBFILE.*"
-printf "${cmd}\n"; eval "${cmd}"
+if [ ${dbg} = 1 ]; then
+  printf "${cmd}\n" >> ${scrpt}; eval "${cmd}"
+else
+  printf "${cmd}\n"; eval "${cmd}"
+fi
 
 # Remove any ungrib temp files
 cmd="rm -f PFILE:*"
-printf "${cmd}\n"; eval "${cmd}"
+if [ ${dbg} = 1 ]; then
+  printf "${cmd}\n" >> ${scrpt}; eval "${cmd}"
+else
+  printf "${cmd}\n"; eval "${cmd}"
+fi
 
 # Remove any ungrib outputs
 cmd="rm -f ${BKG_DATA}:*"
-printf "${cmd}\n"; eval "${cmd}"
+if [ ${dbg} = 1 ]; then
+  printf "${cmd}\n" >> ${scrpt}; eval "${cmd}"
+else
+  printf "${cmd}\n"; eval "${cmd}"
+fi
 
 # Remove ECMWF coefficients if processing EC model levels
 if [ ${IF_ECMWF_ML} = ${YES} ]; then
   cmd="rm -f ecmwf_coeffs"
-  printf "${cmd}\n"; eval "${cmd}"
+  if [ ${dbg} = 1 ]; then
+    printf "${cmd}\n" >> ${scrpt}; eval "${cmd}"
+  else
+    printf "${cmd}\n"; eval "${cmd}"
+  fi
   # Check for ECMWF pressure coefficients 
   cmd="rm -f PRES:*"
-  printf "${cmd}\n"; eval "${cmd}"
+  if [ ${dbg} = 1 ]; then
+    printf "${cmd}\n" >> ${scrpt}; eval "${cmd}"
+  else
+    printf "${cmd}\n"; eval "${cmd}"
+  fi
 fi
 
 # Move existing log files to a subdir if there are any
@@ -437,14 +461,22 @@ if [ -f ungrib.log ]; then
   mkdir ${logdir}
   printf "Moving pre-existing log files to ${logdir}.\n"
   cmd="mv ungrib.log ${logdir}"
-  printf "${cmd}\n"; eval "${cmd}"
+  if [ ${dbg} = 1 ]; then
+    printf "${cmd}\n" >> ${scrpt}; eval "${cmd}"
+  else
+    printf "${cmd}\n"; eval "${cmd}"
+  fi
 else
   printf "No pre-existing log files were found.\n"
 fi
 
 # Remove any namelists
 cmd="rm -f namelist.wps"
-printf "${cmd}\n"; eval "${cmd}"
+if [ ${dbg} = 1 ]; then
+  printf "${cmd}\n" >> ${scrpt}; eval "${cmd}"
+else
+  printf "${cmd}\n"; eval "${cmd}"
+fi
 
 # check to make sure the grib_data exists and is non-empty
 grib_data=${GRIB_ROOT}/${BKG_DATA}/${bkg_strt_dt}

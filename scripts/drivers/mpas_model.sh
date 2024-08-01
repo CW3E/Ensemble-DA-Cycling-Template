@@ -398,11 +398,6 @@ elif [ ! -d ${CYC_HME} ]; then
   exit 1
 fi
 
-if [ ! ${MPIRUN} ]; then
-  printf "ERROR: \${MPIRUN} is not defined.\n"
-  exit 1
-fi
-
 if [ ! ${N_NDES} ]; then
   printf "ERROR: \${N_NDES} is not defined.\n"
   exit 1
@@ -445,6 +440,16 @@ fi
 
 mpiprocs=$(( ${N_NDES} * ${N_PROC} ))
 
+if [ ! ${MPIRUN} ]; then
+  printf "ERROR: \${MPIRUN} is not defined.\n"
+  exit 1
+  if [ ${MPIRUN} = 'srun' ]; then
+    mpirun=${MPIRUN}
+  else
+    mpirun="${MPIRUN} -n ${mpiprocs}"
+  fi
+fi
+
 ##################################################################################
 # Begin pre-atmosphere_model setup
 ##################################################################################
@@ -481,44 +486,84 @@ fi
 mpas_files=(${MPAS_ROOT}/*)
 for filename in ${mpas_files[@]}; do
   cmd="ln -sf ${filename} ."
-  printf "${cmd}\n"; eval "${cmd}"
+  if [ ${dbg} = 1 ]; then
+    printf "${cmd}\n" >> ${scrpt}; eval "${cmd}"
+  else
+    printf "${cmd}\n"; eval "${cmd}"
+  fi
 done
 
 # Make links to the model physics files
 phys_files=(${MPAS_ROOT}/src/core_atmosphere/physics/physics_wrf/files/*)
 for filename in ${phys_files[@]}; do
   cmd="ln -sf ${filename} ."
-  printf "${cmd}\n"; eval "${cmd}"
+  if [ ${dbg} = 1 ]; then
+    printf "${cmd}\n" >> ${scrpt}; eval "${cmd}"
+  else
+    printf "${cmd}\n"; eval "${cmd}"
+  fi
 done
 
 # Remove any mpas init files following ${cfg_nme}.init.nc pattern
 cmd="rm -f *.init.nc"
-printf "${cmd}\n"; eval "${cmd}"
+if [ ${dbg} = 1 ]; then
+  printf "${cmd}\n" >> ${scrpt}; eval "${cmd}"
+else
+  printf "${cmd}\n"; eval "${cmd}"
+fi
 
 # Remove any mpas partition files following ${cfg_nme}.graph.info.part.* pattern
 cmd="rm -f *.graph.info.part.*"
-printf "${cmd}\n"; eval "${cmd}"
+if [ ${dbg} = 1 ]; then
+  printf "${cmd}\n" >> ${scrpt}; eval "${cmd}"
+else
+  printf "${cmd}\n"; eval "${cmd}"
+fi
 
 # Remove any previous namelists and stream lists
 cmd="rm -f namelist.*; rm -f streams.*; rm -f stream_list.*"
-printf "${cmd}\n"; eval "${cmd}"
+if [ ${dbg} = 1 ]; then
+  printf "${cmd}\n" >> ${scrpt}; eval "${cmd}"
+else
+  printf "${cmd}\n"; eval "${cmd}"
+fi
 
 # Remove any previous lateral boundary condition files ${cfg_nme}.lbc.*.nc
 cmd="rm -f *.lbc.*.nc"
-printf "${cmd}\n"; eval "${cmd}"
+if [ ${dbg} = 1 ]; then
+  printf "${cmd}\n" >> ${scrpt}; eval "${cmd}"
+else
+  printf "${cmd}\n"; eval "${cmd}"
+fi
 
 # Remove pre-existing model run outputs
 cmd="rm -f *.history.*"
-printf "${cmd}\n"; eval "${cmd}"
+if [ ${dbg} = 1 ]; then
+  printf "${cmd}\n" >> ${scrpt}; eval "${cmd}"
+else
+  printf "${cmd}\n"; eval "${cmd}"
+fi
 
 cmd="rm -f *.diag.*"
-printf "${cmd}\n"; eval "${cmd}"
+if [ ${dbg} = 1 ]; then
+  printf "${cmd}\n" >> ${scrpt}; eval "${cmd}"
+else
+  printf "${cmd}\n"; eval "${cmd}"
+fi
 
 cmd="rm -f *.restart.*"
-printf "${cmd}\n"; eval "${cmd}"
+if [ ${dbg} = 1 ]; then
+  printf "${cmd}\n" >> ${scrpt}; eval "${cmd}"
+else
+  printf "${cmd}\n"; eval "${cmd}"
+fi
 
 cmd="rm -f *.snd.*"
-printf "${cmd}\n"; eval "${cmd}"
+if [ ${dbg} = 1 ]; then
+  printf "${cmd}\n" >> ${scrpt}; eval "${cmd}"
+else
+  printf "${cmd}\n"; eval "${cmd}"
+fi
 
 # Move existing log files to a subdir if there are any
 printf "Checking for pre-existing log files.\n"
@@ -527,7 +572,11 @@ if [ -f log.atmosphere.0000.out ]; then
   mkdir ${logdir}
   printf "Moving pre-existing log files to ${logdir}.\n"
   cmd="mv log.* ${logdir}"
-  printf "${cmd}\n"; eval "${cmd}"
+  if [ ${dbg} = 1 ]; then
+    printf "${cmd}\n" >> ${scrpt}; eval "${cmd}"
+  else
+    printf "${cmd}\n"; eval "${cmd}"
+  fi
 else
   printf "No pre-existing log files were found.\n"
 fi
@@ -740,7 +789,7 @@ printf "STOP_DT = ${stop_iso}\n"
 printf "BKG_INT = ${BKG_INT}\n"
 printf "\n"
 
-cmd="${MPIRUN} -n ${mpiprocs} ${atmos_exe}"
+cmd="${mpirun} ${atmos_exe}"
 
 if [ ${dbg} = 1 ]; then
   printf "${cmd}\n" >> ${scrpt}
@@ -752,7 +801,7 @@ fi
 now=`date +%Y-%m-%d_%H_%M_%S`
 printf "atmosphere_model started at ${now}.\n"
 printf "${cmd}\n"
-${MPIRUN} -n ${mpiprocs} ${atmos_exe}
+${mpirun} ${atmos_exe}
 
 ##################################################################################
 # Run time error check

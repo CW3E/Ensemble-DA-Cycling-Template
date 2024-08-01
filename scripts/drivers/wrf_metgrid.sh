@@ -303,11 +303,6 @@ elif [ ! -d ${CYC_HME} ]; then
   exit 1
 fi
 
-if [ ! ${MPIRUN} ]; then
-  printf "ERROR: \${MPIRUN} is not defined.\n"
-  exit 1
-fi
-
 if [ ! ${N_NDES} ]; then
   printf "ERROR: \${N_NDES} is not defined.\n"
   exit 1
@@ -329,6 +324,16 @@ elif [ ${N_PROC} -le 0 ]; then
 fi
 
 mpiprocs=$(( ${N_NDES} * ${N_PROC} ))
+
+if [ ! ${MPIRUN} ]; then
+  printf "ERROR: \${MPIRUN} is not defined.\n"
+  exit 1
+  if [ ${MPIRUN} = 'srun' ]; then
+    mpirun=${MPIRUN}
+  else
+    mpirun="${MPIRUN} -n ${mpiprocs}"
+  fi
+fi
 
 ##################################################################################
 # Begin pre-metgrid setup
@@ -374,15 +379,27 @@ done
 
 # Remove any previous namelists
 cmd="rm -f namelist.wps"
-printf "${cmd}\n"; eval "${cmd}"
+if [ ${dbg} = 1 ]; then
+  printf "${cmd}\n" >> ${scrpt}; eval "${cmd}"
+else
+  printf "${cmd}\n"; eval "${cmd}"
+fi
 
 # Remove any previous geogrid static files
 cmd="rm -f geo_em.*"
-printf "${cmd}\n"; eval "${cmd}"
+if [ ${dbg} = 1 ]; then
+  printf "${cmd}\n" >> ${scrpt}; eval "${cmd}"
+else
+  printf "${cmd}\n"; eval "${cmd}"
+fi
 
 # Remove pre-existing metgrid files
 cmd="rm -f met_em.*.nc"
-printf "${cmd}\n"; eval "${cmd}"
+if [ ${dbg} = 1 ]; then
+  printf "${cmd}\n" >> ${scrpt}; eval "${cmd}"
+else
+  printf "${cmd}\n"; eval "${cmd}"
+fi
 
 # Move existing log files to a subdir if there are any
 printf "Checking for pre-existing log files.\n"
@@ -391,14 +408,22 @@ if [ -f metgrid.log.0000 ]; then
   mkdir ${logdir}
   printf "Moving pre-existing log files to ${logdir}.\n"
   cmd="mv metgrid.log.* ${logdir}"
-  printf "${cmd}\n"; eval "${cmd}"
+  if [ ${dbg} = 1 ]; then
+    printf "${cmd}\n" >> ${scrpt}; eval "${cmd}"
+  else
+    printf "${cmd}\n"; eval "${cmd}"
+  fi
 else
   printf "No pre-existing log files were found.\n"
 fi
 
 # Remove any ungrib outputs
 cmd="rm -f ${BKG_DATA}:*"
-printf "${cmd}\n"; eval "${cmd}"
+if [ ${dbg} = 1 ]; then
+  printf "${cmd}\n" >> ${scrpt}; eval "${cmd}"
+else
+  printf "${cmd}\n"; eval "${cmd}"
+fi
 
 # check for the ungrib case products and link to them
 ungrib_dir=${CYC_HME}/ungrib/ens_${memid}
@@ -516,7 +541,7 @@ printf "BKG_INT  = ${BKG_INT}\n"
 printf "MAX_DOM  = ${MAX_DOM}\n"
 printf "\n"
 
-cmd="${MPIRUN} -n ${mpiprocs} ${metgrid_exe}"
+cmd="${mpirun} ${metgrid_exe}"
 
 if [ ${dbg} = 1 ]; then
   printf "${cmd}\n" >> ${scrpt}
@@ -528,7 +553,7 @@ fi
 now=`date +%Y-%m-%d_%H_%M_%S`
 printf "metgrid started at ${now}.\n"
 printf "${cmd}\n"
-${MPIRUN} -n ${mpiprocs} ${metgrid_exe}
+${mpirun} ${metgrid_exe}
 
 ##################################################################################
 # Run time error check

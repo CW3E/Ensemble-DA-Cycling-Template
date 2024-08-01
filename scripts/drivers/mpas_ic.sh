@@ -260,11 +260,6 @@ elif [ ! -d ${CYC_HME} ]; then
   exit 1
 fi
 
-if [ ! ${MPIRUN} ]; then
-  printf "ERROR: \${MPIRUN} is not defined.\n"
-  exit 1
-fi
-
 if [ ! ${N_NDES} ]; then
   printf "ERROR: \${N_NDES} is not defined.\n"
   exit 1
@@ -307,6 +302,16 @@ fi
 
 mpiprocs=$(( ${N_NDES} * ${N_PROC} ))
 
+if [ ! ${MPIRUN} ]; then
+  printf "ERROR: \${MPIRUN} is not defined.\n"
+  exit 1
+  if [ ${MPIRUN} = 'srun' ]; then
+    mpirun=${MPIRUN}
+  else
+    mpirun="${MPIRUN} -n ${mpiprocs}"
+  fi
+fi
+
 ##################################################################################
 # Begin pre-init_atmosphere setup
 ##################################################################################
@@ -348,19 +353,35 @@ done
 
 # Remove any mpas static files following ${cfg_nme}.static.nc pattern
 cmd="rm -f *.static.nc"
-printf "${cmd}\n"; eval "${cmd}"
+if [ ${dbg} = 1 ]; then
+  printf "${cmd}\n" >> ${scrpt}; eval "${cmd}"
+else
+  printf "${cmd}\n"; eval "${cmd}"
+fi
 
 # Remove any mpas init files following ${cfg_nme}.init.nc pattern
 cmd="rm -f *.init.nc"
-printf "${cmd}\n"; eval "${cmd}"
+if [ ${dbg} = 1 ]; then
+  printf "${cmd}\n" >> ${scrpt}; eval "${cmd}"
+else
+  printf "${cmd}\n"; eval "${cmd}"
+fi
 
 # Remove any mpas partition files following ${cfg_nme}.graph.info.part.* pattern
 cmd="rm -f *.graph.info.part.*"
-printf "${cmd}\n"; eval "${cmd}"
+if [ ${dbg} = 1 ]; then
+  printf "${cmd}\n" >> ${scrpt}; eval "${cmd}"
+else
+  printf "${cmd}\n"; eval "${cmd}"
+fi
 
 # Remove any previous namelists and stream lists
 cmd="rm -f namelist.*; rm -f streams.*; rm -f stream_list.*; rm -f *.ZETA_LIST.txt"
-printf "${cmd}\n"; eval "${cmd}"
+if [ ${dbg} = 1 ]; then
+  printf "${cmd}\n" >> ${scrpt}; eval "${cmd}"
+else
+  printf "${cmd}\n"; eval "${cmd}"
+fi
 
 # Move existing log files to a subdir if there are any
 printf "Checking for pre-existing log files.\n"
@@ -376,7 +397,11 @@ fi
 
 # Remove any ungrib outputs
 cmd="rm -f ${BKG_DATA}:*"
-printf "${cmd}\n"; eval "${cmd}"
+if [ ${dbg} = 1 ]; then
+  printf "${cmd}\n" >> ${scrpt}; eval "${cmd}"
+else
+  printf "${cmd}\n"; eval "${cmd}"
+fi
 
 # Link case ungrib data from ungrib root
 ungrib_dir=${CYC_HME}/ungrib/ens_${memid}
@@ -551,7 +576,7 @@ printf "STOP_DT  = ${stop_iso}\n"
 printf "BKG_DATA = ${BKG_DATA}\n"
 printf "\n"
 
-cmd="${MPIRUN} -n ${mpiprocs} ${init_exe}"
+cmd="${mpirun} ${init_exe}"
 
 if [ ${dbg} = 1 ]; then
   printf "${cmd}\n" >> ${scrpt}
@@ -563,7 +588,7 @@ fi
 now=`date +%Y-%m-%d_%H_%M_%S`
 printf "init_atmpshere started at ${now}.\n"
 printf "${cmd}\n"
-${MPIRUN} -n ${mpiprocs} ${init_exe}
+${mpirun} ${init_exe}
 
 ##################################################################################
 # Run time error check

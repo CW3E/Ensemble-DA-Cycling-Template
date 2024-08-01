@@ -23,7 +23,7 @@
 # CYCLING SETTINGS
 ##################################################################################
 # First initial time for a forecast YYYY-MM-DDTHH
-@{ CYC_STRT = '2022-12-23T00' }
+@{ CYC_STRT = '2022-12-27T00' }
 
 # Last initial time for a forecast YYYY-MM-DDTHH
 @{ CYC_STOP = '2022-12-27T00' }
@@ -184,12 +184,12 @@
                         --partition = general
                         --qos = @(PART_SRL)
                         --nodes = 1
-                        --tasks-per-node = 1
+                        --ntasks-per-node = 1
                         --mem = @(GRIB_MEM)
                     @[ else ]
                         --partition = @(PART_SRL)
                         --nodes = 1
-                        --tasks-per-node = 1
+                        --ntasks-per-node = 1
                         --mem = @(GRIB_MEM)
                     @[ end if ]
                 @[ elif os.environ['SCHED'] == 'pbs' ]
@@ -213,12 +213,12 @@
                         --partition = general
                         --qos = @(PART_DBG)
                         --nodes = @(WPS_NDES)
-                        --tasks-per-node = @(WPS_PROC)
+                        --ntasks-per-node = @(WPS_PROC)
                         --mem = @(WPS_MEM)
                     @[ else ]
                         --partition = @(PART_DBG)
                         --nodes = @(WPS_NDES)
-                        --tasks-per-node = @(WPS_PROC)
+                        --ntasks-per-node = @(WPS_PROC)
                         --mem = @(WPS_MEM)
                     @[ end if ]
                 @[ elif os.environ['SCHED'] == 'pbs' ]
@@ -244,12 +244,12 @@
                         --partition = general
                         --qos = @(PART_DBG)
                         --nodes = @(WPS_NDES)
-                        --tasks-per-node = @(WPS_PROC)
+                        --ntasks-per-node = @(WPS_PROC)
                         --mem = @(WPS_MEM)
                     @[ else ]
                         --partition = @(PART_DBG)
                         --nodes = @(WPS_NDES)
-                        --tasks-per-node = @(WPS_PROC)
+                        --ntasks-per-node = @(WPS_PROC)
                         --mem = @(WPS_MEM)
                     @[ end if ]
                 @[ elif os.environ['SCHED'] == 'pbs' ]
@@ -284,12 +284,12 @@
                         --partition = general
                         --qos = @(PART_CMP)
                         --nodes = @(WRF_NDES)
-                        --tasks-per-node = @(WRF_PROC)
+                        --ntasks-per-node = @(WRF_PROC)
                         --mem = @(WRF_MEM)
                     @[ else ]
                         --partition = @(PART_CMP)
                         --nodes = @(WRF_NDES)
-                        --tasks-per-node = @(WRF_PROC)
+                        --ntasks-per-node = @(WRF_PROC)
                         --mem = @(WRF_MEM)
                     @[ end if ]
                 @[ elif os.environ['SCHED'] == 'pbs' ]

@@ -407,11 +407,6 @@ elif [ ! -d ${CYC_HME} ]; then
   exit 1
 fi
 
-if [ ! ${MPIRUN} ]; then
-  printf "ERROR: \${MPIRUN} is not defined.\n"
-  exit 1
-fi
-
 if [ ! ${N_NDES} ]; then
   printf "ERROR: \${N_NDES} is not defined.\n"
   exit 1
@@ -433,6 +428,16 @@ elif [ ${N_PROC} -le 0 ]; then
 fi
 
 mpiprocs=$(( ${N_NDES} * ${N_PROC} ))
+
+if [ ! ${MPIRUN} ]; then
+  printf "ERROR: \${MPIRUN} is not defined.\n"
+  exit 1
+  if [ ${MPIRUN} = 'srun' ]; then
+    mpirun=${MPIRUN}
+  else
+    mpirun="${MPIRUN} -n ${mpiprocs}"
+  fi
+fi
 
 ##################################################################################
 # Begin pre-WRF setup
@@ -488,15 +493,27 @@ done
 
 # Remove IC/BC in the directory if old data present
 cmd="rm -f wrfinput_*; rm -f wrfbdy_d01"
-printf "${cmd}\n"; eval "${cmd}"
+if [ ${dbg} = 1 ]; then
+  printf "${cmd}\n" >> ${scrpt}; eval "${cmd}"
+else
+  printf "${cmd}\n"; eval "${cmd}"
+fi
 
 # Remove any previous namelists
 cmd="rm -f namelist.input"
-printf "${cmd}\n"; eval "${cmd}"
+if [ ${dbg} = 1 ]; then
+  printf "${cmd}\n" >> ${scrpt}; eval "${cmd}"
+else
+  printf "${cmd}\n"; eval "${cmd}"
+fi
 
 # Remove any old WRF outputs in the directory from failed runs
 cmd="rm -f wrfout_*; rm -f wrfrst_*"
-printf "${cmd}\n"; eval "${cmd}"
+if [ ${dbg} = 1 ]; then
+  printf "${cmd}\n" >> ${scrpt}; eval "${cmd}"
+else
+  printf "${cmd}\n"; eval "${cmd}"
+fi
 
 # Link WRF initial conditions
 for dmn in ${dmns[@]}; do
@@ -760,7 +777,7 @@ printf "IF_SST_UPDT = ${IF_SST_UPDT}\n"
 printf "IF_FEEDBACK = ${IF_FEEDBACK}\n"
 printf "\n"
 
-cmd="${MPIRUN} -n ${mpiprocs} ${wrf_exe}"
+cmd="${mpirun} ${wrf_exe}"
 
 if [ ${dbg} = 1 ]; then
   printf "${cmd}\n" >> ${scrpt}
@@ -771,7 +788,8 @@ fi
 
 now=`date +%Y-%m-%d_%H_%M_%S`
 printf "wrf started at ${now}.\n"
-${MPIRUN} -n ${mpiprocs} ${wrf_exe}
+printf "${cmd}\n"; eval "${cmd}"
+${mpirun} ${wrf_exe}
 
 ##################################################################################
 # Run time error check
