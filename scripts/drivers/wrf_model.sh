@@ -432,11 +432,10 @@ mpiprocs=$(( ${N_NDES} * ${N_PROC} ))
 if [ ! ${MPIRUN} ]; then
   printf "ERROR: \${MPIRUN} is not defined.\n"
   exit 1
-  if [ ${MPIRUN} = 'srun' ]; then
-    mpirun=${MPIRUN}
-  else
-    mpirun="${MPIRUN} -n ${mpiprocs}"
-  fi
+elif [ ${MPIRUN} = 'srun' ]; then
+  par_run=${MPIRUN}
+else
+  par_run="${MPIRUN} -n ${mpiprocs}"
 fi
 
 ##################################################################################
@@ -777,7 +776,7 @@ printf "IF_SST_UPDT = ${IF_SST_UPDT}\n"
 printf "IF_FEEDBACK = ${IF_FEEDBACK}\n"
 printf "\n"
 
-cmd="${mpirun} ${wrf_exe}"
+cmd="${par_run} ${wrf_exe}"
 
 if [ ${dbg} = 1 ]; then
   printf "${cmd}\n" >> ${scrpt}
@@ -789,7 +788,7 @@ fi
 now=`date +%Y-%m-%d_%H_%M_%S`
 printf "wrf started at ${now}.\n"
 printf "${cmd}\n"; eval "${cmd}"
-${mpirun} ${wrf_exe}
+${par_run} ${wrf_exe}
 
 ##################################################################################
 # Run time error check

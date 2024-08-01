@@ -345,11 +345,10 @@ mpiprocs=$(( ${N_NDES} * ${N_PROC} ))
 if [ ! ${MPIRUN} ]; then
   printf "ERROR: \${MPIRUN} is not defined.\n"
   exit 1
-  if [ ${MPIRUN} = 'srun' ]; then
-    mpirun=${MPIRUN}
-  else
-    mpirun="${MPIRUN} -n ${mpiprocs}"
-  fi
+elif [ ${MPIRUN} = 'srun' ]; then
+  par_run=${MPIRUN}
+else
+  par_run="${MPIRUN} -n ${mpiprocs}"
 fi
 
 ##################################################################################
@@ -554,7 +553,7 @@ printf "MAX_DOM      = ${MAX_DOM}\n"
 printf "IF_SST_UPDT  = ${IF_SST_UPDT}\n"
 printf "\n"
 
-cmd="${mpirun} ${real_exe}"
+cmd="${par_run} ${real_exe}"
 
 if [ ${dbg} = 1 ]; then
   printf "${cmd}\n" >> ${scrpt}
@@ -566,7 +565,7 @@ fi
 now=`date +%Y-%m-%d_%H_%M_%S`
 printf "real started at ${now}.\n"
 printf "${cmd}\n"
-${mpirun} ${real_exe}
+${par_run} ${real_exe}
 
 ##################################################################################
 # Run time error check

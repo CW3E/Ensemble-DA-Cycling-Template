@@ -443,11 +443,10 @@ mpiprocs=$(( ${N_NDES} * ${N_PROC} ))
 if [ ! ${MPIRUN} ]; then
   printf "ERROR: \${MPIRUN} is not defined.\n"
   exit 1
-  if [ ${MPIRUN} = 'srun' ]; then
-    mpirun=${MPIRUN}
-  else
-    mpirun="${MPIRUN} -n ${mpiprocs}"
-  fi
+elif [ ${MPIRUN} = 'srun' ]; then
+  par_run=${MPIRUN}
+else
+  par_run="${MPIRUN} -n ${mpiprocs}"
 fi
 
 ##################################################################################
@@ -789,7 +788,7 @@ printf "STOP_DT = ${stop_iso}\n"
 printf "BKG_INT = ${BKG_INT}\n"
 printf "\n"
 
-cmd="${mpirun} ${atmos_exe}"
+cmd="${par_run} ${atmos_exe}"
 
 if [ ${dbg} = 1 ]; then
   printf "${cmd}\n" >> ${scrpt}
@@ -801,7 +800,7 @@ fi
 now=`date +%Y-%m-%d_%H_%M_%S`
 printf "atmosphere_model started at ${now}.\n"
 printf "${cmd}\n"
-${mpirun} ${atmos_exe}
+${par_run} ${atmos_exe}
 
 ##################################################################################
 # Run time error check
