@@ -117,7 +117,7 @@ if [ ! ${EXP_NME} ]; then
   exit 1
 else
   IFS="/" read -ra exp_nme <<< ${EXP_NME}
-  if [ ${#exp_nme} -ne 2 ]; then
+  if [ ${#exp_nme[@]} -ne 2 ]; then
     printf "ERROR: \${EXP_NME} variable:\n    ${EXP_NME}\n"
     printf "should define case study / config short name directory nesting.\n"
     exit 1
@@ -129,7 +129,7 @@ else
   IFS="." read -ra tmp_nme <<< ${cfg_nme}
   stc_nme=${tmp_nme[0]}
   printf "Setting up configuration:\n    ${stc_nme}\n"
-  if [ ${#tmp_nme} -eq 2 ]; then
+  if [ ${#tmp_nme[@]} -eq 2 ]; then
     printf "sub-configuration:\n    ${tmp_nme[1]}\n"
   fi
   printf "for:\n    ${cse_nme}\n case study.\n"
