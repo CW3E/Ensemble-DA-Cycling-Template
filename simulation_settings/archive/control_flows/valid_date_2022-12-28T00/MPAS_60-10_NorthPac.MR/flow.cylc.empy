@@ -14,13 +14,13 @@
 @{ CSE_NME = 'valid_date_' + EXP_VRF }
 
 # Configuration name including tunable parameters
-@{ CFG_NME = 'MPAS_240-U' }
+@{ CFG_NME = 'MPAS_60-10_NorthPac.MR' }
 
 # Case / configuration structure
 @{ EXP_NME = CSE_NME + '/' + CFG_NME }
 
 # Define the MPAS mesh name
-@{ MSH_NME = 'x1.10242' }
+@{ MSH_NME = 'x6.999426' }
 
 ##################################################################################
 # CYCLING SETTINGS
@@ -104,7 +104,7 @@
 @{ GRIB_WC = 'PT30M' }
 
 # init_atmosphere number of procs-per-node
-@{ INIT_PROC = 64 }
+@{ INIT_PROC = 128 }
 
 # init_atmosphere mem argument
 @{ INIT_MEM = '249000M' }
@@ -116,16 +116,16 @@
 @{ INIT_WC = 'PT30M' }
 
 # atmosphere_model number of procs-per-node
-@{ MPAS_PROC = 64 }
+@{ MPAS_PROC = 128 }
 
 # atmosphere_model mem argument
 @{ MPAS_MEM = '249000M' }
 
 # Number of nodes for atmosphere_model jobs
-@{ MPAS_NDES = 1 }
+@{ MPAS_NDES = 5 }
 
 # Wallclock limit for atmosphere_model
-@{ MPAS_WC = 'PT30M' }
+@{ MPAS_WC = 'PT6H' }
 
 # Set workflow to debugging mode for generating batch submit templates
 @{ IF_DBG = 'No' }

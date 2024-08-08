@@ -1,7 +1,7 @@
 <streams>
 <immutable_stream name="input"
                   type="input"
-                  filename_template="CFG_NME.static.nc"
+                  filename_template="STC_NME.static.nc"
                   input_interval="initial_only" />
 
 <immutable_stream name="output"

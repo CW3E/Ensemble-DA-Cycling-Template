@@ -100,7 +100,7 @@ fi
 ##################################################################################
 # Options below are defined in workflow variables
 #
-# EXP_NME    = Case study / config short name directory structure
+# EXP_NME    = Case study / config short name . sub-config directory structure
 # CFG_ROOT   = Root directory containing simulation settings
 # MSH_NME    = MPAS mesh name used to call mesh file name patterns
 # MEMID      = Ensemble ID index, 00 for control, i > 0 for perturbation
@@ -117,9 +117,21 @@ if [ ! ${EXP_NME} ]; then
   exit 1
 else
   IFS="/" read -ra exp_nme <<< ${EXP_NME}
+  if [ ${#exp_nme} -ne 2 ]; then
+    printf "ERROR: \${EXP_NME} variable:\n    ${EXP_NME}\n"
+    printf "should define case study / config short name directory nesting.\n"
+    exit 1
+  fi
   cse_nme=${exp_nme[0]}
   cfg_nme=${exp_nme[1]}
-  printf "Setting up configuration:\n    ${cfg_nme}\n"
+  # configuration name is separated on '.' to denote sub-config, leading part
+  # is used for the mpas static file naming
+  IFS="." read -ra tmp_nme <<< ${cfg_nme}
+  stc_nme=${tmp_nme[0]}
+  printf "Setting up configuration:\n    ${stc_nme}\n"
+  if [ ${#tmp_nme} -eq 2 ]; then
+    printf "sub-configuration:\n    ${tmp_nme[1]}\n"
+  fi
   printf "for:\n    ${cse_nme}\n case study.\n"
   if [ ! ${CFG_ROOT} ]; then
     printf "ERROR: \${CFG_ROOT} is not defined.\n"
@@ -352,7 +364,7 @@ for filename in ${mpas_files[@]}; do
   fi
 done
 
-# Remove any mpas static files following ${cfg_nme}.static.nc pattern
+# Remove any mpas static files following *.static.nc pattern
 cmd="rm -f *.static.nc"
 if [ ${dbg} = 1 ]; then
   printf "${cmd}\n" >> ${scrpt}; eval "${cmd}"
@@ -360,7 +372,7 @@ else
   printf "${cmd}\n"; eval "${cmd}"
 fi
 
-# Remove any mpas init files following ${cfg_nme}.init.nc pattern
+# Remove any mpas init files following *.init.nc pattern
 cmd="rm -f *.init.nc"
 if [ ${dbg} = 1 ]; then
   printf "${cmd}\n" >> ${scrpt}; eval "${cmd}"
@@ -368,7 +380,7 @@ else
   printf "${cmd}\n"; eval "${cmd}"
 fi
 
-# Remove any mpas partition files following ${cfg_nme}.graph.info.part.* pattern
+# Remove any mpas partition files following *.graph.info.part.* pattern
 cmd="rm -f *.graph.info.part.*"
 if [ ${dbg} = 1 ]; then
   printf "${cmd}\n" >> ${scrpt}; eval "${cmd}"
@@ -425,7 +437,7 @@ else
 fi
 
 # Check to make sure the static terrestrial input file is available and link
-static_input=${cfg_dir}/static/${cfg_nme}.static.nc
+static_input=${cfg_dir}/static/${stc_nme}.static.nc
 if [ ! -r "${static_input}" ]; then
   printf "ERROR: Input file\n ${static_input}\n is missing.\n"
   exit 1
@@ -544,6 +556,7 @@ fi
 
 cat << EOF > replace_param.tmp
 cat streams.init_atmosphere \
+| sed "s/STC_NME/${stc_nme}/" \
 | sed "s/CFG_NME/${cfg_nme}/" \
 | sed "s/=SFC_INT,/=\"00:00:00\"/" \
 | sed "s/=LBC_INT,/=\"00:00:00\"/" \

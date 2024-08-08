@@ -1,6 +1,6 @@
 &nhyd_model
     config_time_integration_order = 2
-    config_dt = 1200.0
+    config_dt = 60.0
     config_start_time = STRT_DT,
     config_run_duration = FCST_HRS,
     config_split_dynamics_transport = true
@@ -42,7 +42,8 @@
     config_deepsoiltemp_update = IF_DEEPSOIL,
     config_radtlw_interval = '01:00:00'
     config_radtsw_interval = '01:00:00'
-    config_physics_suite = 'mesoscale_reference'
+    config_bucket_update = 'none'
+    config_physics_suite = 'convection_permitting'
 /
 &soundings
     config_sounding_interval = SND_INT,
