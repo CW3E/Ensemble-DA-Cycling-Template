@@ -52,9 +52,6 @@
     config_pio_num_iotasks = PIO_NUM,
     config_pio_stride = PIO_STRD,
 /
-&development
-    config_halo_exch_method = mpas_halo
-/
 &decomposition
     config_block_decomp_file_prefix = 'MSH_NME.graph.info.part.' 
 /

@@ -224,7 +224,7 @@ elif [[ ${IF_ZETA_LIST} = ${YES} ]]; then
     zeta_list=${zeta_list[0]}
   fi
   # define string replacement for the namelist
-  if_zeta_list="config_specified_zeta_levels = `basename ${zeta_list}`"
+  if_zeta_list="config_specified_zeta_levels = \'`basename ${zeta_list}`\'"
   printf "Uses explicitly defined zeta levels for vertical grid spacing in file\n"
   printf "`basename ${zeta_list}`\n"
 else

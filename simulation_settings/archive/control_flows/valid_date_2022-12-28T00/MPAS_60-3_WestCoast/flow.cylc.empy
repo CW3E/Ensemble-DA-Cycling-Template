@@ -122,7 +122,7 @@
 @{ MPAS_MEM = '249000M' }
 
 # Number of nodes for atmosphere_model jobs
-@{ MPAS_NDES = 7 }
+@{ MPAS_NDES = 6 }
 
 # Wallclock limit for atmosphere_model
 @{ MPAS_WC = 'PT6H' }
