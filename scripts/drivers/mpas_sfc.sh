@@ -121,7 +121,14 @@ else
   IFS="/" read -ra exp_nme <<< ${EXP_NME}
   cse_nme=${exp_nme[0]}
   cfg_nme=${exp_nme[1]}
-  printf "Setting up configuration:\n    ${cfg_nme}\n"
+  # configuration name is separated on '.' to denote sub-config, leading part
+  # is used for the mpas static file naming
+  IFS="." read -ra tmp_nme <<< ${cfg_nme}
+  stc_nme=${tmp_nme[0]}
+  printf "Setting up configuration:\n    ${stc_nme}\n"
+  if [ ${#tmp_nme[@]} -eq 2 ]; then
+    printf "sub-configuration:\n    ${tmp_nme[1]}\n"
+  fi
   printf "for:\n    ${cse_nme}\n case study.\n"
   if [ ! ${CFG_ROOT} ]; then
     printf "ERROR: \${CFG_ROOT} is not defined.\n"
@@ -448,7 +455,7 @@ else
 fi
 
 # Check to make sure the static terrestrial input file is available and link
-static_input=${cfg_dir}/static/${cfg_nme}.static.nc
+static_input=${cfg_dir}/static/${stc_nme}.static.nc
 if [ ! -r "${static_input}" ]; then
   printf "ERROR: Input file\n ${static_input}\n is missing.\n"
   exit 1
@@ -570,6 +577,7 @@ fi
 
 cat << EOF > replace_param.tmp
 cat streams.init_atmosphere \
+| sed "s/STC_NME/${stc_nme}/" \
 | sed "s/CFG_NME/${cfg_nme}/" \
 | sed "s/=SFC_INT,/=\"${BKG_INT}:00:00\"/" \
 | sed "s/=LBC_INT,/=\"${BKG_INT}:00:00\"/" \
@@ -659,7 +667,7 @@ done
 cmd="rm -f *.static.nc"
 printf "${cmd}\n"; eval "${cmd}"
 
-cmd="rm -f .graph.info.part.*"
+cmd="rm -f *.graph.info.part.*"
 printf "${cmd}\n"; eval "${cmd}"
 
 if [ ${error} -ne 0 ]; then
