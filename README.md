@@ -3,7 +3,7 @@
 ## Description
 This is a [Cylc-driven](https://cylc.github.io/) workflow for [MPAS](https://mpas-dev.github.io/) versus
 [WRF](https://www2.mmm.ucar.edu/wrf/users/) ensemble twin experiments, currently focusing on downscaling
-foreacst analysis with additional development pending to integrate [WRF-GSI](https://github.com/NOAA-EMC/GSI/tree/develop)
+forecast analysis with additional development pending to integrate [WRF-GSI](https://github.com/NOAA-EMC/GSI/tree/develop)
 and [MPAS-JEDI](https://www.jcsda.org/jedi-mpas) ensemble DA. The purpose of this workflow is to produce
 offline reforecast analysis for the state-of-the-science MPAS system versus the legacy WRF model. The
 code structure is based around defining case studies and simulation configurations in a way that is
@@ -11,6 +11,29 @@ self-contained and transferrable to facilitate experiment replication.  The repo
 with an embedded Cylc installation using
 [Micromamba](https://mamba.readthedocs.io/en/latest/installation/micromamba-installation.html#)
 with an automated build procedure for the Cylc environment and its configuration for this repository.
+
+The repository is structured as follows:
+
+```
+Ensemble-DA-Cycling-Template  # Root directory of the repository
+├── cylc                      # Directory of embedded Cylc installation and wrappers
+├── cylc-run                  # Directory of cylc workflow installations and run directories
+├── docs                      # General documentation
+│   └── build_examples        # Examples of builds for related software
+├── scripts                   # Workflow scripts
+│   ├── downloads             # Utility scripts for downloading data
+│   ├── drivers               # Task execution run scripts
+│   └── environments          # HPC environments / configurations for executables
+└── simulation_settings       # Workflow settings and related configuration files
+    ├── archive               # Example templates and configuration files for defining simulations
+    │   ├── control_flows     # Full workflow examples
+    │   ├── fix               # GSI fix files
+    │   └── namelists         # WRF / MPAS / GSI namelists
+    ├── meshes                # MPAS mesh decomposition files
+    └── variable_tables       # Ungrib variable tables
+```
+
+## Installing Cylc
 
 NOTE: if you want to get running as quickly as possible it is recommended that you start downloading the
 initial / boundary condition data from, e.g., the 
@@ -21,7 +44,6 @@ is included for anonymous downloads from the GEFS bucket above, and can be confi
 to download arbirary forecast initialization dates and forecast hours.  This script requires the use of
 AWS Command Line Interface, which is installable by e.g., [conda-forge](https://anaconda.org/conda-forge/awscli).
 
-## Installing Cylc
 Cylc can be run on an HPC system in a centralized or a distributed fashion.  This build procedure will
 create a local installation with the configuration of Cylc inferred from the `config_template.sh`
 at the root of the repository.  One should edit this file as in the following to define the local
@@ -29,10 +51,10 @@ HPC system paramters for the workflow.
 
 ###  Workflow configuration
 Global variables for the workflow are defined in the `config_template.sh` script which is
-sourced in order to run Cylc, and to provide global variables to Cylc.  Exmample configuration
+sourced to provide global variables to Cylc and the worfklow configuration.  Exmample configuration
 variables for the workflow template include:
 ```
-export = # Full path of framework git clone, is used for embedded Cylc installation
+export HOME = # Full path of framework git clone, is used for embedded Cylc installation
 export SOFT_ROOT= # Root directory of software stack executables
 export DATA_ROOT= # Root directory of simulation forcing data
 export GRIB_ROOT= # Root directory of grib data data
@@ -56,7 +78,7 @@ ${HOME}/cylc/Micromamba/envs/${CYLC_ENV_NAME}
 ```
 with the Cylc version defined in the file
 ```
-${HOME}/docs/build_examples/${CYLC_ENV_NAME}.yml
+${HOME}/scripts/environments/${CYLC_ENV_NAME}.yml
 ```
 sourcing a `.yml` definition file for the build.  The `${PATH}` variable will be set
 to source the cylc-wrapper
@@ -105,25 +127,45 @@ and the driving simulation scripts at
 ```
 ${HOME}/scripts/drivers
 ```
-can be configured for a variety of additional types simulation execution, with options commented in the code.
+can be configured for a variety of additional types simulation execution, such as with a fixed forecast length,
+with options commented in the code.
 
 ### Case study / Experiment configuration / Experiment sub-configuration 
+Cylc will search for installable workflows at the root directory 
+```
+${HOME}/simulation_settings
+```
 A common directory and naming structure must be observed with the definition of case studies and
-configurations.  Experiment configurations are assumed to take on a naming structure
+configurations nested at this simulation settings root.
+Experiment configurations are assumed to take on a naming structure
 ```
 experiment_short_name.sub_configuration
 ```
-where the experiment short name corresponds to the name of the static file for MPAS.  Sub-configurations
-of MPAS with e.g., physics suites for a given static configuration can be denoted with a `.sub_configuration`
-naming convention as above.  Experiment configurations are assumed to have a nested directory structure as
+where the experiment short name corresponds to the name of the static file for MPAS, e.g., the experiment
+short name `MPAS_60-10_CONUS` would have an associated MPAS static file named
 ```
-${HOME}/simulation_settings/${case_study}/experiment_short_name.sub_configuration
+MPAS_60-10_CONUS.static.nc
 ```
-where for example copying one of the archived templates to the path
+Optionally, sub-configurations of MPAS with e.g., different physics suites for a given static configuration,
+can be denoted with a `.sub_configuration` naming convention as above.  For example, different
+sub-configurations of experiments both using the `MPAS_60-10_CONUS.static.nc` file but differing in the
+use of the convection permitting or mesoscale reference physics suites can be denoted as
 ```
-${HOME}/simulation_settings/valid_date_2022-12-28T00/MPAS_240-U
+MPAS_60-10_CONUS.convection_permitting
+MPAS_60-10_CONUS.mesoscale_reference
 ```
-makes this case study and MPAS configuration sourceable by Cylc. 
+Experiment configurations are assumed to have a nested directory structure as
+```
+${HOME}/simulation_settings/case_study/experiment_short_name.sub_configuration
+```
+where for example, directories defined as
+```
+${HOME}/simulation_settings/valid_date_2022-12-28T00/MPAS_60-10_CONUS.convection_permitting
+${HOME}/simulation_settings/valid_date_2022-12-28T00/MPAS_60-10_CONUS.mesoscale_reference
+```
+would be valid case study / configuration / sub-configuration directory structures for
+Cylc and the workflow scripts to install the workflows and run the two different configurations
+for the 2022-12-28T00 valid date case study.
 
 ### flow.cylc files
 The cylc workflow configuration file 
@@ -170,3 +212,4 @@ not adhere to this request.
 If you encounter a bug and have a solution, please follow the same steps as above to post the issue
 and then submit a pull request with your branch that fixes the issue with a detailed explanation of
 the solution.
+
