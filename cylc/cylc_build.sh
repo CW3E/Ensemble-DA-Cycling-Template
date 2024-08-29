@@ -49,7 +49,7 @@ curl -Ls https://micro.mamba.pm/api/micromamba/linux-64/latest \
   | tar -xvj bin/micromamba
 mv bin/micromamba ./; rmdir bin
 
-micromamba create -n ${CYLC_ENV_NAME} -y -f \
+./micromamba create -n ${CYLC_ENV_NAME} -y -f \
   ${HOME}/scripts/environments/${CYLC_ENV_NAME}.yml
 
 cd ${CYLC_ROOT}
