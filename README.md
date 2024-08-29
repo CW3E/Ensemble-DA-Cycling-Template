@@ -56,7 +56,7 @@ to write out workflow logs and make them shareable in a self-contained repositor
 directory structure.
 
 ### Building Cylc
-The build script
+The Cylc build script
 ```
 ${HOME}/cylc/cylc_build.sh
 ```
@@ -111,7 +111,7 @@ should be set as an environment in the
 ${HOME}/scripts/environments/MPAS_constants.sh
 ${HOME}/scripts/environments/WRF_constants.sh
 ```
-files respectively.  These files are sourced for these exports and load statements, along with helper regex patterns and
+files respectively.  These files are sourced for the appropriate export and load statements, along with helper regex patterns and
 constants used throughout the MPAS and WRF driver scripts.
 
 ## Defining a case study / configuration
@@ -189,12 +189,13 @@ and a sub-directory for static files that are unique to the experiment configura
 ${HOME}/simulation_settings/${case_study}/experiment_short_name.sub_configuration/namelist
 ${HOME}/simulation_settings/${case_study}/experiment_short_name.sub_configuration/static
 ```
-Namelist and streamlist files within the above namelist directory are pre-templated to propagate Cylc
-cycle points for [ISO date time cycling](https://cylc.github.io/cylc-doc/latest/html/tutorial/scheduling/datetime-cycling.html),
-for simulation start and run parameters. Simulation configurations that are held static for the course of an experiment,
-currently such as the physics suite, are defined in the namelist template itself. Static files for MPAS or respectively the geogrid
-files for WRF should be stored in the static file directory.  Additionally, if explicit zeta levels are specified for
-MPAS, the static file directory should contain only one definition file for the explicit vertical level heights, with naming convention
+Namelist and streamlist files within the above namelist directory are templated to propagate Cylc workflow parameters
+for e.g., [ISO date time cycling](https://cylc.github.io/cylc-doc/latest/html/tutorial/scheduling/datetime-cycling.html),
+in order to dynamically set simulation start and run parameters depending on the cycle point. Simulation configurations 
+that are held static for the course of an experiment, currently such as the physics suite, are defined in the namelist
+template itself. Static files for MPAS or respectively the geogrid files for WRF should be stored in the static file directory.
+Additionally, if explicit zeta levels are specified for MPAS, the static file directory should contain only one definition
+file for the explicit vertical level heights, with naming convention
 ```
 *.ZETA_LIST.txt
 ```
