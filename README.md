@@ -75,13 +75,13 @@ is set to source the cylc-wrapper script
 ```
 ${HOME}/cylc/cylc
 ```
-pre-configured to match the self-contained Micromamba environment.  Cylc command Bash auto-completion
+configured to match the self-contained Micromamba environment.  Cylc command Bash auto-completion
 is configured by default by sourcing the `config_template.sh` file.  Additionally the 
 [cylc global configuration file](https://cylc.github.io/cylc-doc/stable/html/reference/config/global.html#global.cylc)
 ```
 ${HOME}/cylc/global.cylc
 ```
-is pre-configured to so that workflow definitions will source the global variables
+is configured so that workflow definitions will source the global variables
 in `config_template.sh`, and so that task job scripts will inherit these variables as well.
 
 ### The cylc-run and log files
@@ -89,7 +89,7 @@ The Cylc workflow manager uses the [cylc-run directory](https://cylc.github.io/c
 ```
 ${HOME}/cylc-run
 ```
-to [install workflows](https://cylc.github.io/cylc-doc/latest/html/user-guide/installing-workflows.html#using-cylc-install),
+to [install workflows](https://cylc.github.io/cylc-doc/stable/html/user-guide/installing-workflows.html),
 [run workflows](https://cylc.github.io/cylc-doc/latest/html/user-guide/running-workflows/index.html)
 and [manage their progress](https://cylc.github.io/cylc-doc/latest/html/user-guide/interventions/index.html)
 with automated logging of job status andt task execution within the associated run directories.  Job execution such as
@@ -124,7 +124,7 @@ At the path
 ```
 ${HOME}/simulation_settings/archive/control_flows/valid_date_2022-12-28T00
 ```
-pre-configured templates are provided for running a case study with the specified valid date of
+templates are provided for running a case study with the specified valid date of
 `2022-12-28T00` at which to end the forecast verification.  Forecast initialization date times are
 cycled with the Cylc workflow manager and the forecast length is dynamically defined by the length of
 forecast time to the valid date of `2022-12-28T00`.  Cylc and the driving simulation scripts at
@@ -134,7 +134,7 @@ ${HOME}/scripts/drivers
 can be configured for a variety of additional types simulation execution, such as with a fixed forecast length,
 with the configuration options commented in the code.
 
-### Case study / Experiment configuration / Experiment sub-configuration 
+### Case study / configuration / sub-configuration 
 Cylc will search for installable workflows at the simulation settings root directory 
 ```
 ${HOME}/simulation_settings
@@ -144,7 +144,7 @@ A common directory naming structure must be observed with the definition of case
 configurations nested at this simulation settings root.
 Experiment configurations are assumed to take on a naming structure
 ```
-experiment_short_name.sub_configuration
+configuration.sub_configuration
 ```
 where the experiment short name corresponds to the name of the static file for MPAS, e.g., the experiment
 short name `MPAS_60-10_CONUS` would have an associated MPAS static file named
@@ -161,7 +161,7 @@ MPAS_60-10_CONUS.mesoscale_reference
 ```
 Experiment configurations are assumed to have a nested directory structure as
 ```
-${HOME}/simulation_settings/case_study/experiment_short_name.sub_configuration
+${HOME}/simulation_settings/case_study/configuration.sub_configuration
 ```
 where for example, directories defined as
 ```
@@ -176,7 +176,7 @@ workflows for the `2022-12-28T00` valid date case study.
 ### The flow.cylc file
 Every experiment configuration uses a [Cylc workflow configuration file](https://cylc.github.io/cylc-doc/stable/html/user-guide/writing-workflows/configuration.html#the-flow-cylc-file) 
 ```
-${HOME}/simulation_settings/${case_study}/experiment_short_name.sub_configuration/flow.cylc
+${HOME}/simulation_settings/case_study/configuration.sub_configuration/flow.cylc
 ```
 to define the dependency graph between workflow tasks and the switches that configure the tasks' driving scripts'
 execution.  Parameters defined in the `flow.cylc` file include HPC job scheduler parameters, job cycling settings,
@@ -186,8 +186,8 @@ settings for propagating namelist templates and settings for linking simulation 
 Each experiment configuration directory has a nested sub-directory for namelists and streamlists for MPAS and WRF,
 and a sub-directory for static files that are unique to the experiment configuration:
 ```
-${HOME}/simulation_settings/${case_study}/experiment_short_name.sub_configuration/namelist
-${HOME}/simulation_settings/${case_study}/experiment_short_name.sub_configuration/static
+${HOME}/simulation_settings/case_study/configuration.sub_configuration/namelist
+${HOME}/simulation_settings/case_study/configuration.sub_configuration/static
 ```
 Namelist and streamlist files within the above namelist directory are templated to propagate Cylc workflow parameters
 for e.g., [ISO date time cycling](https://cylc.github.io/cylc-doc/latest/html/tutorial/scheduling/datetime-cycling.html),
@@ -211,18 +211,53 @@ ${HOME}/simulation_settings/variable_tables
 ```
 respectively.  The underlying mesh name to source, e.g., `x6.999426` is defined in the experiment's `flow.cylc` file.
 
-## Installing and running an experiment's workflow
+## Running an experiment
 
-
-## Downloading forcing data
+### Downloading forcing data
 Iinitial / boundary condition data can be obtained from, e.g., the 
-[GEFS AWS Bucket](https://www.ncei.noaa.gov/products/weather-climate-models/global-ensemble-forecast)
+[GEFS AWS Bucket](https://www.ncei.noaa.gov/products/weather-climate-models/global-ensemble-forecast).
 An automated 
 [data download and formatting script](https://github.com/CW3E/Ensemble-DA-Cycling-Template/blob/main/scripts/downloads/download_GEFS_AWS.py)
 is included for anonymous downloads from the GEFS bucket above, and can be configured within the script
-to download arbirary forecast initialization dates and forecast hours.  This script requires the use of
-AWS Command Line Interface, which is installable by e.g., [conda-forge](https://anaconda.org/conda-forge/awscli).
+to download arbirary forecast initialization dates and forecast hours from public GEFS data.  This script
+requires the use of AWS Command Line Interface, which is installable by e.g.,
+[conda-forge](https://anaconda.org/conda-forge/awscli).
 
+### Installing and playing Cylc workflows
+Assuming that the global configuration `configure_template.sh` has been set to the local HPC system,
+the embedded Cylc installation is built in the repository, the experiment configuration directory
+```
+${HOME}/simulation_settings/case_study/configuration.sub_configuration
+```
+has been set up including necessary static files, Cylc can install the workflow
+```
+${HOME}/simulation_settings/case_study/configuration.sub_configuration/flow.cylc
+```
+and run the experiment.  The experiment above can be
+[installed](https://cylc.github.io/cylc-doc/stable/html/user-guide/installing-workflows.html) as
+```
+cylc install case_study/configuration.sub_configuration
+```
+and [run](https://cylc.github.io/cylc-doc/latest/html/user-guide/running-workflows/index.html)
+and [managed](https://cylc.github.io/cylc-doc/latest/html/user-guide/interventions/index.html)
+through any of Cylc command interfaces.
+
+Generic Slurm and PBS scheduler configurations are provided to submit
+task to the HPC job scheduler, but modifications are necessary for specific systems.  HPC system
+account information should be set in the repository configuration file `configure_template.sh`.
+
+### Checking logs and verifying outputs
+The `cylc-run` directory contains
+[logs for all experiments](https://cylc.github.io/cylc-doc/stable/html/user-guide/task-implementation/job-submission.html#task-stdout-and-stderr-logs),
+their tasks' execution and the status of the Cylc workflow manager.  Task execution will
+produce outputs in the above discussed case study / configuration / sub-configuration
+naming convention.  In MPAS and WRF ensemble forecast experiments the experiment is broken over
+multiple tasks including preprocessing input data and running the simulation.  Task outputs are organized
+with the heirarchy
+```
+${WORK_ROOT}/case_study/configuration.sub_configuration/cycle_date/task_name/ensemble_member
+```
+which is generated by the task driving script.  
 
 ## Known issues
 See the Github issues page for ongoing issues / debugging efforts with this template.
