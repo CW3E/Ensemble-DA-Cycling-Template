@@ -32,14 +32,14 @@ Global variables for the workflow are defined in the `config_template.sh` script
 sourced in order to run Cylc, and to provide global variables to Cylc.  Exmample configuration
 variables for the workflow template include:
 ```
-export HOME= # Full path of framework git clone, is used for embedded Cylc installation
+export = # Full path of framework git clone, is used for embedded Cylc installation
 export SOFT_ROOT= # Root directory of software stack executables
 export DATA_ROOT= # Root directory of simulation forcing data
 export GRIB_ROOT= # Root directory of grib data data
 export WORK_ROOT= # Root directory of simulation_io
 ```
 NOTE: the Unix `${HOME}` variable will be reset in the shell to the repository
-when sourcing the configuration.  This is to handle Cylc's usual dependence on a ${HOME} directory
+when sourcing the configuration.  This is to handle Cylc's usual dependence on a `${HOME}` directory
 to write out workflow logs and make them shareable in a self-contained repository / project folder
 directory structure.
 
@@ -89,23 +89,72 @@ files respectively.  These files will be sourced for these exports and loads, al
 constants used throughout the MPAS and WRF driver scripts.
 
 ## Defining a case study / configuration
+The code is currently designed around executing case studies in which the configuration is transferable
+in order to facilitate experiment replication.  Example templates for a variety of simulation configurations
+are archived for a generic Atmospheric River case study in the following.
 
 ### Archive of templates
+At the path
+```
+${HOME}/simulation_settings/archive/control_flows/valid_date_2022-12-28T00
+```
+pre-configured templates are provided for running a case study with a specified valid date in which to end
+the forecast verification.  Forecast initialization date times are cycled with the Cylc workflow manager
+with the forecast length dynamically defined by the length of forecast time to the valid date of `2022-12-28T00`.  Cylc
+and the driving simulation scripts at
+```
+${HOME}/scripts/drivers
+```
+can be configured for a variety of additional types simulation execution, with options commented in the code.
 
 ### Case study / Experiment configuration / Experiment sub-configuration 
+A common directory and naming structure must be observed with the definition of case studies and
+configurations.  Experiment configurations are assumed to take on a naming structure
+```
+experiment_short_name.sub_configuration
+```
+where the experiment short name corresponds to the name of the static file for MPAS.  Sub-configurations
+of MPAS with e.g., physics suites for a given static configuration can be denoted with a `.sub_configuration`
+naming convention as above.  Experiment configurations are assumed to have a nested directory structure as
+```
+${HOME}/simulation_settings/${case_study}/experiment_short_name.sub_configuration
+```
+where for example copying one of the archived templates to the path
+```
+${HOME}/simulation_settings/valid_date_2022-12-28T00/MPAS_240-U
+```
+makes this case study and MPAS configuration sourceable by Cylc. 
 
-#### flow.cylc files
+### flow.cylc files
+The cylc workflow configuration file 
+```
+${HOME}/simulation_settings/${case_study}/experiment_short_name.sub_configuration/flow.cylc
+```
+defines the dependency graph between tasks and the the switches to configure the task's driving script
+execution, propagating namelist templates and linking of data and executables.
 
-#### Namelists, streamlists and static files
+### Namelists, streamlists and static files
+Each simulation configuration has a nested directory for namelists and streamlists for MPAS and WRF,
+and a directory for static files that are unique to the configuration:
+```
+${HOME}/simulation_settings/${case_study}/experiment_short_name.sub_configuration/namelist
+${HOME}/simulation_settings/${case_study}/experiment_short_name.sub_configuration/static
+```
+namelist and streamlist files are pre-templated to propagate Cylc cycle points for ISO date time cycling.
+Static simulation configurations for the course of an experiment, currently such as the physics suite, 
+can be defined in the namelist itself. Static files for MPAS or geogrid files for WRF should be stored
+in the static file directory.  Additionally, if explicit zeta levels are specified for MPAS, the static
+file directory can contain one definition file for the explicit vertical level heights.
 
-#### Shared mesh and variable table files
+### Shared mesh and variable table files
+Common files that are independent of simulation configurations, such as mesh partitions and ungrib variable
+tables are kept in the directories
+```
+${HOME}/simulation_settings/meshes
+${HOME}/simulation_settings/variable_tables
+```
 
-### Creating a new reforecast experiment
-
-#### Building from the archived templates
-
-
-
+## Installing and running an experiment's workflow
 
 
 ## Known issues
