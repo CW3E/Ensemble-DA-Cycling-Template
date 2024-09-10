@@ -90,7 +90,7 @@ FCST_MAX = 24
 FCST_INT = 3
 
 # root directory where date stamped sub-directories will collect data downloads
-DATA_ROOT = '/expanse/lustre/scratch/cgrudzien/temp_project/JEDI-MPAS-Common-Case/DATA/DeepDive/gribbed/GEFS'
+DATA_ROOT = '/expanse/lustre/scratch/cgrudzien/temp_project/DATA/GRIB/GEFS'
 
 ##################################################################################
 # UTILITY METHODS
