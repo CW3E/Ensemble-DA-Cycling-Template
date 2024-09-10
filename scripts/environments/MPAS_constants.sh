@@ -75,4 +75,4 @@ export PBS=[Pp][Bb][Ss]
 export ISO_RE=^[0-9]{10}$
 
 # Defines regular expression for arbitrary integers
-export INT_RE=^[0-9].*$
+export INT_RE=^[0-9]+$
