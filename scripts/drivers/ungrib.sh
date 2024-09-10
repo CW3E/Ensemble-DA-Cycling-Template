@@ -186,15 +186,10 @@ else
     printf "ERROR: \${CFG_ROOT} directory\n ${CFG_ROOT}\n does not exist.\n"
     exit 1
   fi
-  cfg_dir=${CFG_ROOT}/${EXP_NME}
-  if [ ! -d ${cfg_dir} ]; then
-    printf "ERROR: simulation settings directory\n ${cfg_dir}\n does not exist.\n"
-    exit 1
-  fi
 fi
 
-if [ ! ${MEMID} ]; then
-  printf "ERROR: ensemble index \${MEMID} is not defined.\n"
+if [[ ! ${MEMID} =~ ${INT_RE} ]]; then
+  printf "ERROR: \${MEMID}, ${MEMID}, is not an integer.\n"
   exit 1
 else
   # ensure padding to two digits is included in memid variable
@@ -272,8 +267,8 @@ elif [[ ${IF_RGNL} = ${YES} || ${IF_SST_UPDT} = ${YES} ]]; then
   fcst_seq=`seq -f "%03g" 0 ${BKG_INT} ${fcst_hrs}`
 fi
 
-if [ ! ${BKG_INT} ]; then
-  printf "ERROR: \${BKG_INT} is not defined.\n"
+if [[ ! ${BKG_INT} =~ ${INT_RE} ]]; then
+  printf "ERROR: \${BKG_INT}, ${BKG_INT}, is not an integer.\n"
   exit 1
 elif [ ${BKG_INT} -le 0 ]; then
   printf "ERROR: \${BKG_INT} must be HH > 0 for the frequency of data inputs.\n"
@@ -501,9 +496,8 @@ fi
 ##################################################################################
 #  Build WPS namelist
 ##################################################################################
-
-# Copy the wps namelist template, NOTE: THIS WILL BE MODIFIED DO NOT LINK TO IT
-filename=${cfg_dir}/namelists/namelist.wps
+# Copy the wps namelist template, from the Cylc installation of workflow
+filename=${CYLC_WORKFLOW_RUN_DIR}/namelists/namelist.wps
 if [ ! -r ${filename} ]; then 
   msg="WPS namelist template\n ${filename}\n is not readable or "
   msg+="does not exist.\n"

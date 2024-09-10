@@ -151,8 +151,8 @@ else
   printf "MPAS domain name is ${MSH_NME}.\n"
 fi
 
-if [ ! ${MEMID} ]; then
-  printf "ERROR: \${MEMID} is not defined.\n"
+if [[ ! ${MEMID} =~ ${INT_RE} ]]; then
+  printf "ERROR: \${MEMID}, ${MEMID}, is not an integer.\n"
   exit 1
 else
   # ensure padding to two digits is included
@@ -229,8 +229,8 @@ else
   exit 1
 fi
 
-if [ ! ${BKG_INT} ]; then
-  printf "ERROR: \${BKG_INT} is not defined.\n"
+if [[ ! ${BKG_INT} =~ ${INT_RE} ]]; then
+  printf "ERROR: \${BKG_INT}, ${BKG_INT}, is not an integer.\n"
   exit 1
 elif [ ${BKG_INT} -le 0 ]; then
   printf "ERROR: \${BKG_INT} must be HH > 0 for the frequency of data inputs.\n"
@@ -281,8 +281,8 @@ elif [ ! -d ${CYC_HME} ]; then
   exit 1
 fi
 
-if [ ! ${N_NDES} ]; then
-  printf "ERROR: \${N_NDES} is not defined.\n"
+if [[ ! ${N_NDES} =~ ${INT_RE} ]]; then
+  printf "ERROR: \${N_NDES}, ${N_NDES}, is not an integer.\n"
   exit 1
 elif [ ${N_NDES} -le 0 ]; then
   msg="ERROR: The variable \${N_NDES} must be set to the number"
@@ -291,8 +291,8 @@ elif [ ${N_NDES} -le 0 ]; then
   exit 1
 fi
 
-if [ ! ${N_PROC} ]; then
-  printf "ERROR: \${N_PROC} is not defined.\n"
+if [[ ! ${N_PROC} =~ ${INT_RE} ]]; then
+  printf "ERROR: \${N_PROC}, ${N_PROC}, is not an integer.\n"
   exit 1
 elif [ ${N_PROC} -le 0 ]; then
   msg="ERROR: The variable \${N_PROC} must be set to the number"
@@ -301,8 +301,8 @@ elif [ ${N_PROC} -le 0 ]; then
   exit 1
 fi
 
-if [ ! ${PIO_NUM} ]; then
-  printf "ERROR: \${PIO_NUM} is not defined.\n"
+if [[ ! ${PIO_NUM} =~ ${INT_RE} ]]; then
+  printf "ERROR: \${PIO_NUM}, ${PIO_NUM} is not an integer.\n"
   exit 1
 elif [ ${PIO_NUM} -lt 0 ]; then
   msg="ERROR: \${PIO_NUM} must be >= 0 for the number of IO tasks, with equal to"
@@ -316,8 +316,8 @@ elif [ ${PIO_NUM} -gt ${N_PROC} ]; then
   exit 1
 fi
 
-if [ ! ${PIO_STRD} ]; then
-  printf "ERROR: \${PIO_STRD} is not defined.\n"
+if [[ ! ${PIO_STRD} =~ ${INT_RE} ]]; then
+  printf "ERROR: \${PIO_STRD} is not an integer.\n"
   exit 1
 fi
 
@@ -347,7 +347,7 @@ printf "MPI run command is ${par_run}.\n"
 ##################################################################################
 
 # Create work root and change directory
-work_dir=${CYC_HME}/init_atmosphere_sfc/ens_${memid}
+work_dir=${CYC_HME}/mpas_sfc/ens_${memid}
 cmd="mkdir -p ${work_dir}; cd ${work_dir}"
 if [ ${dbg} = 1 ]; then
   printf "${cmd}\n" >> ${scrpt}; eval "${cmd}"
@@ -486,10 +486,9 @@ fi
 ##################################################################################
 #  Build init_atmosphere namelist
 ##################################################################################
-
 # Copy the init_atmosphere namelist / streams templates,
-# NOTE: THESE WILL BE MODIFIED DO NOT LINK TO THEM
-filename=${cfg_dir}/namelists/namelist.init_atmosphere.${BKG_DATA}
+# from the Cylc installation of workflow
+filename=${CYLC_WORKFLOW_RUN_DIR}/namelists/namelist.init_atmosphere.${BKG_DATA}
 if [ ! -r ${filename} ]; then 
   msg="init_atmosphere namelist template\n ${filename}\n is not readable or "
   msg+="does not exist.\n"
@@ -520,7 +519,7 @@ if [[ ${IF_ZETA_LIST} = ${YES} ]]; then
   fi
 fi
 
-filename=${cfg_dir}/namelists/streams.init_atmosphere
+filename=${CYLC_WORKFLOW_RUN_DIR}/namelists/streams.init_atmosphere
 if [ ! -r ${filename} ]; then 
   msg="init_atmosphere streams template\n ${filename}\n is not readable or "
   msg+="does not exist.\n"

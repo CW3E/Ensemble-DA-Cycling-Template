@@ -187,8 +187,8 @@ else
   fi
 fi
 
-if [ ! ${MEMID}  ]; then
-  printf "ERROR: \${MEMID} is not defined.\n"
+if [[ ! ${MEMID} =~ ${INT_RE} ]]; then
+  printf "ERROR: \${MEMID}, ${MEMID}, is not an integer.\n"
   exit 1
 else
   # ensure padding to two digits is included
@@ -246,8 +246,8 @@ else
   printf "Background data is ${BKG_DATA}.\n"
 fi
 
-if [ ! ${BKG_INT} ]; then
-  printf "ERROR: \${BKG_INT} is not defined.\n"
+if [[ ! ${BKG_INT} =~ ${INT_RE} ]]; then
+  printf "ERROR: \${BKG_INT}, ${BKG_INT}, is not an integer.\n"
   exit 1
 elif [ ${BKG_INT} -le 0 ]; then
   printf "ERROR: \${BKG_INT} must be HH > 0 for the frequency of data inputs.\n"
@@ -256,7 +256,10 @@ else
   printf "Background data forcing interval is ${BKG_INT}\n"
 fi
 
-if [ ${#MAX_DOM} -ne 2 ]; then
+if [[ ! ${MAX_DOM} =~ ${INT_RE} ]]; then
+  printf "ERROR: \${MAX_DOM}, ${MAX_DOM}, is not an integer.\n"
+  exit 1
+elif [[ ${#MAX_DOM} -ne 2 ]]; then
   printf "ERROR: \${MAX_DOM}, ${MAX_DOM}, is not in DD format.\n"
   exit 1
 elif [ ${MAX_DOM} -le 00 ]; then
@@ -320,8 +323,8 @@ elif [ ! -d ${CYC_HME} ]; then
   exit 1
 fi
 
-if [ ! ${N_NDES} ]; then
-  printf "ERROR: \${N_NDES} is not defined.\n"
+if [[ ! ${N_NDES} =~ ${INT_RE} ]]; then
+  printf "ERROR: \${N_NDES}, ${N_NDES}, is not an integer.\n"
   exit 1
 elif [ ${N_NDES} -le 0 ]; then
   msg="ERROR: The variable \${N_NDES} must be set to the number"
@@ -330,8 +333,8 @@ elif [ ${N_NDES} -le 0 ]; then
   exit 1
 fi
 
-if [ ! ${N_PROC} ]; then
-  printf "ERROR: \${N_PROC} is not defined.\n"
+if [[ ! ${N_PROC} =~ ${INT_RE} ]]; then
+  printf "ERROR: \${N_PROC}, ${N_PROC}, is not an integer.\n"
   exit 1
 elif [ ${N_PROC} -le 0 ]; then
   msg="ERROR: The variable \${N_PROC} must be set to the number"
@@ -366,7 +369,7 @@ printf "MPI run command is ${par_run}.\n"
 ##################################################################################
 
 # define work root and change directories
-work_dir=${CYC_HME}/real/ens_${memid}
+work_dir=${CYC_HME}/wrf_real/ens_${memid}
 cmd="mkdir -p ${work_dir}; cd ${work_dir}"
 if [ ${dbg} = 1 ]; then
   printf "${cmd}\n" >> ${scrpt}; eval "${cmd}"
@@ -404,7 +407,7 @@ else
 fi
 
 # Remove IC/BC in the directory if old data present
-cmd="rm -f wrfinput_*; rm -f wrfbdy_d01"
+cmd="rm -f wrfinput_*; rm -f wrfbdy_d01; rm -f wrflowinp_*"
 if [ ${dbg} = 1 ]; then
   printf "${cmd}\n" >> ${scrpt}; eval "${cmd}"
 else
@@ -425,7 +428,7 @@ for dmn in ${dmns[@]}; do
   for fcst in ${fcst_seq[@]}; do
     dt_str=`date "+%Y-%m-%d_%H_%M_%S" -d "${strt_dt} ${fcst} hours"`
     filename=met_em.d${dmn}.${dt_str}.nc
-    metgrid_dir=${CYC_HME}/metgrid/ens_${memid}
+    metgrid_dir=${CYC_HME}/wrf_metgrid/ens_${memid}
     if [ ! -r "${metgrid_dir}/${filename}" ]; then
       printf "ERROR: Input file\n ${CYC_HME}/${filename}\n is missing.\n"
       exit 1
@@ -457,9 +460,8 @@ fi
 ##################################################################################
 #  Build real namelist
 ##################################################################################
-
-# Copy the wrf namelist template, NOTE: THIS WILL BE MODIFIED DO NOT LINK TO IT
-filename=${cfg_dir}/namelists/namelist.${BKG_DATA}
+# Copy the wps namelist template, from the Cylc installation of workflow
+filename=${CYLC_WORKFLOW_RUN_DIR}/namelists/namelist.${BKG_DATA}
 if [ ! -r ${filename} ]; then 
   msg="WRF namelist template\n ${filename}\n is not readable or "
   msg+="does not exist.\n"
@@ -659,7 +661,7 @@ if [[ ${IF_SST_UPDT} = ${YES} ]]; then
   done
 fi
 
-printf "real.sh completed successfully at `date +%Y-%m-%d_%H_%M_%S`.\n"
+printf "wrf_real.sh completed successfully at `date +%Y-%m-%d_%H_%M_%S`.\n"
 
 ##################################################################################
 # end

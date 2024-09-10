@@ -1,6 +1,6 @@
 &nhyd_model
     config_time_integration_order = 2
-    config_dt = 60.0
+    config_dt = 18.0
     config_start_time = STRT_DT,
     config_run_duration = FCST_HRS,
     config_split_dynamics_transport = true

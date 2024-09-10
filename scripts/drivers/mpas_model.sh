@@ -140,11 +140,6 @@ else
     printf "ERROR: \${CFG_ROOT} directory\n ${CFG_ROOT}\n does not exist.\n"
     exit 1
   fi
-  cfg_dir=${CFG_ROOT}/${EXP_NME}
-  if [ ! -d ${cfg_dir} ]; then
-    printf "ERROR: simulation settings directory\n ${cfg_dir}\n does not exist.\n"
-    exit 1
-  fi
 fi
 
 if [ ! ${MSH_NME} ]; then
@@ -154,8 +149,8 @@ else
   printf "MPAS domain name is ${MSH_NME}.\n"
 fi
 
-if [ ! ${MEMID} ]; then
-  printf "ERROR: \${MEMID} is not defined.\n"
+if [[ ! ${MEMID} =~ ${INT_RE} ]]; then
+  printf "ERROR: \${MEMID}, ${MEMID}, is not an integer.\n"
   exit 1
 else
   # ensure padding to two digits is included
@@ -208,8 +203,8 @@ elif [[ ${IF_RGNL} = ${YES} ]]; then
   printf "MPAS-A is run as a regional simulation.\n"
   if_rgnl="true"
   # check that interval for background lbc data is defined
-  if [ ! ${BKG_INT} ]; then
-    printf "ERROR: \${BKG_INT} is not defined.\n"
+  if [[ ! ${BKG_INT} =~ ${INT_RE} ]]; then
+    printf "ERROR: \${BKG_INT}, ${BKG_INT}, is not an integer.\n"
     exit 1
   elif [ ${BKG_INT} -le 0 ]; then
     printf "ERROR: \${BKG_INT} must be HH > 0 for the frequency of data inputs.\n"
@@ -223,8 +218,8 @@ else
   exit 1
 fi
 
-if [ ! ${DIAG_INT} ]; then
-  printf "ERROR: \${DIAG_INT} is not defined.\n"
+if [[ ! ${DIAG_INT} =~ ${INT_RE} ]]; then
+  printf "ERROR: \${DIAG_INT}, ${DIAG_INT}, is not an integer.\n"
   exit 1
 elif [ ${DIAG_INT} -lt 0 ]; then
   printf "ERROR: \${DIAG_INT} must be HH >= 0 for the frequency of diagnostics.\n"
@@ -237,8 +232,8 @@ else
   printf "Model diagnostics are written out on ${diag_int} intervals.\n"
 fi
 
-if [ ! ${HIST_INT} ]; then
-  printf "ERROR: \${HIST_INT} is not defined.\n"
+if [[ ! ${HIST_INT} =~ ${RE_INT} ]]; then
+  printf "ERROR: \${HIST_INT}, ${HIST_INT}, is not an integer.\n"
   exit 1
 elif [ ${HIST_INT} -lt 0 ]; then
   printf "ERROR: \${HIST_INT} must be HH >= 0 for the frequency of model history.\n"
@@ -251,8 +246,8 @@ else
   printf "Model history is written out on ${hist_int} intervals.\n"
 fi
 
-if [ ! ${SND_INT} ]; then
-  printf "ERROR: \${SND_INT} is not defined.\n"
+if [[ ! ${SND_INT} =~ ${INT_RE} ]]; then
+  printf "ERROR: \${SND_INT}, ${SND_INT}, is not an integer.\n"
   exit 1
 elif [ ${SND_INT} -lt 0 ]; then
   printf "ERROR: \${SND_INT} must be HH >= 0 for the frequency of soundings.\n"
@@ -265,8 +260,12 @@ else
   printf "Soundings are written on ${snd_int} intervals.\n"
 fi
 
-if [ ! ${RSTRT_INT} ]; then
-  printf "ERROR: \${RSTRT_INT} is not defined.\n"
+if [[ ${RSTRT_INT} =~ ${END} ]]; then
+  printf "MPAS restart files written at end of forcast: ${fcst_hrs} hours.\n"
+  rstrt_seq=`seq -f "%03g" ${fcst_hrs} ${fcst_hrs} ${fcst_hrs}`
+  rstrt_int="${fcst_hrs}:00:00"
+elif [[ ! ${RSTRT_INT} =~ ${INT_RE} ]]; then
+  printf "ERROR: \${RSTRT_INT}, ${RSTRT_INT}, is not in HH format.\n"
   exit 1
 elif [ ${RSTRT_INT} -lt 0 ]; then
   printf "ERROR: \${RSTRT_INT} must be HH >= 0 for the frequency of data inputs.\n"
@@ -274,8 +273,10 @@ elif [ ${RSTRT_INT} -lt 0 ]; then
 elif [ ${RSTRT_INT} = 00 ]; then
   printf "Model restart files are suppressed.\n"
   rstrt_int="none"
+  rstrt_seq=()
 else
   rstrt_int="${RSTRT_INT}:00:00"
+  rstrt_seq=`seq -f "%03g" ${RSTRT_INT} ${RSTRT_INT} ${fcst_hrs}`
   printf "Restart files are written on ${rstrt_int} intervals.\n"
 fi
 
@@ -333,8 +334,8 @@ elif [[ ${IF_SST_UPDT} = ${YES} ]]; then
   printf "MPAS-A updates lower boundary conditions.\n"
   if_sst_updt="true"
   # check that interval for background surface data is defined
-  if [ ! ${BKG_INT} ]; then
-    printf "ERROR: \${BKG_INT} is not defined.\n"
+  if [[ ! ${BKG_INT} =~ ${INT_RE} ]]; then
+    printf "ERROR: \${BKG_INT}, ${BKG_INT}, is not an integer.\n"
     exit 1
   elif [ ${BKG_INT} -le 0 ]; then
     printf "ERROR: \${BKG_INT} must be HH > 0 for the frequency of data inputs.\n"
@@ -398,8 +399,8 @@ elif [ ! -d ${CYC_HME} ]; then
   exit 1
 fi
 
-if [ ! ${N_NDES} ]; then
-  printf "ERROR: \${N_NDES} is not defined.\n"
+if [[ ! ${N_NDES} =~ ${INT_RE} ]]; then
+  printf "ERROR: \${N_NDES}, ${N_NDES}, is not an integer.\n"
   exit 1
 elif [ ${N_NDES} -le 0 ]; then
   msg="ERROR: The variable \${N_NDES} must be set to the number"
@@ -408,8 +409,8 @@ elif [ ${N_NDES} -le 0 ]; then
   exit 1
 fi
 
-if [ ! ${N_PROC} ]; then
-  printf "ERROR: \${N_PROC} is not defined.\n"
+if [[ ! ${N_PROC} =~ ${INT_RE} ]]; then
+  printf "ERROR: \${N_PROC}, ${N_PROC}, is not an integer.\n"
   exit 1
 elif [ ${N_PROC} -le 0 ]; then
   msg="ERROR: The variable \${N_PROC} must be set to the number"
@@ -418,8 +419,8 @@ elif [ ${N_PROC} -le 0 ]; then
   exit 1
 fi
 
-if [ ! ${PIO_NUM} ]; then
-  printf "ERROR: \${PIO_NUM} is not defined.\n"
+if [[ ! ${PIO_NUM} =~ ${INT_RE} ]]; then
+  printf "ERROR: \${PIO_NUM}, ${PIO_NUM} is not an integer.\n"
   exit 1
 elif [ ${PIO_NUM} -lt 0 ]; then
   msg="ERROR: \${PIO_NUM} must be >= 0 for the number of IO tasks, with equal to"
@@ -433,8 +434,8 @@ elif [ ${PIO_NUM} -gt ${N_PROC} ]; then
   exit 1
 fi
 
-if [ ! ${PIO_STRD} ]; then
-  printf "ERROR: \${PIO_STRD} is not defined.\n"
+if [[ ! ${PIO_STRD} =~ ${INT_RE} ]]; then
+  printf "ERROR: \${PIO_STRD} is not an integer.\n"
   exit 1
 fi
 
@@ -467,7 +468,7 @@ printf "MPI run command is ${par_run}.\n"
 ##################################################################################
 
 # Create work root and change directory
-work_dir=${CYC_HME}/atmosphere_model/ens_${memid}
+work_dir=${CYC_HME}/mpas_model/ens_${memid}
 cmd="mkdir -p ${work_dir}; cd ${work_dir}"
 printf "${cmd}\n"; eval "${cmd}"
 if [ ${dbg} = 1 ]; then
@@ -583,11 +584,11 @@ else
 fi
 
 # Define list of preprocessed data and make links
-ic_root=${CYC_HME}/init_atmosphere_ic/ens_${memid}
+ic_root=${CYC_HME}/mpas_ic/ens_${memid}
 input_files=( "${ic_root}/${cfg_nme}.init.nc" )
 
 if [[ ${IF_SST_UPDT} = ${YES} ]]; then
-  sfc_root=${CYC_HME}/init_atmosphere_sfc/ens_${memid}
+  sfc_root=${CYC_HME}/mpas_sfc/ens_${memid}
   input_files+=( "${sfc_root}/${cfg_nme}.sfc_update.nc" )
 fi
 
@@ -635,10 +636,9 @@ fi
 ##################################################################################
 #  Build atmosphere namelist
 ##################################################################################
-
-# Copy the atmosphere namelist / streams templates,
-# NOTE: THESE WILL BE MODIFIED DO NOT LINK TO THEM
-filename=${cfg_dir}/namelists/namelist.atmosphere
+# Copy the init_atmosphere namelist / streams templates,
+# from the Cylc installation of workflow
+filename=${CYLC_WORKFLOW_RUN_DIR}/namelists/namelist.atmosphere
 if [ ! -r ${filename} ]; then 
   msg="atmosphere namelist template\n ${filename}\n is not readable or "
   msg+="does not exist.\n"
@@ -653,7 +653,7 @@ else
   fi
 fi
 
-filename=${cfg_dir}/namelists/streams.atmosphere
+filename=${CYLC_WORKFLOW_RUN_DIR}/namelists/streams.atmosphere
 if [ ! -r ${filename} ]; then 
   msg="atmosphere streams template\n ${filename}\n is not readable or "
   msg+="does not exist.\n"
@@ -668,7 +668,7 @@ else
   fi
 fi
 
-filename=${cfg_dir}/namelists/stream_list.atmosphere.output
+filename=${CYLC_WORKFLOW_RUN_DIR}/namelists/stream_list.atmosphere.output
 if [ ! -r ${filename} ]; then 
   msg="atmosphere stream_list.atmosphere.output\n ${filename}\n"
   msg+=" is not readable or does not exist.\n"
@@ -683,7 +683,7 @@ else
   fi
 fi
 
-filename=${cfg_dir}/namelists/stream_list.atmosphere.surface
+filename=${CYLC_WORKFLOW_RUN_DIR}/namelists/stream_list.atmosphere.surface
 if [ ! -r ${filename} ]; then 
   msg="atmosphere stream_list.atmosphere.surface\n ${filename}\n"
   msg+=" is not readable or does not exist.\n"
@@ -698,7 +698,7 @@ else
   fi
 fi
 
-streamlist_diag_tmp=${cfg_dir}/namelists/stream_list.atmosphere.diagnostics
+streamlist_diag_tmp=${CYLC_WORKFLOW_RUN_DIR}/namelists/stream_list.atmosphere.diagnostics
 if [ ! -r ${streamlist_diag_tmp} ]; then 
   msg="atmosphere stream_list.atmosphere.diagnostics\n ${streamlist_diag_tmp}\n"
   msg+=" is not readable or does not exist.\n"
@@ -879,7 +879,6 @@ fi
 
 if [ ! ${RSTRT_INT} = 00 ]; then
   # verify all diagnostic outputs
-  rstrt_seq=`seq -f "%03g" ${RSTRT_INT} ${RSTRT_INT} ${fcst_hrs}`
   for rstrt in ${rstrt_seq[@]}; do
     filename="${cfg_nme}.restart.`date +%Y-%m-%d_%H_%M_%S -d "${strt_dt} ${rstrt} hours"`.nc"
     if [ ! -s ${filename} ]; then

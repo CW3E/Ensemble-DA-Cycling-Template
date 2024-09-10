@@ -1,0 +1,3 @@
+# cylc ignore is designed to suppress needless copies of static files
+# and namelist templates in the cylc-run installation directory
+static

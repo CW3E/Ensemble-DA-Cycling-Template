@@ -171,9 +171,9 @@ fi
 # HIST_INT    = Interval of wrfout in HH
 # CYC_INC     = Increment in HH on which to link outputs to next cycle
 # WRF_IC      = Defines where to source WRF initial and boundary conditions from
-#                 WRF_IC = REALEXE : ICs / BCs from CYC_HME/real
+#                 WRF_IC = REALEXE : ICs / BCs from CYC_HME/wrf_real
 #                 WRF_IC = CYCLING : ICs / BCs from GSI / WRFDA analysis
-#                 WRF_IC = RESTART : ICs from restart file in CYC_HME/wrf
+#                 WRF_IC = RESTART : ICs from restart file in CYC_HME/wrf_model
 # IF_SST_UPDT = Yes / No: whether WRF uses dynamic SST values 
 # IF_FEEBACK  = Yes / No: whether WRF domains use 1- or 2-way nesting
 #
@@ -188,15 +188,10 @@ else
   cfg_nme=${exp_nme[1]}
   printf "Setting up configuration:\n    ${cfg_nme}\n"
   printf "for:\n    ${cse_nme}\n case study.\n"
-  cfg_dir=${CFG_ROOT}/${EXP_NME}
-  if [ ! -d ${cfg_dir} ]; then
-    printf "ERROR: simulation settings directory\n ${cfg_dir}\n does not exist.\n"
-    exit 1
-  fi
 fi
 
-if [ ! ${MEMID}  ]; then
-  printf "ERROR: \${MEMID} is not defined.\n"
+if [[ ! ${MEMID} =~ ${INT_RE} ]]; then
+  printf "ERROR: \${MEMID}, ${MEMID}, is not an integer.\n"
   exit 1
 else
   # ensure padding to two digits is included
@@ -252,8 +247,8 @@ fi
 # define the end time based on forecast length control flow above
 stop_dt=`date -d "${strt_dt} ${fcst_hrs} hours"`
 
-if [ ! ${BKG_INT} ]; then
-  printf "ERROR: \${BKG_INT} is not defined.\n"
+if [[ ! ${BKG_INT} =~ ${INT_RE} ]]; then
+  printf "ERROR: \${BKG_INT}, ${BKG_INT}, is not an integer.\n"
   exit 1
 elif [ ! ${BKG_INT} -gt 0 ]; then
   printf "ERROR: \${BKG_INT} must be HH > 0 for the frequency of data inputs.\n"
@@ -271,7 +266,10 @@ else
   printf "Background data is ${BKG_DATA}.\n"
 fi
 
-if [ ${#MAX_DOM} -ne 2 ]; then
+if [[ ! ${MAX_DOM} =~ ${INT_RE} ]]; then
+  printf "ERROR: \${MAX_DOM}, ${MAX_DOM}, is not an integer.\n"
+  exit 1
+elif [[ ${#MAX_DOM} -ne 2 ]]; then
   printf "ERROR: \${MAX_DOM}, ${MAX_DOM}, is not in DD format.\n"
   exit 1
 elif [ ! ${MAX_DOM} -gt 00 ]; then
@@ -284,7 +282,10 @@ fi
 # define a sequence of all domains in padded syntax
 dmns=`seq -f "%02g" 1 ${MAX_DOM}`
 
-if [ ${#DOWN_DOM} -ne 2 ]; then
+if [[ ! ${DOWN_DOM} =~ ${INT_RE} ]]; then
+  printf "ERROR: \${DOWN_DOM}, ${DOWN_DOM}, is not an integer.\n"
+  exit 1
+elif [ ${#DOWN_DOM} -ne 2 ]; then
   printf "ERROR: \${DOWN_DOM}, ${DOWN_DOM}, is not in DD format.\n"
   exit 1
 elif [ ! ${DOWN_DOM} -gt 01 ]; then
@@ -296,8 +297,8 @@ else
   printf "The first nested downscaled domain for WRF is d${DOWN_DOM}.\n"
 fi
 
-if [ ${#HIST_INT} -ne 2 ]; then
-  printf "ERROR: \${HIST_INT} is not in HH format.\n"
+if [[ ! ${HIST_INT} =~ ${INT_RE} ]]; then
+  printf "ERROR: \${HIST_INT}, ${HIST_INT}, is not an integer.\n"
   exit 1
 elif [ ! ${HIST_INT} -gt 00 ]; then
   printf "ERROR: \${HIST_INT} must be HH > 0 for the frequency of data inputs.\n"
@@ -308,8 +309,12 @@ else
   hist_seq=`seq -f "%03g" 0 ${HIST_INT} ${fcst_hrs}`
 fi
 
-if [ ${#RSTRT_INT} -ne 2 ]; then
-  printf "ERROR: \${RSTRT_INT} is not in HH format.\n"
+if [[ ${RSTRT_INT} =~ ${END} ]]; then
+  printf "WRF restart files written at end of forcast: ${fcst_hrs} hours.\n"
+  rstrt_seq=`seq -f "%03g" ${fcst_hrs} ${fcst_hrs} ${fcst_hrs}`
+  rstrt_int=${fcst_hrs}
+elif [[ ! ${RSTRT_INT} =~ ${INT_RE} ]]; then
+  printf "ERROR: \${RSTRT_INT}, ${RSTRT_INT}, is not in HH format.\n"
   exit 1
 elif [ ${RSTRT_INT} -lt 00 ]; then
   printf "ERROR: \${RSTRT_INT} must be HH >= 0 for the frequency of data inputs.\n"
@@ -318,13 +323,15 @@ elif [ ${RSTRT_INT} -gt 00 ]; then
   printf "The WRF restart interval is ${RSTRT_INT} hours.\n"
   # define a sequence of all forecast hours with background interval spacing
   rstrt_seq=`seq -f "%03g" ${RSTRT_INT} ${RSTRT_INT} ${fcst_hrs}`
+  rstrt_int=${RSTRT_INT}
 else
   # define an empty list
   rstrt_seq=()
+  rstrt_int=${RSTRT_INT}
 fi
 
-if [ ${#CYC_INC} -ne 2 ]; then
-  printf "ERROR: \${CYC_INC}, ${CYC_INC}, is not in 'HH' format.\n"
+if [[ ! ${#CYC_INC} =~ ${INT_RE} ]]; then
+  printf "ERROR: \${CYC_INC}, ${CYC_INC}, is not an integer.\n"
   exit 1
 elif [ ${CYC_INC} -lt 0 ]; then
   printf "ERROR: \${CYC_INC} must be an integer for the number of cycle hours >= 0.\n"
@@ -407,8 +414,8 @@ elif [ ! -d ${CYC_HME} ]; then
   exit 1
 fi
 
-if [ ! ${N_NDES} ]; then
-  printf "ERROR: \${N_NDES} is not defined.\n"
+if [[ ! ${N_NDES} =~ ${INT_RE} ]]; then
+  printf "ERROR: \${N_NDES}, ${N_NDES}, is not an integer.\n"
   exit 1
 elif [ ${N_NDES} -le 0 ]; then
   msg="ERROR: The variable \${N_NDES} must be set to the number"
@@ -417,8 +424,8 @@ elif [ ${N_NDES} -le 0 ]; then
   exit 1
 fi
 
-if [ ! ${N_PROC} ]; then
-  printf "ERROR: \${N_PROC} is not defined.\n"
+if [[ ! ${N_PROC} =~ ${INT_RE} ]]; then
+  printf "ERROR: \${N_PROC}, ${N_PROC}, is not an integer.\n"
   exit 1
 elif [ ${N_PROC} -le 0 ]; then
   msg="ERROR: The variable \${N_PROC} must be set to the number"
@@ -454,14 +461,14 @@ printf "MPI run command is ${par_run}.\n"
 
 # define work root and change directories
 if [[ ${WRF_IC} = ${RESTART} ]]; then
-  work_dir=${CYC_HME}/wrfrst/ens_${memid}	
-  wrf_in_dir=${CYC_HME}/wrf/ens_${memid}
+  work_dir=${CYC_HME}/wrf_model_restart/ens_${memid}
+  wrf_in_dir=${CYC_HME}/wrf_model/ens_${memid}
   if [[ ! -d ${wrf_in_dir} ]]; then
     printf "ERROR: \${wrf_in_dir} directory\n ${wrf_in_dir}\n does not exist.\n"
     exit 1
   fi
 else
-  work_dir=${CYC_HME}/wrf/ens_${memid}
+  work_dir=${CYC_HME}/wrf_model/ens_${memid}
 fi
 
 cmd="mkdir -p ${work_dir}; cd ${work_dir}"
@@ -596,7 +603,7 @@ for dmn in ${dmns[@]}; do
 
   else
     # else get initial and boundary conditions from real for downscaled domains
-    realroot=${CYC_HME}/real/ens_${memid}
+    realroot=${CYC_HME}/wrf_real/ens_${memid}
     if [ ${dmn} = 01 ]; then
       # Link the wrfbdy_d01 file from real
       wrfbdy=${realroot}/wrfbdy_d01
@@ -630,7 +637,7 @@ for dmn in ${dmns[@]}; do
   # NOTE: THIS LINKS SST UPDATE FILES FROM REAL OUTPUTS REGARDLESS OF GSI CYCLING
   if [[ ${IF_SST_UPDT} = ${YES} ]]; then
     wrflowinp=wrflowinp_d${dmn}
-    realname=${CYC_HME}/real/ens_${memid}/${wrflowinp}
+    realname=${CYC_HME}/wrf_real/ens_${memid}/${wrflowinp}
     if [ ! -r ${realname} ]; then
       printf "ERROR: wrflwinp\n ${realname}\n does not exist or is not readable.\n"
       exit 1
@@ -662,9 +669,8 @@ fi
 ##################################################################################
 #  Build WRF namelist
 ##################################################################################
-
-# Copy the wrf namelist template, NOTE: THIS WILL BE MODIFIED DO NOT LINK TO IT
-filename=${cfg_dir}/namelists/namelist.${BKG_DATA}
+# Copy the wps namelist template, from the Cylc installation of workflow
+filename=${CYLC_WORKFLOW_RUN_DIR}/namelists/namelist.${BKG_DATA}
 if [ ! -r ${filename} ]; then 
   msg="WRF namelist template\n ${filename}\n is not readable or "
   msg+="does not exist.\n"
@@ -708,8 +714,8 @@ aux_out="${auxinput4_minutes}, ${auxinput4_minutes}, ${auxinput4_minutes}"
 hist_int=$(( ${HIST_INT} * 60 ))
 out_hist="${hist_int}, ${hist_int}, ${hist_int}"
 
-# update history interval and aux2hist interval in minutes
-rstrt_int=$(( ${RSTRT_INT} * 60 ))
+# update restart interval to minutes
+rstrt_int=$(( ${rstrt_int} * 60 ))
 
 # Update the restart setting in wrf namelist depending on switch
 if [[ ${WRF_IC} = ${RESTART} ]]; then
@@ -870,7 +876,7 @@ for dmn in ${dmns[@]}; do
       fi
     fi
   done
-  if [ ${RSTRT_INT} -gt 0 ]; then
+  if [ ${rstrt_int} -gt 0 ]; then
     for fcst in ${rstrt_seq[@]}; do
       # Check for all wrfrst files for each domain at 
       # the appropriate bkg directory
@@ -898,7 +904,7 @@ for dmn in ${dmns[@]}; do
   fi
 done
 
-printf "wrf.sh completed successfully at `date +%Y-%m-%d_%H_%M_%S`.\n"
+printf "wrf_model.sh completed successfully at `date +%Y-%m-%d_%H_%M_%S`.\n"
 
 ##################################################################################
 # end

@@ -54,7 +54,8 @@
 {% set SND_INT = '00' %}
 
 # Output interval for restart files in HH, suppressed = 00
-{% set RSTRT_INT = '24' %}
+# Automatically set the restart interval to the forecast length = 'END'
+{% set RSTRT_INT = 'END' %}
 
 # Define if MPAS is run in regional mode
 {% set IF_RGNL = 'No' %}
@@ -193,7 +194,6 @@
                         --qos = {{PART_SRL}}
                         --nodes = 1
                         --ntasks-per-node = 1
-                        --mem = {{GRIB_MEM}}
                     {% else %}
                         --partition = {{PART_SRL}}
                         --nodes = 1
@@ -226,7 +226,6 @@
                         --qos = {{PART_DBG}}
                         --nodes = {{INIT_NDES}}
                         --ntasks-per-node = {{INIT_PROC}}
-                        --mem = {{INIT_MEM}}
                     {% else %}
                         --partition = {{PART_DBG}}
                         --nodes = {{INIT_NDES}}
@@ -260,7 +259,6 @@
                         --qos = {{PART_DBG}}
                         --nodes = {{INIT_NDES}}
                         --ntasks-per-node = {{INIT_PROC}}
-                        --mem = {{INIT_MEM}}
                     {% else %}
                         --partition = {{PART_DBG}}
                         --nodes = {{INIT_NDES}}
@@ -301,7 +299,6 @@
                         --qos = {{PART_CMP}}
                         --nodes = {{MPAS_NDES}}
                         --ntasks-per-node = {{MPAS_PROC}}
-                        --mem = {{MPAS_MEM}}
                     {% else %}
                         --partition = {{PART_CMP}}
                         --nodes = {{MPAS_NDES}}

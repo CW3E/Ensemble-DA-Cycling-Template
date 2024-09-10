@@ -39,10 +39,10 @@
 {% set ENS_BKG_INT = '03' %}
 
 # Max domain for ensemble simulation
-{% WRF_ENS_DOM = '01' %}
+{% set WRF_ENS_DOM = '01' %}
 
 # First domain index to have ICs downscaled from parent's initial conditions (>01)
-{% DOWN_DOM = '02' %}
+{% set DOWN_DOM = '02' %}
 
 ##################################################################################
 # WRF SETTINGS
@@ -51,7 +51,8 @@
 {% set HIST_INT = '03' %}
 
 # Output interval for restart files in HH, suppressed = 00
-{% set RSTRT_INT = '24' %}
+# Automatically set the restart interval to the forecast length = 'END'
+{% set RSTRT_INT = 'END' %}
 
 # Forecast lengths are defined to a specified verification valid date
 {% set IF_DYN_LEN = 'Yes' %}
@@ -93,7 +94,7 @@
 {% set WPS_MEM = '249000M' %}
 
 # Number of nodes for WPS parallel / REAL jobs
-{% WPS_NDES = 1 %}
+{% set WPS_NDES = 1 %}
 
 # Wallclock limit for init_atmosphere jobs
 {% set WPS_WC = 'PT30M' %}
@@ -108,7 +109,7 @@
 {% set WRF_NDES = 3 %}
 
 # Wallclock limit for WRF model
-{% set WRF_WC = 'PT2H30M' %}
+{% set WRF_WC = 'PT3H' %}
 
 # Set workflow to debugging mode for generating batch submit templates
 {% set IF_DBG = 'No' %}
@@ -180,7 +181,6 @@
                         --qos = {{PART_SRL}}
                         --nodes = 1
                         --ntasks-per-node = 1
-                        --mem = {{GRIB_MEM}}
                     {% else %}
                         --partition = {{PART_SRL}}
                         --nodes = 1
@@ -209,7 +209,6 @@
                         --qos = {{PART_DBG}}
                         --nodes = {{WPS_NDES}}
                         --ntasks-per-node = {{WPS_PROC}}
-                        --mem = {{WPS_MEM}}
                     {% else %}
                         --partition = {{PART_DBG}}
                         --nodes = {{WPS_NDES}}
@@ -240,7 +239,6 @@
                         --qos = {{PART_DBG}}
                         --nodes = {{WPS_NDES}}
                         --ntasks-per-node = {{WPS_PROC}}
-                        --mem = {{WPS_MEM}}
                     {% else %}
                         --partition = {{PART_DBG}}
                         --nodes = {{WPS_NDES}}
@@ -280,7 +278,6 @@
                         --qos = {{PART_CMP}}
                         --nodes = {{WRF_NDES}}
                         --ntasks-per-node = {{WRF_PROC}}
-                        --mem = {{WRF_MEM}}
                     {% else %}
                         --partition = {{PART_CMP}}
                         --nodes = {{WRF_NDES}}

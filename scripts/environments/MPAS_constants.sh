@@ -65,7 +65,7 @@ export CYCLING=[Cc][Yy][Cc][Ll][Ii][Nn][Gg]
 export LATERAL=[Ll][Aa][Tt][Ee][Rr][Aa][Ll]
 export LOWER=[Ll][Oo][Ww][Ee][Rr]
 export RESTART=[Rr][Ee][Ss][Tt][Aa][Rr][Tt]
-export REALEXE=[Rr][Ee][Aa][Ll][Ee][Xx][Ee]
+export END=[Ee][Nn][Dd]
 export NO=[Nn][Oo]
 export YES=[Yy][Ee][Ss]
 export SLURM=[Ss][Ll][Uu][Rr][Mm]
@@ -73,3 +73,6 @@ export PBS=[Pp][Bb][Ss]
 
 # Defines YYYYMMDDHH iso regular expression
 export ISO_RE=^[0-9]{10}$
+
+# Defines regular expression for arbitrary integers
+export INT_RE=^[0-9].*$
