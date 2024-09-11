@@ -279,7 +279,7 @@ if [ ${BKG_DATA} = GFS ]; then
   # GFS has single control trajectory
   fnames="gfs.0p25.${BKG_STRT_DT}.f*"
   # compute the number of input files to ungrib (incld. first/last times)
-  n_files=$(( (${fcst_hrs} / ${BKG_INT}) * ${rgnl} + 1 ))
+  n_files=$(( (10#${fcst_hrs} / 10#${BKG_INT}) * ${rgnl} + 1 ))
 elif [ ${BKG_DATA} = GEFS ]; then
   if [ ${memid} = 00 ]; then
     # 00 perturbation is the control forecast
@@ -289,7 +289,7 @@ elif [ ${BKG_DATA} = GEFS ]; then
     fnames="gep${memid}.t${bkg_strt_hh}z.pgrb*"
   fi
   # GEFS comes in a/b files for each valid time, AWS 0p50 supports initialization
-  n_files=$(( (2 * ${fcst_hrs} / ${BKG_INT}) * ${rgnl} + 2 ))
+  n_files=$(( (2 * 10#${fcst_hrs} / 10#${BKG_INT}) * ${rgnl} + 2 ))
 else
   msg="ERROR: \${BKG_DATA} must equal 'GFS' or 'GEFS'"
   msg+=" as currently supported inputs.\n"
@@ -517,7 +517,7 @@ strt_iso=`date +%Y-%m-%d_%H_%M_%S -d "${strt_dt}"`
 stop_iso=`date +%Y-%m-%d_%H_%M_%S -d "${stop_dt}"`
 
 # Update interval in namelist
-data_int_sec=$(( ${BKG_INT} * 3600 ))
+data_int_sec=$(( 3600 * 10#${BKG_INT} ))
 
 # Update max_dom in namelist to dummy value
 # domains not needed for ungrib but throws error

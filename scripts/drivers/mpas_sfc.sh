@@ -539,7 +539,7 @@ strt_iso=`date +%Y-%m-%d_%H:%M:%S -d "${strt_dt}"`
 stop_iso=`date +%Y-%m-%d_%H:%M:%S -d "${stop_dt}"`
 
 # Update background data interval in namelist
-data_interval_sec=$(( ${BKG_INT} * 3600 ))
+data_interval_sec=$(( 3600 * 10#${BKG_INT} ))
 
 # Update the init_atmosphere namelist / streams for surface boundary conditions
 cat << EOF > replace_param.tmp

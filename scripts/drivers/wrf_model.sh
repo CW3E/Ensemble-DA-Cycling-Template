@@ -704,18 +704,18 @@ strt_iso=`date +%Y-%m-%d_%H_%M_%S -d "${strt_dt}"`
 stop_iso=`date +%Y-%m-%d_%H_%M_%S -d "${stop_dt}"`
 
 # Update interval in namelist
-data_int_sec=$(( ${BKG_INT} * 3600 ))
+data_int_sec=$(( 3600 * 10#${BKG_INT} ))
 
 # update auxinput4 interval
-auxinput4_minutes=$(( ${BKG_INT} * 60 ))
+auxinput4_minutes=$(( 60 * 10#${BKG_INT} ))
 aux_out="${auxinput4_minutes}, ${auxinput4_minutes}, ${auxinput4_minutes}"
 
 # update history interval and aux2hist interval in minutes
-hist_int=$(( ${HIST_INT} * 60 ))
+hist_int=$(( 60 * 10#${HIST_INT} ))
 out_hist="${hist_int}, ${hist_int}, ${hist_int}"
 
 # update restart interval to minutes
-rstrt_int=$(( ${rstrt_int} * 60 ))
+rstrt_int=$(( 60 * 10#${rstrt_int} ))
 
 # Update the restart setting in wrf namelist depending on switch
 if [[ ${WRF_IC} = ${RESTART} ]]; then
@@ -795,7 +795,7 @@ fi
 
 now=`date +%Y-%m-%d_%H_%M_%S`
 printf "wrf started at ${now}.\n"
-printf "${cmd}\n"; eval "${cmd}"
+printf "${cmd}\n"
 ${par_run} ${wrf_exe}
 
 ##################################################################################

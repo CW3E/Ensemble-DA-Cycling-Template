@@ -496,7 +496,7 @@ out_sd="'${strt_iso}','${strt_iso}','${strt_iso}'"
 out_ed="'${stop_iso}','${stop_iso}','${stop_iso}'"
 
 # Update interval in namelist
-data_int_sec=$(( ${BKG_INT} * 3600 ))
+data_int_sec=$(( 3600 * 10#${BKG_INT}))
 
 # Update fg_name to name of background data
 if [ ${IF_ECMWF_ML} = ${YES} ]; then

@@ -1,8 +1,8 @@
 #!/bin/bash
 #SBATCH --job-name=make_PIO
-#SBATCH --time=2:00:00
+#SBATCH --time=1:00:00
 #SBATCH --account=cwp168
-#SBATCH --partition=cw3e-shared
+#SBATCH --partition=cw3e-compute
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=8
 ###############################################################################
@@ -20,8 +20,9 @@ module load cmake/3.21.4/bpzre3q
 ###############################################################################
 # libaries are installed wth PREFIX as root and library name following
 ###############################################################################
+export SOFT_ROOT="/expanse/nfs/cw3e/cwp168/SOFT_ROOT"
 export STACK="NETCDF_INTEL_INTELMPI"
-export PREFIX="/expanse/nfs/cw3e/cwp168/SOFT_ROOT/${STACK}"
+export PREFIX="${SOFT_ROOT}/${STACK}"
 export HDF5="${PREFIX}/HDF5"
 export NETCDF="${PREFIX}/NETCDF"
 export PNETCDF="${PREFIX}/PNETCDF"
@@ -48,8 +49,8 @@ cd ${PREFIX}/ParallelIO-pio2_5_8
 mkdir build; cd build
 
 # set compilers
-export CC=mpicc
-export FC=mpif90
+export CC=mpiicc
+export FC=mpiifort
 
 cmake -DNetCDF_C_PATH=$NETCDF -DNetCDF_Fortran_PATH=$NETCDF \
   -DPnetCDF_PATH=$PNETCDF -DCMAKE_INSTALL_PREFIX=${PIO} \
@@ -60,3 +61,5 @@ make tests
 
 cd ${PREFIX}/ParallelIO-pio2_5_8/build
 ctest
+
+################################################################################

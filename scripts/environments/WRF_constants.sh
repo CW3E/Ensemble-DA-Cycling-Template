@@ -48,17 +48,24 @@
 export TZ="GMT"
 ulimit -s unlimited
 
-# Defines expanse environment with intel compilers
+# Defines expanse environment with intel / intelmpi
 module purge
 module restore
-module load cpu/0.15.4
-module load intel/19.1.1.217
-module load intel-mpi/2019.8.254
-module load netcdf-c/4.7.4
-module load netcdf-fortran/4.5.3
-module load netcdf-cxx/4.2
-module load hdf5/1.10.6
-module load parallel-netcdf/1.12.1
+module load slurm
+module load cpu/0.17.3b
+module load intel/19.1.3.304/6pv46so
+module load intel-mkl/2020.4.304/vg6aq26
+module load intel-mpi/2019.10.317/ezrfjne
+
+export SOFT_ROOT="/expanse/nfs/cw3e/cwp168/SOFT_ROOT"
+export STACK="NETCDF_INTEL_INTELMPI"
+export PREFIX="${SOFT_ROOT}/${STACK}"
+export HDF5="${PREFIX}/HDF5"
+export NETCDF="${PREFIX}/NETCDF"
+export PNETCDF="${PREFIX}/PNETCDF"
+export LD_LIBRARY_PATH="${PNETCDF}/lib:${NETCDF}/lib:${HDF5}/lib:${LD_LIBRARY_PATH}"
+export LD_RUN_PATH="${PNETCDF}/lib:${NETCDF}/lib:${HDF5_PATH}/lib:${LD_RUN_PATH}"
+export PATH="${NETCDF}/bin:${PATH}"
 
 # create variables for namelist templates / switches
 export CYCLING=[Cc][Yy][Cc][Ll][Ii][Nn][Gg]

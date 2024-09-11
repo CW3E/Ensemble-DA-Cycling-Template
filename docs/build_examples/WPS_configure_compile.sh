@@ -1,48 +1,67 @@
 #!/bin/bash
-
-# set compiler and NETCDF definitions
-export NETCDF="/expanse/nfs/cw3e/cwp168/SOFT_ROOT/NETCDF"
-
-# netcdf and intel
+#SBATCH --job-name=WPS_compile
+#SBATCH --time=0:30:00
+#SBATCH --account=cwp168
+#SBATCH --partition=cw3e-compute
+#SBATCH --nodes=1
+#SBATCH --ntasks-per-node=20
+###############################################################################
+# module loads
+###############################################################################
 module purge
 module restore
-module load cpu/0.15.4
-module load intel/19.1.1.217
-module load intel-mpi/2019.8.254
-module load netcdf-c/4.7.4
-module load netcdf-fortran/4.5.3
-module load netcdf-cxx/4.2
+module load slurm
+module load cpu/0.17.3b
+module load intel/19.1.3.304/6pv46so
+module load intel-mkl/2020.4.304/vg6aq26
+module load intel-mpi/2019.10.317/ezrfjne
 
-# Set log report
-export log_file="compile_expanse_2024-05-06.log"
+############################################################################### # all libaries will be installed to PREFIX as root with library name following
+###############################################################################
+export SOFT_ROOT="/expanse/nfs/cw3e/cwp168/SOFT_ROOT"
+export STACK="NETCDF_INTEL_INTELMPI"
+export PREFIX="${SOFT_ROOT}/${STACK}"
+export HDF5="${PREFIX}/HDF5"
+export NETCDF="${PREFIX}/NETCDF"
+export PNETCDF="${PREFIX}/PNETCDF"
+export LD_LIBRARY_PATH="${PNETCDF}/lib:${NETCDF}/lib:${HDF5}/lib:${LD_LIBRARY_PATH}"
+export LD_RUN_PATH="${PNETCDF}/lib:${NETCDF}/lib:${HDF5_PATH}/lib:${LD_RUN_PATH}"
+export PATH="${NETCDF}/bin:${PATH}"
 
-# Set up WRF directory / configure
-echo "setting up compile directory" > $log_file  2>&1
-./clean -a >> $log_file  2>&1
+# set WRF version and path
+export WRF_VER=4.5.1
+export WRF_DIR="${PREFIX}/WRF-${WRF_VER}"
 
-# uncomment for fresh configuration file
+# set WPS version and path
+export WPS_VER=4.5
+export WPS_DIR="${PREFIX}/WPS-${WPS_VER}"
+
+###############################################################################
+# Download WPS
+###############################################################################
+#cd ${PREFIX}
+#rm -f v4.5.tar.gz
+#wget https://github.com/wrf-model/WPS/archive/refs/tags/v4.5.tar.gz
+#tar -xvf v4.5.tar.gz
+#rm -f v4.5.tar.gz
+#
+###############################################################################
+# Configure WRF
+###############################################################################
+## NOTE: make changes to defaults and copy configure.wps to configure.wps-stable
+## outside of the run step
+## Expanse compile uses mpiifort / mpiicc options for intelmpi
+## ifort -qopenmp / mpiifort -qopenmp options for parallel executables with
+## openmp
+#cd ${WPS_DIR}
 #./configure --build-grib2-libs
 #
-# For a fres configuration on expanse, note the changes from original (<) to compiled (>)
-#
-# 65c65
-# < SFC                 = ifort
-# ---
-# > SFC                 = ifort -qopenmp
-# 67,68c67,68
-# < DM_FC               = mpif90
-# < DM_CC               = mpicc
-# ---
-# > DM_FC               = mpiifort -qopenmp
-# > DM_CC               = mpiicc
+###############################################################################
+# Compile WRF
+###############################################################################
+cd ${WPS_DIR}
+./clean -a
 
-# copy pre-generated configuration file
-module list >> $log_file
-cp configure.wps-4.5_expanse_2024-05-06 ./configure.wps  >> $log_file  2>&1
-
-echo "Begin wrf compile" >> $log_file 2>&1
-# Uncomment to run compile, can be tested to this point
-# for debugging without this step
-./compile >> $log_file 2>&1
-
-echo "End of wrf compile" `date` >> $log_file  2>&1
+# copy pre-generated configuration file and compile
+cp configure.wps-stable ./configure.wps
+./compile

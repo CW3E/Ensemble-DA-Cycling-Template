@@ -1,35 +1,66 @@
 #!/bin/bash
-
-# set compiler and NETCDF definitions
-export NETCDF="/expanse/nfs/cw3e/cwp168/SOFT_ROOT/NETCDF"
-
-# netcdf and intel
+#SBATCH --job-name=WRF_compile
+#SBATCH --time=2:00:00
+#SBATCH --account=cwp168
+#SBATCH --partition=cw3e-compute
+#SBATCH --nodes=1
+#SBATCH --ntasks-per-node=20
+###############################################################################
+# module loads
+###############################################################################
 module purge
 module restore
-module load cpu/0.15.4
-module load intel/19.1.1.217
-module load intel-mpi/2019.8.254
-module load netcdf-c/4.7.4
-module load netcdf-fortran/4.5.3
-module load netcdf-cxx/4.2
+module load slurm
+module load cpu/0.17.3b
+module load intel/19.1.3.304/6pv46so
+module load intel-mkl/2020.4.304/vg6aq26
+module load intel-mpi/2019.10.317/ezrfjne
 
-# Set log report
-export log_file="compile_expanse_2024-05-06.log"
+###############################################################################
+# all libaries will be installed to PREFIX as root with library name following
+###############################################################################
+export SOFT_ROOT="/expanse/nfs/cw3e/cwp168/SOFT_ROOT"
+export STACK="NETCDF_INTEL_INTELMPI"
+export PREFIX="${SOFT_ROOT}/${STACK}"
+export HDF5="${PREFIX}/HDF5"
+export NETCDF="${PREFIX}/NETCDF"
+export PNETCDF="${PREFIX}/PNETCDF"
+export LD_LIBRARY_PATH="${PNETCDF}/lib:${NETCDF}/lib:${HDF5}/lib:${LD_LIBRARY_PATH}"
+export LD_RUN_PATH="${PNETCDF}/lib:${NETCDF}/lib:${HDF5_PATH}/lib:${LD_RUN_PATH}"
+export PATH="${NETCDF}/bin:${PATH}"
 
-# Set up WRF directory / configure
-echo "setting up compile directory" > $log_file 2>&1
-./clean -a >> $log_file  2>&1
+# set WRF version and path
+export WRF_VER=4.5.1
+export WRF_DIR="${PREFIX}/WRF-${WRF_VER}"
 
-# uncomment for fresh configuration file
+###############################################################################
+# Download WRF
+###############################################################################
+#cd ${PREFIX}
+#rm -f v${WRF_VER}.tar.gz
+#rm -rf ${WRF_DIR}
+#wget https://github.com/wrf-model/WRF/releases/download/v${WRF_VER}/v${WRF_VER}.tar.gz
+#tar -xvf v${WRF_VER}.tar.gz
+#rm -f v${WRF_VER}.tar.gz
+#mv WRFV${WRF_VER} ${WRF_DIR}
+#
+###############################################################################
+# Configure WRF
+###############################################################################
+## NOTE: make changes to defaults and copy configure.wrf to configure.wrf-stable
+## outside of the run step
+## Expanse compile uses mpiifort / mpiicc options for intelmpi
+#cd ${WRF_DIR}
 #./configure 
+#
+###############################################################################
+# Compile WRF
+###############################################################################
+cd ${WRF_DIR}
+./clean -a
 
-# copy pre-generated configuration file
-module list >> $log_file
-cp configure.wrf-4.5.1_expanse_2024-05-06 ./configure.wrf >> $log_file 2>&1
+# copy pre-generated configuration file and compile
+cp configure.wrf-stable ./configure.wrf
+./compile -j 20 em_real
 
-echo "Begin wrf compile" >> $log_file 2>&1
-# Uncomment to run compile, can be tested to this point
-# for debugging without this step
-./compile -j 20 em_real >> $log_file 2>&1
-
-echo "End of wrf compile" `date` >> $log_file 2>&1
+###############################################################################

@@ -15,6 +15,7 @@ module load cpu/0.17.3b
 module load intel/19.1.3.304/6pv46so
 module load intel-mkl/2020.4.304/vg6aq26
 module load intel-mpi/2019.10.317/ezrfjne
+module load cmake/3.21.4/bpzre3q
 
 ###############################################################################
 # libaries are installed wth PREFIX as root and library name following
@@ -26,9 +27,11 @@ export NETCDF="${PREFIX}/NETCDF"
 export NETCDFC="${PREFIX}/NETCDFC"
 export NETCDFF="${PREFIX}/NETCDFF"
 export PNETCDF="${PREFIX}/PNETCDF"
+export NETCDFCXX="${PREFIX}/NETCDFCXX"
 export LD_LIBRARY_PATH="${NETCDF}/lib:${HDF5}/lib:${LD_LIBRARY_PATH}"
 export CPPFLAGS="-I${NETCDF}/include -I${HDF5}/include"
 export LDFLAGS="-L${NETCDF}/lib -L${HDF5}/lib"
+export PATH="${NETCDF}/bin:${PATH}"
 
 # make the NetCDF install directory
 mkdir -p ${NETCDF}
@@ -56,7 +59,7 @@ mkdir -p ${NETCDF}
 #make check
 #
 ################################################################################
-# NetCDF C libs
+# NetCDF-C libs
 ################################################################################
 ## move to PREFIX and download NetCDF C libs
 #cd ${PREFIX}
@@ -66,10 +69,10 @@ mkdir -p ${NETCDF}
 #rm -f v4.9.2.tar.gz
 #
 ## set compilers for NetCDF-C
-#export CC=mpicc
-#export FC=mpif77
-#export F77=mpif77
-#export F90=mpif90
+#export CC=mpiicc
+#export FC=mpiifort
+#export F77=mpiifort
+#export F90=mpiifort
 #
 ## configure / build NetCDF4 C libs 
 #rm -rf ${NETCDFC}
@@ -91,7 +94,7 @@ mkdir -p ${NETCDF}
 #done
 #
 ################################################################################
-# NetCDF F libs
+# NetCDF-F libs
 ################################################################################
 ## move to PREFIX and download NetCDF F libs
 #cd ${PREFIX}
@@ -101,10 +104,10 @@ mkdir -p ${NETCDF}
 #rm -f v4.6.1.tar.gz
 #
 ## set compilers for NetCDF-F
-#export CC=mpicc
-#export FC=mpif77
-#export F77=mpif77
-#export F90=mpif90
+#export CC=mpiicc
+#export FC=mpiifort
+#export F77=mpiifort
+#export F90=mpiifort
 #
 ## configure and build NetCDF F libs
 #rm -rf ${NETCDFF}
@@ -126,6 +129,41 @@ mkdir -p ${NETCDF}
 #done
 #
 ################################################################################
+# NetCDF-CXX
+################################################################################
+## move to PREFIX and download PNetCDF
+#cd ${PREFIX}
+#wget https://github.com/Unidata/netcdf-cxx4/archive/refs/tags/v4.3.1.tar.gz
+#rm -rf ${PREFIX}/netcdf-cxx4-4.3.1
+#tar -xvf v4.3.1.tar.gz
+#rm -f v4.3.1.tar.gz
+#
+## set compilers for NetCDF-CXX
+#export CC=icc
+#export CXX=icpc
+#
+## configure and build NetCDF-CXX
+#rm -rf ${NETCDFCXX}
+#mkdir -p ${NETCDFCXX}
+#cd ${PREFIX}/netcdf-cxx4-4.3.1
+#mkdir build
+#cd build
+#../configure --enable-cxx-4 --enable-netcdf-4 --prefix=${NETCDFCXX}
+#make -j 4
+#make check
+#make install
+#
+#for subdir in lib include bin; do
+#  mkdir -p ${NETCDF}/${subdir}
+#  for fname in $(ls ${NETCDFCXX}/${subdir} ); do
+#    if [[ -f ${NETCDFCXX}/${subdir}/${fname} ]]; then
+#      cmd="ln -sfr ${NETCDFCXX}/${subdir}/${fname} ${NETCDF}/${subdir}"
+#    fi
+#    printf "${cmd}\n"; eval "${cmd}"
+#  done
+#done
+#
+################################################################################
 # PNetCDF
 ################################################################################
 ## move to PREFIX and download PNetCDF
@@ -140,13 +178,13 @@ mkdir -p ${NETCDF}
 #export CXX=icpc
 #export F77=ifort
 #export FC=ifort
-#export MPICC=mpicc
-#export MPICXX=mpicxx
-#export MPIF77=mpif77
-#export MPIF90=mpif90
+#export MPICC=mpiicc
+#export MPICXX=mpiicpc
+#export MPIF77=mpiifort
+#export MPIF90=mpiifort
 #
 ## configure and build PNetCDF
-#rm -rf -p ${PNETCDF}
+#rm -rf ${PNETCDF}
 #mkdir -p ${PNETCDF}
 #cd ${PREFIX}/pnetcdf-1.12.3
 #./configure --prefix=${PNETCDF} --enable-shared 
@@ -159,3 +197,5 @@ mkdir -p ${NETCDF}
 #make check
 #make ptest
 #make ptests
+#
+################################################################################
