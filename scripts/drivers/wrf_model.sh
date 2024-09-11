@@ -516,7 +516,7 @@ else
 fi
 
 # Remove any old WRF outputs in the directory from failed runs
-cmd="rm -f wrfout_*; rm -f wrfrst_*"
+cmd="rm -f wrfout_*; rm -f wrfrst_*; rm -f auxhist*"
 if [ ${dbg} = 1 ]; then
   printf "${cmd}\n" >> ${scrpt}; eval "${cmd}"
 else
