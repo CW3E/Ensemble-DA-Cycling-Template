@@ -40,7 +40,7 @@
 # MODIFICATIONS.
 # 
 ##################################################################################
-source ../config_template.sh
+source ../config_workflow.sh
 
 mkdir -p ${MAMBA_ROOT_PREFIX}/bin
 cd ${MAMBA_ROOT_PREFIX}
@@ -50,9 +50,7 @@ curl -Ls https://micro.mamba.pm/api/micromamba/linux-64/latest \
 mv bin/micromamba ./; rmdir bin
 
 ./micromamba create -n ${CYLC_ENV_NAME} -y -f \
-  ${HOME}/scripts/environments/${CYLC_ENV_NAME}.yml
+  ${CYLC_ROOT}/cylc_builds/${CYLC_ENV_NAME}.yml
 
 cd ${CYLC_ROOT}
-ln -sf cylc rose
-ln -sf cylc rosie
 ln -sf cylc isodatetime

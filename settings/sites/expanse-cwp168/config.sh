@@ -1,12 +1,9 @@
 #!/bin/bash
-##########################################################################
+##################################################################################
 # Description
-##########################################################################
-# This script localizes several tools specific to this platform.  It
-# should be called by other workflow scripts to define common
-# variables.
+##################################################################################
 #
-##########################################################################
+##################################################################################
 # License Statement:
 ##################################################################################
 # This software is Copyright © 2024 The Regents of the University of California.
@@ -42,45 +39,58 @@
 # OBLIGATIONS TO PROVIDE MAINTENANCE, SUPPORT, UPDATES, ENHANCEMENTS, OR
 # MODIFICATIONS.
 # 
-#
-##########################################################################
-# Using GMT time zone for time computations
-export TZ="GMT"
-ulimit -s unlimited
-
-# Defines expanse environment with intel / intelmpi
-module purge
-module restore
-module load slurm
-module load cpu/0.17.3b
-module load intel/19.1.3.304/6pv46so
-module load intel-mkl/2020.4.304/vg6aq26
-module load intel-mpi/2019.10.317/ezrfjne
-
+##################################################################################
+# HPC SYSTEM PATHS
+##################################################################################
+# Root directory of software stacks
 export SOFT_ROOT="/expanse/nfs/cw3e/cwp168/SOFT_ROOT"
-export STACK="NETCDF_INTEL_INTELMPI"
-export PREFIX="${SOFT_ROOT}/${STACK}"
-export HDF5="${PREFIX}/HDF5"
-export NETCDF="${PREFIX}/NETCDF"
-export PNETCDF="${PREFIX}/PNETCDF"
-export PIO="${PREFIX}/PIO"
-export LD_LIBRARY_PATH="${PIO}/lib:${PNETCDF}/lib:${NETCDF}/lib:${HDF5}/lib:${LD_LIBRARY_PATH}"
-export LD_RUN_PATH="${PIO}/lib:${PNETCDF}/lib:${NETCDF}/lib:${HDF5_PATH}/lib:${LD_RUN_PATH}"
-export PATH="${NETCDF}/bin:${PATH}"
 
-# Create variables for namelist templates / switches
-export CYCLING=[Cc][Yy][Cc][Ll][Ii][Nn][Gg]
-export LATERAL=[Ll][Aa][Tt][Ee][Rr][Aa][Ll]
-export LOWER=[Ll][Oo][Ww][Ee][Rr]
-export RESTART=[Rr][Ee][Ss][Tt][Aa][Rr][Tt]
-export END=[Ee][Nn][Dd]
-export NO=[Nn][Oo]
-export YES=[Yy][Ee][Ss]
-export SLURM=[Ss][Ll][Uu][Rr][Mm]
-export PBS=[Pp][Bb][Ss]
+# WRF / MPAS software stack name
+export MODEL_STACK="NETCDF_INTEL_INTELMPI"
 
-# Defines YYYYMMDDHH iso regular expression
-export ISO_RE=^[0-9]{10}$
+# WRF / MPAS stack configuration file
+export MODEL_ENV="${HOME}/settings/environments/EXPANSE/${MODEL_STACK}.sh"
 
-# Defines regular expression for arbitrary integers
-export INT_RE=^[0-9]+$
+# Root directory of WRF clean build
+export WRF_ROOT="${SOFT_ROOT}/${MODEL_STACK}/WRF-4.5.1"
+
+# Root directory of WPS clean build
+export WPS_ROOT="${SOFT_ROOT}/${MODEL_STACK}/WPS-4.5"
+
+# Root directory of MPAS clean build
+export MPAS_ROOT="${SOFT_ROOT}/${MODEL_STACK}/MPAS-Model-8.0.1"
+
+# Root directory of simulation forcing data
+export DATA_ROOT="/expanse/nfs/cw3e/cwp168/DATA"
+
+# Root directory of grib data data
+export GRIB_ROOT="${DATA_ROOT}/GRIB"
+
+# Root directory of observations
+export OBS_ROOT="${DATA_ROOT}/OBS"
+
+# Root directory of simulation_io
+export WORK_ROOT="/expanse/lustre/scratch/cgrudzien/temp_project/cwp168/SIMULATION_IO"
+
+##################################################################################
+# HPC SYSTEM WORKLOAD MANAGER PARAMETERS
+##################################################################################
+# System scheduler
+export SCHED="slurm"
+
+# MPI execute command
+export MPIRUN="mpiexec"
+
+# Project billing account
+export PROJECT="cwp168"
+
+# Compute queue for standard mpi jobs
+export PART_CMP="cw3e-compute"
+
+# Debug queue for small / rapid parallel jobs
+export PART_DBG="cw3e-compute"
+
+# Serial queue for non-mpi jobs
+export PART_SRL="cw3e-shared"
+
+##################################################################################

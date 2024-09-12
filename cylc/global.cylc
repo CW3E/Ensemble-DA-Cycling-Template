@@ -11,7 +11,7 @@
             install target = localhost
             submission polling intervals = PT3M
             global init-script = """
-                source {{environ['HOME']}}/config_template.sh
+                source ~/config_workflow.sh
             """
             [[[directives]]]
                 {% if sched == 'slurm' %}
@@ -20,5 +20,5 @@
                     -A = {{environ['PROJECT']}}
                 {% endif %}
     [install]
-        source dirs = {{environ['CFG_ROOT']}}
+        source dirs = ~/cylc-src
 {% endfor %}

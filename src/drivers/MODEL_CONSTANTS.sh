@@ -1,12 +1,13 @@
 #!/bin/bash
-##########################################################################
+##################################################################################
 # Description
-##########################################################################
-# This script localizes several tools specific to this platform.  It
-# should be called by other workflow scripts to define common
-# variables.
+##################################################################################
+# This script defines constants used throughout the driver scripts used to perform
+# the Cylc tasks.  This provides regular expressions that will be utilized
+# throughout the workflow checks and sets GMT time zone for date calculations
+# in BASH to be used by default.
 #
-##########################################################################
+##################################################################################
 # License Statement:
 ##################################################################################
 # This software is Copyright © 2024 The Regents of the University of California.
@@ -46,26 +47,6 @@
 ##########################################################################
 # Using GMT time zone for time computations
 export TZ="GMT"
-ulimit -s unlimited
-
-# Defines expanse environment with intel / intelmpi
-module purge
-module restore
-module load slurm
-module load cpu/0.17.3b
-module load intel/19.1.3.304/6pv46so
-module load intel-mkl/2020.4.304/vg6aq26
-module load intel-mpi/2019.10.317/ezrfjne
-
-export SOFT_ROOT="/expanse/nfs/cw3e/cwp168/SOFT_ROOT"
-export STACK="NETCDF_INTEL_INTELMPI"
-export PREFIX="${SOFT_ROOT}/${STACK}"
-export HDF5="${PREFIX}/HDF5"
-export NETCDF="${PREFIX}/NETCDF"
-export PNETCDF="${PREFIX}/PNETCDF"
-export LD_LIBRARY_PATH="${PNETCDF}/lib:${NETCDF}/lib:${HDF5}/lib:${LD_LIBRARY_PATH}"
-export LD_RUN_PATH="${PNETCDF}/lib:${NETCDF}/lib:${HDF5_PATH}/lib:${LD_RUN_PATH}"
-export PATH="${NETCDF}/bin:${PATH}"
 
 # create variables for namelist templates / switches
 export CYCLING=[Cc][Yy][Cc][Ll][Ii][Nn][Gg]
@@ -84,3 +65,5 @@ export ISO_RE=^[0-9]{10}$
 
 # Defines regular expression for arbitrary integers
 export INT_RE=^[0-9]+$
+
+##########################################################################

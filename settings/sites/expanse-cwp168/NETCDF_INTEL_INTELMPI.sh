@@ -44,32 +44,26 @@
 # 
 #
 ##########################################################################
-# Using GMT time zone for time computations
-export TZ="GMT"
+source ${HOME}/settings/environments/CONSTANTS.sh
 
-# set COMET specific environment for intelmpi 2018.1.163
+ulimit -s unlimited
+
+# Defines expanse environment with intel / intelmpi
 module purge
-export MODULEPATH=/share/apps/compute/modulefiles:$MODULEPATH
-module load intel/2018.1.163
-module load intelmpi/2018.1.163
-module load hdf5/1.10.3
-module load netcdf/4.6.1
+module restore
+module load slurm
+module load cpu/0.17.3b
+module load intel/19.1.3.304/6pv46so
+module load intel-mkl/2020.4.304/vg6aq26
+module load intel-mpi/2019.10.317/ezrfjne
 
-# Set up netcdf
-export MODULEPATH=/share/apps/compute/modulefiles/applications:$MODULEPATH
-export NETCDF="/opt/netcdf/4.6.1/intel/intelmpi/"
-export HDF5="/opt/hdf5/1.10.3/intel/intelmpi/"
+export STACK_ROOT="${SOFT_ROOT}/NETCDF_INTEL_INTELMPI"
+export HDF5="${STACK_ROOT}/HDF5"
+export NETCDF="${STACK_ROOT}/NETCDF"
+export PNETCDF="${STACK_ROOT}/PNETCDF"
+export PIO="${STACK_ROOT}/PIO"
+export LD_LIBRARY_PATH="${PIO}/lib:${PNETCDF}/lib:${NETCDF}/lib:${HDF5}/lib:${LD_LIBRARY_PATH}"
+export LD_RUN_PATH="${PIO}/lib:${PNETCDF}/lib:${NETCDF}/lib:${HDF5_PATH}/lib:${LD_RUN_PATH}"
+export PATH="${NETCDF}/bin:${PATH}"
 
-# setup lapack
-module load lapack
-export LAPACK_PATH="/share/apps/compute/lapack"
-
-# Yes / No case insensitive switch
-export YES=[Yy][Ee][Ss]
-export NO=[Nn][Oo]
-
-# Defines YYYYMMDDHH iso regular expression
-export ISO_RE=^[0-9]{10}$
-
-export SLURM=[Ss][Ll][Uu][Rr][Mm]
-export PBS=[Pp][Bb][Ss]
+##########################################################################
