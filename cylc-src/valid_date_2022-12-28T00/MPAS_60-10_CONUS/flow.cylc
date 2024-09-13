@@ -1,0 +1,270 @@
+#!jinja2
+##################################################################################
+# CONTROL FLOW NAME / TUNABLE SETTINGS
+##################################################################################
+# Define the valid date YYYY-MM-DDTHH for verification
+{% set EXP_VRF = '2022-12-28T00' %}
+
+# Define the name of case study
+{% set CSE_NME = ['valid_date', EXP_VRF] | join('_') %}
+
+# Configuration name including tunable parameters
+{% set CFG_NME = 'MPAS_60-10_CONUS' %}
+
+# Case / configuration structure
+{% set EXP_NME = [CSE_NME, CFG_NME] | join('/') %}
+
+# Define the MPAS mesh name
+{% set MSH_NME = 'x6.999426' %}
+
+##################################################################################
+# CYCLING SETTINGS
+##################################################################################
+# First initial time for a forecast YYYY-MM-DDTHH
+{% set CYC_STRT = '2022-12-27T00' %}
+
+# Last initial time for a forecast YYYY-MM-DDTHH
+{% set CYC_STOP = '2022-12-27T00' %}
+
+# Interval between cycle start times PTXXH
+{% set CYC_INC = 'PT24H' %}
+
+##################################################################################
+# Ensemble SETTINGS
+##################################################################################
+# Define the ensemble size
+{% set ENS_MAX = 1 %}
+
+# GFS and GEFS currently supported
+{% set ENS_BKG_DATA = 'GEFS' %}
+
+# Data file frequency for ensemble simulation forcing in HH
+{% set ENS_BKG_INT = '03' %}
+
+##################################################################################
+# MPAS SETTINGS
+##################################################################################
+# Output interval for history files in HH, suppressed = 00
+{% set HIST_INT = '03' %}
+
+# Output interval for diagnostic files in HH, suppressed = 00
+{% set DIAG_INT = '03' %}
+
+# Output interval for sounding files in HH, suppressed = 00
+{% set SND_INT = '00' %}
+
+# Output interval for restart files in HH, suppressed = 00
+# Automatically set the restart interval to the forecast length = 'END'
+{% set RSTRT_INT = 'END' %}
+
+# Define if MPAS is run in regional mode
+{% set IF_RGNL = 'No' %}
+
+# Forecast lengths are defined to a specified verification valid date
+{% set IF_DYN_LEN = 'Yes' %}
+
+# Lower boundary condition updates from background data
+{% set IF_SST_UPDT = 'No' %}
+
+# Diurnal updates to lower boundary conditions
+{% set IF_SST_DIURN = 'No' %}
+
+# Slowly varying deep soil temperatures
+{% set IF_DEEPSOIL = 'No' %}
+
+# If zeta levels are explicitly set
+{% set IF_ZETA_LIST = 'Yes' %}
+
+# Number of tasks devoted to IO, set to 0 for all tasks run IO
+{% set PIO_NUM = 0 %}
+
+# Parallel IO stride
+{% set PIO_STRD = 1 %}
+
+##################################################################################
+# JOB SETTINGS
+##################################################################################
+# ungrib mem argument
+{% set GRIB_MEM = '20000M' %}
+
+# Wallclock limit for ungrib jobs
+{% set GRIB_WC = 'PT30M' %}
+
+# init_atmosphere number of procs-per-node
+{% set INIT_PROC = 128 %}
+
+# init_atmosphere mem argument
+{% set INIT_MEM = '249000M' %}
+
+# Number of nodes for init_atmosphere
+{% set INIT_NDES = 1 %}
+
+# Wallclock limit for init_atmosphere jobs
+{% set INIT_WC = 'PT30M' %}
+
+# atmosphere_model number of procs-per-node
+{% set MPAS_PROC = 128 %}
+
+# atmosphere_model mem argument
+{% set MPAS_MEM = '249000M' %}
+
+# Number of nodes for atmosphere_model jobs
+{% set MPAS_NDES = 5 %}
+
+# Wallclock limit for atmosphere_model
+{% set MPAS_WC = 'PT6H' %}
+
+# Set workflow to debugging mode for generating batch submit templates
+{% set IF_DBG = 'No' %}
+
+##################################################################################
+# CYLC SETTINGS
+##################################################################################
+[scheduler]
+    UTC mode = True
+    allow implicit tasks = True
+[scheduling]
+    initial cycle point = {{CYC_STRT}}
+    final cycle point = {{CYC_STOP}}
+    [[graph]]
+        {{CYC_INC}} = """
+        {% for mem in range(0,ENS_MAX) %}
+            {% set idx = mem | pad(2, '0') %}
+            ungrib_ens_{{idx}}  => mpas_ic_ens_{{idx}}
+            mpas_ic_ens_{{idx}} => mpas_model_ens_{{idx}}
+        {% endfor %}
+        """
+[runtime]
+    [[root]]
+        [[[environment]]]
+            CNST = {{environ['DRIVERS']}}/MODEL_CONSTANTS.sh
+            MOD_ENV = {{environ['MOD_ENV']}}
+            CFG_SHRD = {{environ['CFG_SHRD']}}
+            EXP_NME = {{EXP_NME}}
+            EXP_VRF = $(isodatetime {{EXP_VRF}} --f '%Y%m%d%H')
+            CYC_DT = $(isodatetime ${CYLC_TASK_CYCLE_POINT} --f '%Y%m%d%H')
+            CYC_HME = {{environ['WORK_ROOT']}}/{{EXP_NME}}/$CYC_DT
+            STRT_DT = $CYC_DT
+            IF_DYN_LEN = {{IF_DYN_LEN}}
+            IF_SST_UPDT = {{IF_SST_UPDT}}
+            IF_RGNL = {{IF_RGNL}}
+            MPIRUN = {{environ['MPIRUN']}}
+            IF_DBG_SCRPT = {{IF_DBG}}
+            SCHED = {{environ['SCHED']}}
+
+    [[WPS]]
+        [[[environment]]]
+            WPS_ROOT = {{environ['WPS_ROOT']}}
+
+    [[MPAS]]
+        [[[environment]]]
+            MPAS_ROOT = {{environ['MPAS_ROOT']}}
+            MSH_NME = {{MSH_NME}}
+
+    {% for mem in range(0,ENS_MAX) %}
+        {% set idx = mem | pad(2, '0') %}
+        [[ungrib_ens_{{idx}}]]
+            inherit = WPS
+            platform = {{environ['SCHED']}}
+            execution time limit = {{GRIB_WC}}
+            script = {{environ['DRIVERS']}}/ungrib.sh
+            execution retry delays = 3*PT5M
+            [[[environment]]]
+                MEMID = {{idx}}
+                GRIB_ROOT = {{environ['GRIB_ROOT']}}
+                BKG_STRT_DT = $CYC_DT
+                IF_SST_UPDT = {{IF_SST_UPDT}}
+                BKG_DATA = {{ENS_BKG_DATA}}
+                BKG_INT = {{ENS_BKG_INT}}
+                IF_ECMWF_ML = 'No'
+            [[[directives]]]
+                {% if environ['SCHED'] == 'slurm' %}
+                    {% if environ['SYS_TYPE' ] == 'penguin' %}
+                        --partition = general
+                        --qos = {{environ['PART_SRL']}}
+                        --nodes = 1
+                        --ntasks-per-node = 1
+                    {% else %}
+                        --partition = {{environ['PART_SRL']}}
+                        --nodes = 1
+                        --ntasks-per-node = 1
+                        --mem = {{GRIB_MEM}}
+                    {% endif %}
+                {% elif environ['SCHED'] == 'pbs' %}
+                    -q = {{environ['PART_SRL']}}
+                    -l select=1:mpiprocs=1:ncpus=1
+                {% endif %}
+
+        [[mpas_ic_ens_{{idx}}]]
+            inherit = MPAS
+            platform = {{environ['SCHED']}}
+            execution time limit = {{INIT_WC}}
+            script = {{environ['DRIVERS']}}/mpas_ic.sh
+            execution retry delays = 3*PT5M
+            [[[environment]]]
+                MEMID = {{idx}}
+                IF_ZETA_LIST = {{IF_ZETA_LIST}}
+                BKG_DATA = {{ENS_BKG_DATA}}
+                N_NDES = {{INIT_NDES}}
+                N_PROC = {{INIT_PROC}}
+                PIO_NUM = {{PIO_NUM}}
+                PIO_STRD = {{PIO_STRD}}
+            [[[directives]]]
+                {% if environ['SCHED'] == 'slurm' %}
+                    {% if environ['SYS_TYPE' ] == 'penguin' %}
+                        --partition = general
+                        --qos = {{environ['PART_DBG']}}
+                        --nodes = {{INIT_NDES}}
+                        --ntasks-per-node = {{INIT_PROC}}
+                    {% else %}
+                        --partition = {{environ['PART_DBG']}}
+                        --nodes = {{INIT_NDES}}
+                        --ntasks-per-node = {{INIT_PROC}}
+                        --mem = {{INIT_MEM}}
+                    {% endif %}
+                {% elif environ['SCHED'] == 'pbs' %}
+                    -q = {{environ['PART_DBG']}}
+                    -l select={{INIT_NDES}}:mpiprocs={{INIT_PROC}}:ncpus={{INIT_PROC}}
+                {% endif %}
+
+        [[mpas_model_ens_{{idx}}]]
+            inherit = MPAS
+            platform = {{environ['SCHED']}}
+            execution time limit = {{MPAS_WC}}
+            script = {{environ['DRIVERS']}}/mpas_model.sh
+            execution retry delays = 3*PT5M
+            [[[environment]]]
+                MEMID = {{idx}}
+                DIAG_INT = {{DIAG_INT}}
+                HIST_INT = {{HIST_INT}}
+                SND_INT = {{SND_INT}}
+                RSTRT_INT = {{RSTRT_INT}}
+                BKG_INT = {{ENS_BKG_INT}}
+                IF_RSTRT = 'No'
+                IF_DA = 'No'
+                IF_SST_UPDT = {{IF_SST_UPDT}}
+                IF_SST_DIURN = {{IF_SST_DIURN}}
+                IF_DEEPSOIL = {{IF_DEEPSOIL}}
+                N_NDES = {{MPAS_NDES}}
+                N_PROC = {{MPAS_PROC}}
+                PIO_NUM = {{PIO_NUM}}
+                PIO_STRD = {{PIO_STRD}}
+            [[[directives]]]
+                {% if environ['SCHED'] == 'slurm' %}
+                    {% if environ['SYS_TYPE' ] == 'penguin' %}
+                        --partition = general
+                        --qos = {{environ['PART_CMP']}}
+                        --nodes = {{MPAS_NDES}}
+                        --ntasks-per-node = {{MPAS_PROC}}
+                    {% else %}
+                        --partition = {{environ['PART_CMP']}}
+                        --nodes = {{MPAS_NDES}}
+                        --ntasks-per-node = {{MPAS_PROC}}
+                        --mem = {{MPAS_MEM}}
+                    {% endif %}
+                {% elif environ['SCHED'] == 'pbs' %}
+                    -q = {{environ['PART_CMP']}}
+                    -l select={{MPAS_NDES}}:mpiprocs={{MPAS_PROC}}:ncpus={{MPAS_PROC}}
+                {% endif %}
+
+    {% endfor %}

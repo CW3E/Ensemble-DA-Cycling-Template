@@ -1,0 +1,24 @@
+#!jinja2
+
+# Define platform templates for scheduling systems
+{% set scheds = 'slurm', 'pbs' %}
+
+{% for sched in scheds %}
+    [platforms]
+        [[{{sched}}]]
+            job runner = {{sched}}
+            hosts = localhost
+            install target = localhost
+            submission polling intervals = PT3M
+            global init-script = """
+                source ~/config_workflow.sh
+            """
+            [[[directives]]]
+                {% if sched == 'slurm' %}
+                    --account = {{environ['PROJECT']}}
+                {% elif sched == 'pbs' %}
+                    -A = {{environ['PROJECT']}}
+                {% endif %}
+    [install]
+        source dirs = ~/cylc-src
+{% endfor %}

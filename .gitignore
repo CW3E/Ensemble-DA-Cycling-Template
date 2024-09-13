@@ -8,6 +8,11 @@
 *.so
 *.pyc
 
+# No conda / miniconda files #
+###################
+.conda
+.conda/*
+
 # Packages #
 ############
 # it's better to unpack these files and commit the raw source
@@ -46,6 +51,8 @@ Thumbs.db
 ##################
 *~
 *.swp
+*.swo
+.viminfo
 
 # no output from nohup #
 ########################

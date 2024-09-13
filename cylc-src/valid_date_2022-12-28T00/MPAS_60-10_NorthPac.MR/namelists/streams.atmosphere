@@ -1,0 +1,47 @@
+<streams>
+<immutable_stream name="input"
+                  type="input"
+                  filename_template="CFG_NME.init.nc"
+                  input_interval="initial_only" />
+
+<immutable_stream name="restart"
+                  type="input;output"
+                  filename_template="CFG_NME.restart.$Y-$M-$D_$h_$m_$s.nc"
+                  input_interval="initial_only"
+                  output_interval=RSTRT_INT, />
+
+<stream name="output"
+        type="output"
+        filename_template="CFG_NME.history.$Y-$M-$D_$h_$m_$s.nc"
+        output_interval=HIST_INT, >
+	<file name="stream_list.atmosphere.output"/>
+</stream>
+
+<stream name="diagnostics"
+        type="output"
+        filename_template="CFG_NME.diag.$Y-$M-$D_$h_$m_$s.nc"
+        output_interval=DIAG_INT, >
+	<file name="stream_list.atmosphere.diagnostics"/>
+</stream>
+
+<stream name="surface"
+        type="input"
+        filename_template="CFG_NME.sfc_update.nc"
+        filename_interval="none"
+        input_interval=SFC_INT, >
+	<file name="stream_list.atmosphere.surface"/>
+</stream>
+<immutable_stream name="iau"
+                  type="input"
+                  filename_template="CFG_NME.AmB.$Y-$M-$D_$h_$m_$s.nc"
+                  filename_interval="none"
+                  packages="iau"
+                  input_interval="initial_only" />
+
+<immutable_stream name="lbc_in"
+                  type="input"
+                  filename_template="CFG_NME.lbc.$Y-$M-$D_$h_$m_$s.nc"
+                  filename_interval="input_interval"
+                  packages="limited_area"
+                  input_interval=LBC_INT, />
+</streams>

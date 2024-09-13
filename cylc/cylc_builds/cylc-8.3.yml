@@ -1,0 +1,9 @@
+name: cylc-8.3
+channels:
+  - conda-forge
+dependencies:
+  - python =3.9.19
+  - cylc-flow =8.3
+  - cylc-uiserver
+  - cylc-rose
+  - metomi-rose
