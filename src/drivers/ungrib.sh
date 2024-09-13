@@ -104,7 +104,8 @@
 ##################################################################################
 # Preamble
 ##################################################################################
-# CNST         = Full path to constants used to compile and run WRF / WPS
+# CNST         = Full path to BASH constants used in driver scripts
+# MOD_ENV      = Full path to environment used to compile and run WPS / WRF / MPAS
 # IF_DBG_SCRPT = Switch YES or else, this is NOT A REQUIRED ARGUMENT. Set variable
 #                IF_DBG_SCRPT=Yes within the configuration to initiate debugging,
 #                script will default to normal run behavior otherwise
@@ -114,11 +115,23 @@
 ##################################################################################
 
 if [ ! -x ${CNST} ]; then
-  printf "ERROR: constants file\n ${CNST}\n does not exist or is not executable.\n"
+  msg="ERROR: constants file\n ${CNST}\n does not exist or is not executable.\n"
+  printf "${msg}"
   exit 1
 else
   # Read constants into the current shell
   cmd=". ${CNST}"
+  printf "${cmd}\n"; eval "${cmd}"
+fi
+
+if [ ! -x ${MOD_ENV} ]; then
+  msg="ERROR: model environment file\n ${MOD_ENV}\n does not exist"
+  msg+=" or is not executable.\n"
+  printf "${msg}"
+  exit 1
+else
+  # Read model environment into the current shell
+  cmd=". ${MOD_ENV}"
   printf "${cmd}\n"; eval "${cmd}"
 fi
 
@@ -129,10 +142,10 @@ if [[ ${IF_DBG_SCRPT} = ${YES} ]]; then
   printf "Producing a script and work directory for manual submission.\n"
   if [[ ${SCHED} = ${SLURM} ]]; then
     # source slurm header from environment directory
-    cat `dirname ${CNST}`/slurm_header.sh >> ${scrpt}
+    cat `dirname ${MOD_ENV}`/slurm_header.sh >> ${scrpt}
   elif [[ ${SCHED} = ${PBS} ]]; then
     # source pbs header from environment directory
-    cat `dirname ${CNST}`/pbs_header.sh >> ${scrpt}
+    cat `dirname ${MOD_ENV}`/pbs_header.sh >> ${scrpt}
   fi
   # Read constants and print into run script
   while read line; do
@@ -145,7 +158,7 @@ if [[ ${IF_DBG_SCRPT} = ${YES} ]]; then
       done
       printf "${cmd}\n" >> ${scrpt}
     fi
-  done < ${CNST}
+  done < ${MOD_ENV}
 else
   dbg=0
 fi
@@ -156,7 +169,7 @@ fi
 # Options below are defined in workflow variables
 #
 # EXP_NME     = Case study / config short name directory structure
-# CFG_ROOT    = Root directory containing simulation settings
+# CFG_SHRD    = Root directory containing simulation shared config files
 # MEMID       = Ensemble ID index, 00 for control, i > 0 for perturbation
 # STRT_DT     = Simulation start time in YYYYMMDDHH
 # BKG_STRT_DT = Background data simulation start time in YYYYMMDDHH
@@ -179,13 +192,14 @@ else
   cfg_nme=${exp_nme[1]}
   printf "Setting up configuration:\n    ${cfg_nme}\n"
   printf "for:\n    ${cse_nme}\n case study.\n"
-  if [ ! ${CFG_ROOT} ]; then
-    printf "ERROR: \${CFG_ROOT} is not defined.\n"
-    exit 1
-  elif [ ! -d ${CFG_ROOT} ]; then
-    printf "ERROR: \${CFG_ROOT} directory\n ${CFG_ROOT}\n does not exist.\n"
-    exit 1
-  fi
+fi
+
+if [ ! ${CFG_SHRD} ]; then
+  printf "ERROR: \${CFG_SHRD} is not defined.\n"
+  exit 1
+elif [ ! -d ${CFG_SHRD} ]; then
+  printf "ERROR: \${CFG_SHRD} directory\n ${CFG_SHRD}\n does not exist.\n"
+  exit 1
 fi
 
 if [[ ! ${MEMID} =~ ${INT_RE} ]]; then
@@ -393,7 +407,7 @@ else
 fi
 
 # Check to make sure the variable table is available
-vtable=${CFG_ROOT}/variable_tables/Vtable.${BKG_DATA}
+vtable=${CFG_SHRD}/variable_tables/Vtable.${BKG_DATA}
 if [ ! -r ${vtable} ]; then
   msg="ERROR: Vtable at location\n ${vtable}\n is not readable or does not "
   msg+="exist.\n"
@@ -632,7 +646,7 @@ done
 # If ungribbing ECMWF model level data, calculate additional coefficients
 # NOTE: namelist.wps should account for the "PRES" file prefixes in fg_names
 if [ ${IF_ECMWF_ML} = ${YES} ]; then
-  cmd="ln -sf ${CFG_ROOT}/variable_tables/ecmwf_coeffs ."
+  cmd="ln -sf ${CFG_SHRD}/variable_tables/ecmwf_coeffs ."
   printf "${cmd}\n"; eval "${cmd}"
   cmd="./util/calc_ecmwf_p.exe"
   printf "${cmd}\n"; eval "${cmd}"

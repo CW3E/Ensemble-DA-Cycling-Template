@@ -46,19 +46,19 @@
 export SOFT_ROOT="/expanse/nfs/cw3e/cwp168/SOFT_ROOT"
 
 # WRF / MPAS software stack name
-export MODEL_STACK="NETCDF_INTEL_INTELMPI"
+export MOD_STACK="NETCDF_INTEL_INTELMPI"
 
 # WRF / MPAS stack configuration file
-export MODEL_ENV="${HOME}/settings/environments/EXPANSE/${MODEL_STACK}.sh"
+export MOD_ENV="${HOME}/settings/sites/expanse-cwp168/${MOD_STACK}.sh"
 
 # Root directory of WRF clean build
-export WRF_ROOT="${SOFT_ROOT}/${MODEL_STACK}/WRF-4.5.1"
+export WRF_ROOT="${SOFT_ROOT}/${MOD_STACK}/WRF-4.5.1"
 
 # Root directory of WPS clean build
-export WPS_ROOT="${SOFT_ROOT}/${MODEL_STACK}/WPS-4.5"
+export WPS_ROOT="${SOFT_ROOT}/${MOD_STACK}/WPS-4.5"
 
 # Root directory of MPAS clean build
-export MPAS_ROOT="${SOFT_ROOT}/${MODEL_STACK}/MPAS-Model-8.0.1"
+export MPAS_ROOT="${SOFT_ROOT}/${MOD_STACK}/MPAS-Model-8.0.1"
 
 # Root directory of simulation forcing data
 export DATA_ROOT="/expanse/nfs/cw3e/cwp168/DATA"
@@ -77,6 +77,10 @@ export WORK_ROOT="/expanse/lustre/scratch/cgrudzien/temp_project/cwp168/SIMULATI
 ##################################################################################
 # System scheduler
 export SCHED="slurm"
+
+# Define additional sub-cases for system platform, currently only includes penguin
+# define as empty string if not needed
+export SYS_TYPE=""
 
 # MPI execute command
 export MPIRUN="mpiexec"

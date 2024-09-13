@@ -53,13 +53,13 @@ export HOME="/expanse/nfs/cw3e/cwp168/Ensemble-DA-Cycling-Template"
 export SITE="expanse-cwp168"
 
 # Source the site-specific settings from the configuration file
-source ${HOME}/sites/${SITE}.sh
+source ${HOME}/settings/sites/${SITE}/config.sh
 
 ##################################################################################
 # WORKFLOW RELATIVE PATHS (DO NOT CHANGE)
 ##################################################################################
-# Root directory of experiment configuration files
-export CFG_ROOT="${HOME}/settings"
+# Root directory of simulation shared config files
+export CFG_SHRD="${HOME}/settings/shared"
 
 # Root directory of task driver scripts
 export DRIVERS="${HOME}/src/drivers"

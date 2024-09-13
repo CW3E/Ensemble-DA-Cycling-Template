@@ -104,7 +104,8 @@
 ##################################################################################
 # Preamble
 ##################################################################################
-# CNST         = Full path to constants used to compile and run WRF / WPS
+# CNST         = Full path to BASH constants used in driver scripts
+# MOD_ENV      = Full path to environment used to compile and run WPS / WRF / MPAS
 # IF_DBG_SCRPT = Switch YES or else, this is NOT A REQUIRED ARGUMENT. Set variable
 #                IF_DBG_SCRPT=Yes within the configuration to initiate debugging,
 #                script will default to normal run behavior otherwise
@@ -122,6 +123,17 @@ else
   printf "${cmd}\n"; eval "${cmd}"
 fi
 
+if [ ! -x ${MOD_ENV} ]; then
+  msg="ERROR: model environment file\n ${MOD_ENV}\n does not exist"
+  msg+=" or is not executable.\n"
+  printf "${msg}"
+  exit 1
+else
+  # Read model environment into the current shell
+  cmd=". ${MOD_ENV}"
+  printf "${cmd}\n"; eval "${cmd}"
+fi
+
 if [[ ${IF_DBG_SCRPT} = ${YES} ]]; then 
   dbg=1
   scrpt=$(mktemp /tmp/run_dbg.XXXXXXX.sh)
@@ -130,10 +142,10 @@ if [[ ${IF_DBG_SCRPT} = ${YES} ]]; then
 
   if [[ ${SCHED} = ${SLURM} ]]; then
     # source slurm header from environment directory
-    cat `dirname ${CNST}`/slurm_header.sh >> ${scrpt}
+    cat `dirname ${MOD_ENV}`/slurm_header.sh >> ${scrpt}
   elif [[ ${SCHED} = ${PBS} ]]; then
     # source pbs header from environment directory
-    cat `dirname ${CNST}`/pbs_header.sh >> ${scrpt}
+    cat `dirname ${MOD_ENV}`/pbs_header.sh >> ${scrpt}
   fi
 
   # Read constants and print into run script
@@ -147,7 +159,7 @@ if [[ ${IF_DBG_SCRPT} = ${YES} ]]; then
       done
       printf "${cmd}\n" >> ${scrpt}
     fi
-  done < ${CNST}
+  done < ${MOD_ENV}
 else
   dbg=0
 fi
@@ -380,7 +392,6 @@ fi
 # Below variables are defined in workflow variables
 #
 # WRF_ROOT = Root directory of a clean WRF build WRF/run directory
-# CFG_ROOT = Root directory containing simulation settings
 # CYC_HME  = Cycle YYYYMMDDHH named directory for cycling data
 # MPIRUN   = MPI multiprocessing evaluation call, machine specific
 # N_NDES   = Total number of nodes
@@ -395,14 +406,6 @@ if [ ! ${WRF_ROOT} ]; then
   exit 1
 elif [ ! -d ${WRF_ROOT} ]; then
   printf "ERROR: \${WRF_ROOT} directory\n ${WRF_ROOT}\n does not exist.\n"
-  exit 1
-fi
-
-if [ ! ${CFG_ROOT} ]; then
-  printf "ERROR: \${CFG_ROOT} is not defined.\n"
-  exit 1
-elif [ ! -d ${CFG_ROOT} ]; then
-  printf "ERROR: \${CFG_ROOT} directory\n ${CFG_ROOT}\n does not exist.\n"
   exit 1
 fi
 
