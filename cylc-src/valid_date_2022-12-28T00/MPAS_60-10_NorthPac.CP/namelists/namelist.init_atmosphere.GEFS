@@ -7,7 +7,7 @@
     config_interface_projection = 'linear_interpolation'
 /
 &dimensions
-    config_nvertlevels = 59
+    config_nvertlevels = 55
     config_nsoillevels = 4
     !! GEFS setting AWS pre 2021 !!
     !config_nfglevels = 27,

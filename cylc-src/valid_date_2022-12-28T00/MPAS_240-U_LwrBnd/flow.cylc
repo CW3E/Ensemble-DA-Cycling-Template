@@ -138,9 +138,11 @@
 [runtime]
     [[root]]
         [[[environment]]]
+            CNST = {{environ['DRIVERS']}}/MODEL_CONSTANTS.sh
+            MOD_ENV = {{environ['MOD_ENV']}}
+            CFG_SHRD = {{environ['CFG_SHRD']}}
             EXP_NME = {{EXP_NME}}
             EXP_VRF = $(isodatetime {{EXP_VRF}} --f '%Y%m%d%H')
-            CFG_ROOT = {{environ['CFG_ROOT']}}
             CYC_DT = $(isodatetime ${CYLC_TASK_CYCLE_POINT} --f '%Y%m%d%H')
             CYC_HME = {{environ['WORK_ROOT']}}/{{EXP_NME}}/$CYC_DT
             STRT_DT = $CYC_DT
@@ -153,12 +155,10 @@
 
     [[WPS]]
         [[[environment]]]
-            CNST = {{environ['WRF_CNST']}}
             WPS_ROOT = {{environ['WPS_ROOT']}}
 
     [[MPAS]]
         [[[environment]]]
-            CNST = {{environ['MPAS_CNST']}}
             MPAS_ROOT = {{environ['MPAS_ROOT']}}
             MSH_NME = {{MSH_NME}}
 
@@ -182,17 +182,17 @@
                 {% if environ['SCHED'] == 'slurm' %}
                     {% if environ['SYS_TYPE' ] == 'penguin' %}
                         --partition = general
-                        --qos = {{PART_SRL}}
+                        --qos = {{environ['PART_SRL']}}
                         --nodes = 1
                         --ntasks-per-node = 1
                     {% else %}
-                        --partition = {{PART_SRL}}
+                        --partition = {{environ['PART_SRL']}}
                         --nodes = 1
                         --ntasks-per-node = 1
                         --mem = {{GRIB_MEM}}
                     {% endif %}
                 {% elif environ['SCHED'] == 'pbs' %}
-                    -q = {{PART_SRL}}
+                    -q = {{environ['PART_SRL']}}
                     -l select=1:mpiprocs=1:ncpus=1
                 {% endif %}
 
@@ -214,17 +214,17 @@
                 {% if environ['SCHED'] == 'slurm' %}
                     {% if environ['SYS_TYPE' ] == 'penguin' %}
                         --partition = general
-                        --qos = {{PART_DBG}}
+                        --qos = {{environ['PART_DBG']}}
                         --nodes = {{INIT_NDES}}
                         --ntasks-per-node = {{INIT_PROC}}
                     {% else %}
-                        --partition = {{PART_DBG}}
+                        --partition = {{environ['PART_DBG']}}
                         --nodes = {{INIT_NDES}}
                         --ntasks-per-node = {{INIT_PROC}}
                         --mem = {{INIT_MEM}}
                     {% endif %}
                 {% elif environ['SCHED'] == 'pbs' %}
-                    -q = {{PART_DBG}}
+                    -q = {{environ['PART_DBG']}}
                     -l select={{INIT_NDES}}:mpiprocs={{INIT_PROC}}:ncpus={{INIT_PROC}}
                 {% endif %}
 
@@ -247,17 +247,17 @@
                 {% if environ['SCHED'] == 'slurm' %}
                     {% if environ['SYS_TYPE' ] == 'penguin' %}
                         --partition = general
-                        --qos = {{PART_DBG}}
+                        --qos = {{environ['PART_DBG']}}
                         --nodes = {{INIT_NDES}}
                         --ntasks-per-node = {{INIT_PROC}}
                     {% else %}
-                        --partition = {{PART_DBG}}
+                        --partition = {{environ['PART_DBG']}}
                         --nodes = {{INIT_NDES}}
                         --ntasks-per-node = {{INIT_PROC}}
                         --mem = {{INIT_MEM}}
                     {% endif %}
                 {% elif environ['SCHED'] == 'pbs' %}
-                    -q = {{PART_DBG}}
+                    -q = {{environ['PART_DBG']}}
                     -l select={{INIT_NDES}}:mpiprocs={{INIT_PROC}}:ncpus={{INIT_PROC}}
                 {% endif %}
 
@@ -287,17 +287,17 @@
                 {% if environ['SCHED'] == 'slurm' %}
                     {% if environ['SYS_TYPE' ] == 'penguin' %}
                         --partition = general
-                        --qos = {{PART_CMP}}
+                        --qos = {{environ['PART_CMP']}}
                         --nodes = {{MPAS_NDES}}
                         --ntasks-per-node = {{MPAS_PROC}}
                     {% else %}
-                        --partition = {{PART_CMP}}
+                        --partition = {{environ['PART_CMP']}}
                         --nodes = {{MPAS_NDES}}
                         --ntasks-per-node = {{MPAS_PROC}}
                         --mem = {{MPAS_MEM}}
                     {% endif %}
                 {% elif environ['SCHED'] == 'pbs' %}
-                    -q = {{PART_CMP}}
+                    -q = {{environ['PART_CMP']}}
                     -l select={{MPAS_NDES}}:mpiprocs={{MPAS_PROC}}:ncpus={{MPAS_PROC}}
                 {% endif %}
 
