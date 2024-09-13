@@ -13,54 +13,73 @@ with an embedded Cylc installation using
 with an automated build procedure for the Cylc environment and its configuration for this repository.
 
 The repository is structured as follows:
-
 ```
-Ensemble-DA-Cycling-Template  # Root directory of the repository
-├── cylc                      # Directory of embedded Cylc installation and wrappers
-├── cylc-run                  # Directory of cylc workflow installations and run directories
-├── docs                      # General documentation
-│   └── build_examples        # Examples of builds for related software
-├── scripts                   # Workflow scripts
-│   ├── downloads             # Utility scripts for downloading data
-│   ├── drivers               # Task execution run scripts
-│   └── environments          # HPC environments / configurations for executables
-└── simulation_settings       # Workflow settings and related configuration files
-    ├── archive               # Example templates and configuration files for defining simulations
-    │   ├── control_flows     # Full workflow examples
-    │   ├── fix               # GSI fix files
-    │   └── namelists         # WRF / MPAS / GSI namelists
-    ├── meshes                # MPAS mesh decomposition files
-    └── variable_tables       # Ungrib variable tables
+Ensemble-DA-Cycling-Template/     # Root directory of the repository
+├── cylc                          # Directory of embedded Cylc installation and wrappers
+├── cylc-run                      # Directory of cylc workflow installations and run directories
+├── cylc-src                      # Installable workflow settings for configuring experiments
+├── settings                      # HPC environments / configurations for executables
+│   ├── shared                    # Shared executable / driver configuration files
+│   ├── sites                     # Root directory of HPC system configuration sub-directories 
+│   └── template_archive          # Templates for workflow development
+└── src                           # Workflow core source code
+    ├── downloads                 # Utility scripts for downloading data
+    └── drivers                   # Task execution run scripts
 ```
 
 ## Installing Cylc
 Cylc can be run on an HPC system in a centralized or a distributed fashion.  This build procedure will
-create an embedded Cylc installation with the configuration of Cylc inferred from the `config_template.sh`
+create an embedded Cylc installation with the configuration of Cylc inferred from the `config_workflow.sh`
 at the root of the repository.  One should edit this file as in the following to define the local
 HPC system paramters for the workflow.
 
 ###  Workflow configuration
-Global variables for the repositiory are defined in the `config_template.sh` script which is
-sourced to provide global variables to Cylc and the worfklow configuration.  Example configuration
-variables for the workflow template include:
+In the workflow configuration one should define the full path of clone
 ```
-export HOME = # Full path of framework git clone, is used for embedded Cylc installation
+export HOME="/expanse/nfs/cw3e/cwp168/Ensemble-DA-Cycling-Template"
+```
+NOTE: when sourcing this configuration the Unix `${HOME}` variable will be reset in the shell
+to the repository.  This is to handle Cylc's usual dependence on a `${HOME}` directory
+to write out workflow logs and make them shareable in a self-contained repository / project folder
+directory structure.
+
+One should also define a site-specific configuration to source for HPC global variables
+throughout the workflow and for the software environment to load for the model and DA executables.
+```
+export SITE="expanse-cwp168"
+```
+the settings for the local HPC system parameters are sourced in the `config_workflow.sh` file as
+```
+source ${HOME}/settings/sites/${SITE}/config.sh
+```
+New "sites" can be defined by creating a new directory containing a `config.sh` file
+edited to set local paths / computing environment. Example configuration variables for
+the workflow include:
+```
 export SOFT_ROOT= # Root directory of software stack executables
 export DATA_ROOT= # Root directory of simulation forcing data
 export GRIB_ROOT= # Root directory of grib data data
 export WORK_ROOT= # Root directory of simulation_io
+export MOD_ENV=   # The full path to a module load / shared library path definition file
 ```
-NOTE: the Unix `${HOME}` variable will be reset in the shell to the repository
-when sourcing the configuration.  This is to handle Cylc's usual dependence on a `${HOME}` directory
-to write out workflow logs and make them shareable in a self-contained repository / project folder
-directory structure.
+In the example site configuration
+```
+source ${HOME}/settings/sites/expanse-cwp168/config.sh
+```
+this defines the `${MOD_ENV}` variable to be
+```
+export MOD_ENV="${HOME}/settings/sites/expanse-cwp168/${MOD_STACK}.sh"
+```
+where the `${MOD_STACK}` variable is the name of the software stack used to compile
+the WRF and MPAS model environments.
+
 
 ### Building Cylc
 The Cylc build script
 ```
 ${HOME}/cylc/cylc_build.sh
 ```
-sources the `config_template.sh` configuration file to configure the local installation of
+sources the `config_workflow.sh` configuration file to configure the local installation of
 the Cylc executable in a self-contained Micromamba enviornment.  The Cylc installation
 will be built at
 ```
@@ -70,19 +89,19 @@ with the Cylc software environment defined in the file
 ```
 ${HOME}/scripts/environments/${CYLC_ENV_NAME}.yml
 ```
-sourcing a `.yml` definition file for the build.  Sourcing the `config_template.sh` the `${PATH}`
+sourcing a `.yml` definition file for the build.  Sourcing the `config_workflow.sh` the `${PATH}`
 is set to source the cylc-wrapper script
 ```
 ${HOME}/cylc/cylc
 ```
 configured to match the self-contained Micromamba environment.  Cylc command Bash auto-completion
-is configured by default by sourcing the `config_template.sh` file.  Additionally the 
+is configured by default by sourcing the `config_workflow.sh` file.  Additionally the 
 [cylc global configuration file](https://cylc.github.io/cylc-doc/stable/html/reference/config/global.html#global.cylc)
 ```
 ${HOME}/cylc/global.cylc
 ```
 is configured so that workflow definitions will source the global variables
-in `config_template.sh`, and so that task job scripts will inherit these variables as well.
+in `config_workflow.sh`, and so that task job scripts will inherit these variables as well.
 
 ### The cylc-run and log files
 The Cylc workflow manager uses the [cylc-run directory](https://cylc.github.io/cylc-doc/stable/html/glossary.html#term-cylc-run-directory)
@@ -95,24 +114,14 @@ and [manage their progress](https://cylc.github.io/cylc-doc/latest/html/user-gui
 with automated logging of job status andt task execution within the associated run directories.  Job execution such as
 MPAS / WRF simulation IO will not be performed in the `cylc-run` directory, as this run directory only encompasses
 the execution of the workflow prior to calling the task driving script.  Task driving scripts will have
-work directories nested in the directory structure at `${WORK_ROOT}` defined in the `config_template.sh`.
+work directories nested in the directory structure at `${WORK_ROOT}` defined in the `config_workflow.sh`.
 
 ## Installing MPAS and WRF
 It is assumed that there is a suitable installation of MPAS and / or WRF available on the HPC system.  Paths to the
-executables' compilation directories should be set in the `config_template.sh` file.  This repository assumes
+executables' compilation directories should be set in the `config_workflow.sh` file.  This repository assumes
 that the executable compilation directories are "clean" builds, in that no simulations have been run within
 these compilation directories.  Safety checks are performed in the workflow, but sourcing compilation directories that
 have also been used as run directories may produce unpredictable results.
-
-### Environment constants
-Module loads and shared library paths needed for the compilation and execution of the MPAS and WRF executables
-should be set as an environment in the
-```
-${HOME}/scripts/environments/MPAS_constants.sh
-${HOME}/scripts/environments/WRF_constants.sh
-```
-files respectively.  These files are sourced for the appropriate export and load statements, along with helper regex patterns and
-constants used throughout the MPAS and WRF driver scripts.
 
 ## Defining a case study / configuration
 The code is currently designed around executing case studies in which the full experiment configuration is transferable
@@ -122,22 +131,22 @@ a variety of simulation configurations are archived for a generic Atmospheric Ri
 ### Archive of templates
 At the path
 ```
-${HOME}/simulation_settings/archive/control_flows/valid_date_2022-12-28T00
+${HOME}/cylc-src/valid_date_2022-12-28T00
 ```
 templates are provided for running a case study with the specified valid date of
 `2022-12-28T00` at which to end the forecast verification.  Forecast initialization date times are
 cycled with the Cylc workflow manager and the forecast length is dynamically defined by the length of
-forecast time to the valid date of `2022-12-28T00`.  Cylc and the driving simulation scripts at
+forecast time to the valid date of `2022-12-28T00`.  Cylc and the source task driving scripts at
 ```
-${HOME}/scripts/drivers
+${HOME}/src/drivers
 ```
-can be configured for a variety of additional types simulation execution, such as with a fixed forecast length,
+can be configured for a variety of additional types of experiment execution, such as with a fixed forecast length,
 with the configuration options commented in the code.
 
 ### Case study / configuration / sub-configuration 
 Cylc will search for installable workflows at the simulation settings root directory 
 ```
-${HOME}/simulation_settings
+${HOME}/cylc-src
 ```
 which is configured in the repository as the default [source workflow directory](https://cylc.github.io/cylc-doc/stable/html/glossary.html#term-source-workflow).
 A common directory naming structure must be observed with the definition of case studies and
@@ -161,22 +170,23 @@ MPAS_60-10_CONUS.mesoscale_reference
 ```
 Experiment configurations are assumed to have a nested directory structure as
 ```
-${HOME}/simulation_settings/case_study/configuration.sub_configuration
+${HOME}/cylc_src/case_study/configuration.sub_configuration
 ```
 where for example, directories defined as
 ```
-${HOME}/simulation_settings/valid_date_2022-12-28T00/MPAS_60-10_CONUS.convection_permitting
-${HOME}/simulation_settings/valid_date_2022-12-28T00/MPAS_60-10_CONUS.mesoscale_reference
-${HOME}/simulation_settings/valid_date_2022-12-28T00/MPAS_240-U
-${HOME}/simulation_settings/valid_date_2022-12-28T00/WRF_9-3_WestCoast
+${HOME}/cylc_src/valid_date_2022-12-28T00/MPAS_60-10_CONUS.convection_permitting
+${HOME}/cylc_src/valid_date_2022-12-28T00/MPAS_60-10_CONUS.mesoscale_reference
+${HOME}/cylc_src/valid_date_2022-12-28T00/MPAS_240-U
+${HOME}/cylc_src/valid_date_2022-12-28T00/WRF_9-3_WestCoast
 ```
 are all valid case study / configuration / sub-configuration directory structures to install the
-workflows for the `2022-12-28T00` valid date case study.
+workflows for the `valid_date_2022-12-28T00` valid date case study.
 
 ### The flow.cylc file
-Every experiment configuration uses a [Cylc workflow configuration file](https://cylc.github.io/cylc-doc/stable/html/user-guide/writing-workflows/configuration.html#the-flow-cylc-file) 
+Every experiment configuration uses a 
+[Cylc workflow configuration file](https://cylc.github.io/cylc-doc/stable/html/user-guide/writing-workflows/configuration.html#the-flow-cylc-file) 
 ```
-${HOME}/simulation_settings/case_study/configuration.sub_configuration/flow.cylc
+${HOME}/cylc_src/case_study/configuration.sub_configuration/flow.cylc
 ```
 to define the dependency graph between workflow tasks and the switches that configure the tasks' driving scripts'
 execution.  Parameters defined in the `flow.cylc` file include HPC job scheduler parameters, job cycling settings,
@@ -186,8 +196,8 @@ settings for propagating namelist templates and settings for linking simulation 
 Each experiment configuration directory has a nested sub-directory for namelists and streamlists for MPAS and WRF,
 and a sub-directory for static files that are unique to the experiment configuration:
 ```
-${HOME}/simulation_settings/case_study/configuration.sub_configuration/namelist
-${HOME}/simulation_settings/case_study/configuration.sub_configuration/static
+${HOME}/cylc_src/case_study/configuration.sub_configuration/namelist
+${HOME}/cylc_src/case_study/configuration.sub_configuration/static
 ```
 Namelist and streamlist files within the above namelist directory are templated to propagate Cylc workflow parameters
 for e.g., [ISO date time cycling](https://cylc.github.io/cylc-doc/latest/html/tutorial/scheduling/datetime-cycling.html),
@@ -206,8 +216,8 @@ Workflow scripts will source the `*.ZETA_LIST.txt` file in the static directory 
 Shared files that are independent of a simulation configurations, such as mesh partitions and ungrib variable
 tables are kept in the directories
 ```
-${HOME}/simulation_settings/meshes
-${HOME}/simulation_settings/variable_tables
+${HOME}/settings/shared/meshes
+${HOME}/settings/shared/variable_tables
 ```
 respectively.  The underlying mesh name to source, e.g., `x6.999426` is defined in the experiment's `flow.cylc` file.
 
@@ -216,22 +226,24 @@ respectively.  The underlying mesh name to source, e.g., `x6.999426` is defined 
 ### Downloading forcing data
 Iinitial / boundary condition data can be obtained from, e.g., the 
 [GEFS AWS Bucket](https://www.ncei.noaa.gov/products/weather-climate-models/global-ensemble-forecast).
-An automated 
-[data download and formatting script](https://github.com/CW3E/Ensemble-DA-Cycling-Template/blob/main/scripts/downloads/download_GEFS_AWS.py)
+An automated data download and formatting script
+```
+${HOME}/src/downloads/download_GEFS_AWS.py
+```
 is included for anonymous downloads from the GEFS bucket above, and can be configured within the script
 to download arbirary forecast initialization dates and forecast hours from public GEFS data.  This script
 requires the use of AWS Command Line Interface, which is installable by e.g.,
 [conda-forge](https://anaconda.org/conda-forge/awscli).
 
 ### Installing and playing Cylc workflows
-Assuming that the global configuration `configure_template.sh` has been set to the local HPC system,
+Assuming that the global configuration `configure_worklfow.sh` has been set to the local HPC system,
 the embedded Cylc installation is built in the repository, the experiment configuration directory
 ```
-${HOME}/simulation_settings/case_study/configuration.sub_configuration
+${HOME}/cylc-src/case_study/configuration.sub_configuration
 ```
 has been set up including necessary static files, Cylc can install the workflow
 ```
-${HOME}/simulation_settings/case_study/configuration.sub_configuration/flow.cylc
+${HOME}/cylc-src/case_study/configuration.sub_configuration/flow.cylc
 ```
 and run the experiment.  The experiment above can be
 [installed](https://cylc.github.io/cylc-doc/stable/html/user-guide/installing-workflows.html) as
@@ -244,7 +256,7 @@ through any of Cylc command interfaces.
 
 Generic Slurm and PBS scheduler configurations are provided to submit
 task to the HPC job scheduler, but modifications are necessary for specific systems.  HPC system
-account information should be set in the repository configuration file `configure_template.sh`.
+account information should be set in the repository configuration file `configure_workflow.sh`.
 
 ### Checking logs and verifying outputs
 The `cylc-run` directory contains
