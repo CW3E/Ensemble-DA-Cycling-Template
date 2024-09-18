@@ -100,7 +100,7 @@
 {% set WRF_NDES = 3 %}
 
 # Wallclock limit for WRF model
-{% set WRF_WC = 'PT8H' %}
+{% set WRF_WC = 'PT4H' %}
 
 # Set workflow to debugging mode for generating batch submit templates
 {% set IF_DBG = 'No' %}

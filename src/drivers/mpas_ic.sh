@@ -124,7 +124,7 @@ fi
 #
 ##################################################################################
 
-if [ ! ${EXP_NME} ]; then
+if [ -z ${EXP_NME} ]; then
   printf "ERROR: Case study / config short name \${EXP_NME} is not defined.\n"
   exit 1
 else
@@ -152,7 +152,7 @@ else
   fi
 fi
 
-if [ ! ${CFG_SHRD} ]; then
+if [ -z ${CFG_SHRD} ]; then
   printf "ERROR: \${CFG_SHRD} is not defined.\n"
   exit 1
 elif [ ! -d ${CFG_SHRD} ]; then
@@ -160,7 +160,7 @@ elif [ ! -d ${CFG_SHRD} ]; then
   exit 1
 fi
 
-if [ ! ${MSH_NME} ]; then
+if [ -z ${MSH_NME} ]; then
   printf "ERROR: \${MSH_NME} is not defined.\n"
   exit 1
 else
@@ -187,8 +187,8 @@ fi
 
 if [[ ${IF_DYN_LEN} = ${NO} ]]; then 
   printf "Generating fixed length forecast forcing data.\n"
-  if [ ! ${FCST_HRS} ]; then
-    printf "ERROR: \${FCST_HRS} is not defined.\n"
+  if [[ ! ${FCST_HRS} =~ ${INT_RE} ]]; then
+    printf "ERROR: \${FCST_HRS}, ${FCST_HRS}, is not an integer.\n"
     exit 1
   else
     # parse forecast hours as base 10 padded
@@ -269,7 +269,7 @@ fi
 #
 ##################################################################################
 
-if [ ! ${MPAS_ROOT} ]; then
+if [ -z ${MPAS_ROOT} ]; then
   printf "ERROR: \${MPAS_ROOT} is not defined.\n"
   exit 1
 elif [ ! -d ${MPAS_ROOT} ]; then
@@ -277,7 +277,7 @@ elif [ ! -d ${MPAS_ROOT} ]; then
   exit 1
 fi
 
-if [ ! ${CYC_HME} ]; then
+if [ -z ${CYC_HME} ]; then
   printf "ERROR: \${CYC_HME} is not defined.\n"
   exit 1
 elif [ ! -d ${CYC_HME} ]; then
@@ -327,7 +327,7 @@ fi
 
 mpiprocs=$(( ${N_NDES} * ${N_PROC} ))
 
-if [ ! ${MPIRUN} ]; then
+if [ -z ${MPIRUN} ]; then
   printf "ERROR: \${MPIRUN} is not defined.\n"
   exit 1
 elif [ ${MPIRUN} = 'srun' ]; then
