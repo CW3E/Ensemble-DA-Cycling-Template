@@ -2,107 +2,107 @@
 ##################################################################################
 # CONTROL FLOW NAME / TUNABLE SETTINGS
 ##################################################################################
-# Define the valid date YYYY-MM-DDTHH for verification
+{# Define the valid date YYYY-MM-DDTHH for verification #}
 {% set EXP_VRF = '2022-12-28T00' %}
 
-# Define the name of case study
+{# Define the name of case study #}
 {% set CSE_NME = ['valid_date', EXP_VRF] | join('_') %}
 
-# Configuration name including tunable parameters
+{# Configuration name including tunable parameters #}
 {% set CFG_NME = 'WRF_9-3_WestCoast' %}
 
-# Case / configuration structure
+{# Case / configuration structure #}
 {% set EXP_NME = [CSE_NME, CFG_NME] | join('/') %}
 
 ##################################################################################
 # CYCLING SETTINGS
 ##################################################################################
-# First initial time for a forecast YYYY-MM-DDTHH
+{# First initial time for a forecast YYYY-MM-DDTHH #}
 {% set CYC_STRT = '2022-12-27T00' %}
 
-# Last initial time for a forecast YYYY-MM-DDTHH
+{# Last initial time for a forecast YYYY-MM-DDTHH #}
 {% set CYC_STOP = '2022-12-27T00' %}
 
-# Interval between cycle start times PTXXH
+{# Interval between cycle start times PTXXH #}
 {% set CYC_INC = 'PT24H' %}
 
 ##################################################################################
 # Ensemble SETTINGS
 ##################################################################################
-# Define the ensemble size
+{# Define the ensemble size #}
 {% set ENS_MAX = 1 %}
 
-# GFS and GEFS currently supported
+{# GFS and GEFS currently supported #}
 {% set ENS_BKG_DATA = 'GEFS' %}
 
-# Data file frequency for ensemble simulation forcing in HH
+{# Data file frequency for ensemble simulation forcing in HH #}
 {% set ENS_BKG_INT = '03' %}
 
-# Max domain for ensemble simulation
+{# Max domain for ensemble simulation #}
 {% set WRF_ENS_DOM = '02' %}
 
-# First domain index to have ICs downscaled from parent's initial conditions (>01)
+{# First domain index to have ICs downscaled from parent's initial conditions (>01) #}
 {% set DOWN_DOM = '02' %}
 
 ##################################################################################
 # WRF SETTINGS
 ##################################################################################
-# Output interval for history files in HH, suppressed = 00
+{# Output interval for history files in HH, suppressed = 00 #}
 {% set HIST_INT = '03' %}
 
-# Output interval for restart files in HH, suppressed = 00
-# Automatically set the restart interval to the forecast length = 'END'
+{# Output interval for restart files in HH, suppressed = 00 #}
+{# Automatically set the restart interval to the forecast length = 'END' #}
 {% set RSTRT_INT = 'END' %}
 
-# Forecast lengths are defined to a specified verification valid date
+{# Forecast lengths are defined to a specified verification valid date #}
 {% set IF_DYN_LEN = 'Yes' %}
 
-# This setting defines Yes / No for nested domain 2-way coupling
+{# This setting defines Yes / No for nested domain 2-way coupling #}
 {% set IF_FEEDBACK = 'No' %}
 
-# Lower boundary condition updates from background data
+{# Lower boundary condition updates from background data #}
 {% set IF_SST_UPDT = 'No' %}
 
-# Quilting tasks per group, set NIO_TPG=0 for default TURN OFF QUILTING
+{# Quilting tasks per group, set NIO_TPG=0 for default TURN OFF QUILTING #}
 {% set NIO_TPG = 0 %}
 
-# Quilting number of groups
+{# Quilting number of groups #}
 {% set NIO_GRPS = 4 %}
 
 ##################################################################################
 # JOB SETTINGS
 ##################################################################################
-# ungrib mem argument
+{# ungrib mem argument #}
 {% set GRIB_MEM = '20000M' %}
 
-# Wallclock limit for ungrib jobs
+{# Wallclock limit for ungrib jobs #}
 {% set GRIB_WC = 'PT30M' %}
 
-# WPS parallel / REAL number of procs-per-node
+{# WPS parallel / REAL number of procs-per-node #}
 {% set WPS_PROC = 64 %}
 
-# WPS mem argument 
+{# WPS mem argument  #}
 {% set WPS_MEM = '249000M' %}
 
-# Number of nodes for WPS parallel / REAL jobs
+{# Number of nodes for WPS parallel / REAL jobs #}
 {% set WPS_NDES = 1 %}
 
-# Wallclock limit for init_atmosphere jobs
+{# Wallclock limit for init_atmosphere jobs #}
 {% set WPS_WC = 'PT30M' %}
 
-# WRF model number of procs-per-node
+{# WRF model number of procs-per-node #}
 {% set WRF_PROC = 128 %}
 
-# WRF model mem argument
+{# WRF model mem argument #}
 {% set WRF_MEM = '249000M' %}
 
-# Number of nodes for WRF model jobs
+{# Number of nodes for WRF model jobs #}
 {% set WRF_NDES = 3 %}
 
-# Wallclock limit for WRF model
+{# Wallclock limit for WRF model #}
 {% set WRF_WC = 'PT4H' %}
 
-# Set workflow to debugging mode for generating batch submit templates
+{# Set workflow to debugging mode for generating batch submit templates #}
 {% set IF_DBG = 'No' %}
 
 ##################################################################################
