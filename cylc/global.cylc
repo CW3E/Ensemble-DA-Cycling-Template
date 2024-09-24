@@ -10,6 +10,7 @@
             hosts = localhost
             install target = localhost
             submission polling intervals = PT3M
+            submission retry delays = PT3M
             global init-script = """
                 source ~/config_workflow.sh
             """
