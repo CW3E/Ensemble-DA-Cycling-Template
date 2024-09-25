@@ -120,7 +120,7 @@ if [ ! -x ${CNST} ]; then
 else
   # Read constants into the current shell
   cmd=". ${CNST}"
-  printf "${cmd}\n"; eval "${cmd}"
+  printf "${cmd}\n"; ${cmd}
 fi
 
 if [ ! -x ${MOD_ENV} ]; then
@@ -131,7 +131,7 @@ if [ ! -x ${MOD_ENV} ]; then
 else
   # Read model environment into the current shell
   cmd=". ${MOD_ENV}"
-  printf "${cmd}\n"; eval "${cmd}"
+  printf "${cmd}\n"; ${cmd}
 fi
 
 if [[ ${IF_DBG_SCRPT} = ${YES} ]]; then 
@@ -358,9 +358,9 @@ printf "MPI run command is ${par_run}.\n"
 work_dir=${CYC_HME}/wrf_metgrid/ens_${memid}
 cmd="mkdir -p ${work_dir}; cd ${work_dir}"
 if [ ${dbg} = 1 ]; then
-  printf "${cmd}\n" >> ${scrpt}; eval "${cmd}"
+  printf "${cmd}\n" >> ${scrpt}; ${cmd}
 else
-  printf "${cmd}\n"; eval "${cmd}"
+  printf "${cmd}\n"; ${cmd}
 fi
 
 # Check that metgrid executable exists and runs
@@ -374,38 +374,38 @@ fi
 wps_files=(${WPS_ROOT}/*)
 for filename in ${wps_files[@]}; do
   cmd="rm -f `basename ${filename}`"
-  printf "${cmd}\n"; eval "${cmd}"
+  printf "${cmd}\n"; ${cmd}
 
   cmd="ln -sf ${filename} ."
   if [ ${dbg} = 1 ]; then
     printf "${cmd}\n" >> ${scrpt}
   else
-    printf "${cmd}\n"; eval "${cmd}"
+    printf "${cmd}\n"; ${cmd}
   fi
 done
 
 # Remove any previous namelists
 cmd="rm -f namelist.wps"
 if [ ${dbg} = 1 ]; then
-  printf "${cmd}\n" >> ${scrpt}; eval "${cmd}"
+  printf "${cmd}\n" >> ${scrpt}; ${cmd}
 else
-  printf "${cmd}\n"; eval "${cmd}"
+  printf "${cmd}\n"; ${cmd}
 fi
 
 # Remove any previous geogrid static files
 cmd="rm -f geo_em.*"
 if [ ${dbg} = 1 ]; then
-  printf "${cmd}\n" >> ${scrpt}; eval "${cmd}"
+  printf "${cmd}\n" >> ${scrpt}; ${cmd}
 else
-  printf "${cmd}\n"; eval "${cmd}"
+  printf "${cmd}\n"; ${cmd}
 fi
 
 # Remove pre-existing metgrid files
 cmd="rm -f met_em.*.nc"
 if [ ${dbg} = 1 ]; then
-  printf "${cmd}\n" >> ${scrpt}; eval "${cmd}"
+  printf "${cmd}\n" >> ${scrpt}; ${cmd}
 else
-  printf "${cmd}\n"; eval "${cmd}"
+  printf "${cmd}\n"; ${cmd}
 fi
 
 # Move existing log files to a subdir if there are any
@@ -416,9 +416,9 @@ if [ -f metgrid.log.0000 ]; then
   printf "Moving pre-existing log files to ${logdir}.\n"
   cmd="mv metgrid.log.* ${logdir}"
   if [ ${dbg} = 1 ]; then
-    printf "${cmd}\n" >> ${scrpt}; eval "${cmd}"
+    printf "${cmd}\n" >> ${scrpt}; ${cmd}
   else
-    printf "${cmd}\n"; eval "${cmd}"
+    printf "${cmd}\n"; ${cmd}
   fi
 else
   printf "No pre-existing log files were found.\n"
@@ -427,9 +427,9 @@ fi
 # Remove any ungrib outputs
 cmd="rm -f ${BKG_DATA}:*"
 if [ ${dbg} = 1 ]; then
-  printf "${cmd}\n" >> ${scrpt}; eval "${cmd}"
+  printf "${cmd}\n" >> ${scrpt}; ${cmd}
 else
-  printf "${cmd}\n"; eval "${cmd}"
+  printf "${cmd}\n"; ${cmd}
 fi
 
 # check for the ungrib case products and link to them
@@ -448,7 +448,7 @@ else
       if [ ${dbg} = 1 ]; then
         printf "${cmd}\n" >> ${scrpt}
       else
-        printf "${cmd}\n"; eval "${cmd}"
+        printf "${cmd}\n"; ${cmd}
       fi
     fi
   done
@@ -466,7 +466,7 @@ for dmn in ${dmns[@]}; do
     if [ ${dbg} = 1 ]; then
       printf "${cmd}\n" >> ${scrpt}
     else
-      printf "${cmd}\n"; eval "${cmd}"
+      printf "${cmd}\n"; ${cmd}
     fi
   fi
 done
@@ -486,7 +486,7 @@ else
   if [ ${dbg} = 1 ]; then
     printf "${cmd}\n" >> ${scrpt}
   else
-    printf "${cmd}\n"; eval "${cmd}"
+    printf "${cmd}\n"; ${cmd}
   fi
 fi
 
@@ -559,8 +559,7 @@ fi
 
 now=`date +%Y-%m-%d_%H_%M_%S`
 printf "metgrid started at ${now}.\n"
-printf "${cmd}\n"
-${par_run} ${metgrid_exe}
+printf "${cmd}\n"; ${cmd}
 
 ##################################################################################
 # Run time error check
@@ -573,24 +572,24 @@ printf "metgrid exited with code ${error}.\n"
 log_dir=metgrid_log.${now}
 mkdir ${log_dir}
 cmd="mv metgrid.log* ${log_dir}"
-printf "${cmd}\n"; eval "${cmd}"
+printf "${cmd}\n"; ${cmd}
 
 cmd="mv namelist.wps ${log_dir}"
-printf "${cmd}\n"; eval "${cmd}"
+printf "${cmd}\n"; ${cmd}
 
 # Remove links to the WPS run files
 for filename in ${wps_files[@]}; do
   cmd="rm -f `basename ${filename}`"
-  printf "${cmd}\n"; eval "${cmd}"
+  printf "${cmd}\n"; ${cmd}
 done
 
 # Remove ungrib outputs
 cmd="rm -f ${BKG_DATA}:*"
-printf "${cmd}\n"; eval "${cmd}"
+printf "${cmd}\n"; ${cmd}
 
 # Remove any previous geogrid static files
 cmd="rm -f geo_em.d*"
-printf "${cmd}\n"; eval "${cmd}"
+printf "${cmd}\n"; ${cmd}
 
 # check run error code
 if [ ${error} -ne 0 ]; then

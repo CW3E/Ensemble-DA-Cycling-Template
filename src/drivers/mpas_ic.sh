@@ -65,7 +65,7 @@ if [ ! -x ${CNST} ]; then
 else
   # Read constants into the current shell
   cmd=". ${CNST}"
-  printf "${cmd}\n"; eval "${cmd}"
+  printf "${cmd}\n"; ${cmd}
 fi
 
 if [ ! -x ${MOD_ENV} ]; then
@@ -76,7 +76,7 @@ if [ ! -x ${MOD_ENV} ]; then
 else
   # Read model environment into the current shell
   cmd=". ${MOD_ENV}"
-  printf "${cmd}\n"; eval "${cmd}"
+  printf "${cmd}\n"; ${cmd}
 fi
 
 if [[ ${IF_DBG_SCRPT} = ${YES} ]]; then 
@@ -354,9 +354,9 @@ printf "MPI run command is ${par_run}.\n"
 work_dir=${CYC_HME}/mpas_ic/ens_${memid}
 cmd="mkdir -p ${work_dir}; cd ${work_dir}"
 if [ ${dbg} = 1 ]; then
-  printf "${cmd}\n" >> ${scrpt}; eval "${cmd}"
+  printf "${cmd}\n" >> ${scrpt}; ${cmd}
 else
-  printf "${cmd}\n"; eval "${cmd}"
+  printf "${cmd}\n"; ${cmd}
 fi
 
 # Check that the executable exists and can be run
@@ -373,40 +373,40 @@ for filename in ${mpas_files[@]}; do
   if [ ${dbg} = 1 ]; then
     printf "${cmd}\n" >> ${scrpt}
   else
-    printf "${cmd}\n"; eval "${cmd}"
+    printf "${cmd}\n"; ${cmd}
   fi
 done
 
 # Remove any mpas static files following *.static.nc pattern
 cmd="rm -f *.static.nc"
 if [ ${dbg} = 1 ]; then
-  printf "${cmd}\n" >> ${scrpt}; eval "${cmd}"
+  printf "${cmd}\n" >> ${scrpt}; ${cmd}
 else
-  printf "${cmd}\n"; eval "${cmd}"
+  printf "${cmd}\n"; ${cmd}
 fi
 
 # Remove any mpas init files following *.init.nc pattern
 cmd="rm -f *.init.nc"
 if [ ${dbg} = 1 ]; then
-  printf "${cmd}\n" >> ${scrpt}; eval "${cmd}"
+  printf "${cmd}\n" >> ${scrpt}; ${cmd}
 else
-  printf "${cmd}\n"; eval "${cmd}"
+  printf "${cmd}\n"; ${cmd}
 fi
 
 # Remove any mpas partition files following *.graph.info.part.* pattern
 cmd="rm -f *.graph.info.part.*"
 if [ ${dbg} = 1 ]; then
-  printf "${cmd}\n" >> ${scrpt}; eval "${cmd}"
+  printf "${cmd}\n" >> ${scrpt}; ${cmd}
 else
-  printf "${cmd}\n"; eval "${cmd}"
+  printf "${cmd}\n"; ${cmd}
 fi
 
 # Remove any previous namelists and stream lists
 cmd="rm -f namelist.*; rm -f streams.*; rm -f stream_list.*; rm -f *.ZETA_LIST.txt"
 if [ ${dbg} = 1 ]; then
-  printf "${cmd}\n" >> ${scrpt}; eval "${cmd}"
+  printf "${cmd}\n" >> ${scrpt}; ${cmd}
 else
-  printf "${cmd}\n"; eval "${cmd}"
+  printf "${cmd}\n"; ${cmd}
 fi
 
 # Move existing log files to a subdir if there are any
@@ -416,7 +416,7 @@ if [ -f log.init_atmosphere.0000.out ]; then
   mkdir ${logdir}
   printf "Moving pre-existing log files to ${logdir}.\n"
   cmd="mv log.* ${logdir}"
-  printf "${cmd}\n"; eval "${cmd}"
+  printf "${cmd}\n"; ${cmd}
 else
   printf "No pre-existing log files were found.\n"
 fi
@@ -424,9 +424,9 @@ fi
 # Remove any ungrib outputs
 cmd="rm -f ${BKG_DATA}:*"
 if [ ${dbg} = 1 ]; then
-  printf "${cmd}\n" >> ${scrpt}; eval "${cmd}"
+  printf "${cmd}\n" >> ${scrpt}; ${cmd}
 else
-  printf "${cmd}\n"; eval "${cmd}"
+  printf "${cmd}\n"; ${cmd}
 fi
 
 # Link case ungrib data from ungrib root
@@ -444,7 +444,7 @@ else
     if [ ${dbg} = 1 ]; then
       printf "${cmd}\n" >> ${scrpt}
     else
-      printf "${cmd}\n"; eval "${cmd}"
+      printf "${cmd}\n"; ${cmd}
     fi
   fi
 fi
@@ -459,7 +459,7 @@ else
   if [ ${dbg} = 1 ]; then
     printf "${cmd}\n" >> ${scrpt}
   else
-    printf "${cmd}\n"; eval "${cmd}"
+    printf "${cmd}\n"; ${cmd}
   fi
 fi
 
@@ -474,7 +474,7 @@ else
   if [ ${dbg} = 1 ]; then
     printf "${cmd}\n" >> ${scrpt}
   else
-    printf "${cmd}\n"; eval "${cmd}"
+    printf "${cmd}\n"; ${cmd}
   fi
 fi
 
@@ -494,7 +494,7 @@ else
   if [ ${dbg} = 1 ]; then
     printf "${cmd}\n" >> ${scrpt}
   else
-    printf "${cmd}\n"; eval "${cmd}"
+    printf "${cmd}\n"; ${cmd}
   fi
 fi
 
@@ -509,7 +509,7 @@ if [[ ${IF_ZETA_LIST} = ${YES} ]]; then
     if [ ${dbg} = 1 ]; then
       printf "${cmd}\n" >> ${scrpt}
     else
-      printf "${cmd}\n"; eval "${cmd}"
+      printf "${cmd}\n"; ${cmd}
     fi
   fi
 fi
@@ -525,7 +525,7 @@ else
   if [ ${dbg} = 1 ]; then
     printf "${cmd}\n" >> ${scrpt}
   else
-    printf "${cmd}\n"; eval "${cmd}"
+    printf "${cmd}\n"; ${cmd}
   fi
 fi
 
@@ -613,8 +613,7 @@ fi
 
 now=`date +%Y-%m-%d_%H_%M_%S`
 printf "init_atmpshere started at ${now}.\n"
-printf "${cmd}\n"
-${par_run} ${init_exe}
+printf "${cmd}\n"; ${cmd}
 
 ##################################################################################
 # Run time error check
@@ -627,36 +626,36 @@ printf "init_atmosphere exited with code ${error}.\n"
 log_dir=init_atmosphere_ic_log.${now}
 mkdir ${log_dir}
 cmd="mv log.init_atmosphere.* ${log_dir}"
-printf "${cmd}\n"; eval "${cmd}"
+printf "${cmd}\n"; ${cmd}
 
 cmd="mv namelist.init_atmosphere ${log_dir}"
-printf "${cmd}\n"; eval "${cmd}"
+printf "${cmd}\n"; ${cmd}
 
 cmd="mv streams.init_atmosphere ${log_dir}"
-printf "${cmd}\n"; eval "${cmd}"
+printf "${cmd}\n"; ${cmd}
 
 if [[ ${IF_ZETA_LIST} = ${YES} ]]; then
   cmd="mv `basename ${zeta_list}` ${log_dir}"
-  printf "${cmd}\n"; eval "${cmd}"
+  printf "${cmd}\n"; ${cmd}
 fi
 
 # Remove links to the init_atmos run files
 for filename in ${mpas_files[@]}; do
   cmd="rm -f `basename ${filename}`"
-  printf "${cmd}\n"; eval "${cmd}"
+  printf "${cmd}\n"; ${cmd}
 done
 
 # remove links to ungrib data
 filename="${BKG_DATA}:`date +%Y-%m-%d_%H -d "${strt_dt} 0 hours"`"
 cmd="rm -f ${filename}"
-printf "${cmd}\n"; eval "${cmd}"
+printf "${cmd}\n"; ${cmd}
 
 # remove links to static and partition data
 cmd="rm -f *.static.nc"
-printf "${cmd}\n"; eval "${cmd}"
+printf "${cmd}\n"; ${cmd}
 
 cmd="rm -f *.graph.info.part.*"
-printf "${cmd}\n"; eval "${cmd}"
+printf "${cmd}\n"; ${cmd}
 
 if [ ${error} -ne 0 ]; then
   printf "ERROR:\n ${init_exe}\n exited with status ${error}.\n"

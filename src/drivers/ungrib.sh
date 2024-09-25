@@ -121,7 +121,7 @@ if [ ! -x ${CNST} ]; then
 else
   # Read constants into the current shell
   cmd=". ${CNST}"
-  printf "${cmd}\n"; eval "${cmd}"
+  printf "${cmd}\n"; ${cmd}
 fi
 
 if [ ! -x ${MOD_ENV} ]; then
@@ -132,7 +132,7 @@ if [ ! -x ${MOD_ENV} ]; then
 else
   # Read model environment into the current shell
   cmd=". ${MOD_ENV}"
-  printf "${cmd}\n"; eval "${cmd}"
+  printf "${cmd}\n"; ${cmd}
 fi
 
 if [[ ${IF_DBG_SCRPT} = ${YES} ]]; then 
@@ -340,7 +340,7 @@ if [ -z ${CYC_HME} ]; then
   exit 1
 else
   cmd="mkdir -p ${CYC_HME}"
-  printf "${cmd}\n"; eval "${cmd}"
+  printf "${cmd}\n"; ${cmd}
 fi
 
 if [ ! -d ${CYC_HME} ]; then
@@ -373,9 +373,9 @@ fi
 work_dir=${CYC_HME}/ungrib/ens_${memid}
 cmd="mkdir -p ${work_dir}; cd ${work_dir}"
 if [ ${dbg} = 1 ]; then
-  printf "${cmd}\n" >> ${scrpt}; eval "${cmd}"
+  printf "${cmd}\n" >> ${scrpt}; ${cmd}
 else
-  printf "${cmd}\n"; eval "${cmd}"
+  printf "${cmd}\n"; ${cmd}
 fi
 
 # check that the ungrib executable exists and runs
@@ -389,21 +389,21 @@ fi
 wps_files=(${WPS_ROOT}/*)
 for filename in ${wps_files[@]}; do
   cmd="rm -f `basename ${filename}`"
-  printf "${cmd}\n"; eval "${cmd}"
+  printf "${cmd}\n"; ${cmd}
   cmd="ln -sf ${filename} ."
   if [ ${dbg} = 1 ]; then
     printf "${cmd}\n" >> ${scrpt}
   else
-    printf "${cmd}\n"; eval "${cmd}"
+    printf "${cmd}\n"; ${cmd}
   fi
 done
 
 # Remove any previous Vtables
 cmd="rm -f Vtable"
 if [ ${dbg} = 1 ]; then
-  printf "${cmd}\n" >> ${scrpt}; eval "${cmd}"
+  printf "${cmd}\n" >> ${scrpt}; ${cmd}
 else
-  printf "${cmd}\n"; eval "${cmd}"
+  printf "${cmd}\n"; ${cmd}
 fi
 
 # Check to make sure the variable table is available
@@ -418,48 +418,48 @@ else
   if [ ${dbg} = 1 ]; then
     printf "${cmd}\n" >> ${scrpt}
   else
-    printf "${cmd}\n"; eval "${cmd}"
+    printf "${cmd}\n"; ${cmd}
   fi
 fi
 
 # Remove any ungrib inputs
 cmd="rm -f GRIBFILE.*"
 if [ ${dbg} = 1 ]; then
-  printf "${cmd}\n" >> ${scrpt}; eval "${cmd}"
+  printf "${cmd}\n" >> ${scrpt}; ${cmd}
 else
-  printf "${cmd}\n"; eval "${cmd}"
+  printf "${cmd}\n"; ${cmd}
 fi
 
 # Remove any ungrib temp files
 cmd="rm -f PFILE:*"
 if [ ${dbg} = 1 ]; then
-  printf "${cmd}\n" >> ${scrpt}; eval "${cmd}"
+  printf "${cmd}\n" >> ${scrpt}; ${cmd}
 else
-  printf "${cmd}\n"; eval "${cmd}"
+  printf "${cmd}\n"; ${cmd}
 fi
 
 # Remove any ungrib outputs
 cmd="rm -f ${BKG_DATA}:*"
 if [ ${dbg} = 1 ]; then
-  printf "${cmd}\n" >> ${scrpt}; eval "${cmd}"
+  printf "${cmd}\n" >> ${scrpt}; ${cmd}
 else
-  printf "${cmd}\n"; eval "${cmd}"
+  printf "${cmd}\n"; ${cmd}
 fi
 
 # Remove ECMWF coefficients if processing EC model levels
 if [ ${IF_ECMWF_ML} = ${YES} ]; then
   cmd="rm -f ecmwf_coeffs"
   if [ ${dbg} = 1 ]; then
-    printf "${cmd}\n" >> ${scrpt}; eval "${cmd}"
+    printf "${cmd}\n" >> ${scrpt}; ${cmd}
   else
-    printf "${cmd}\n"; eval "${cmd}"
+    printf "${cmd}\n"; ${cmd}
   fi
   # Check for ECMWF pressure coefficients 
   cmd="rm -f PRES:*"
   if [ ${dbg} = 1 ]; then
-    printf "${cmd}\n" >> ${scrpt}; eval "${cmd}"
+    printf "${cmd}\n" >> ${scrpt}; ${cmd}
   else
-    printf "${cmd}\n"; eval "${cmd}"
+    printf "${cmd}\n"; ${cmd}
   fi
 fi
 
@@ -471,9 +471,9 @@ if [ -f ungrib.log ]; then
   printf "Moving pre-existing log files to ${logdir}.\n"
   cmd="mv ungrib.log ${logdir}"
   if [ ${dbg} = 1 ]; then
-    printf "${cmd}\n" >> ${scrpt}; eval "${cmd}"
+    printf "${cmd}\n" >> ${scrpt}; ${cmd}
   else
-    printf "${cmd}\n"; eval "${cmd}"
+    printf "${cmd}\n"; ${cmd}
   fi
 else
   printf "No pre-existing log files were found.\n"
@@ -482,9 +482,9 @@ fi
 # Remove any namelists
 cmd="rm -f namelist.wps"
 if [ ${dbg} = 1 ]; then
-  printf "${cmd}\n" >> ${scrpt}; eval "${cmd}"
+  printf "${cmd}\n" >> ${scrpt}; ${cmd}
 else
-  printf "${cmd}\n"; eval "${cmd}"
+  printf "${cmd}\n"; ${cmd}
 fi
 
 # check to make sure the grib_data exists and is non-empty
@@ -503,7 +503,7 @@ else
   if [ ${dbg} = 1 ]; then
     printf "${cmd}\n" >> ${scrpt}
   else
-    printf "${cmd}\n"; eval "${cmd}"
+    printf "${cmd}\n"; ${cmd}
   fi
 fi
 
@@ -522,7 +522,7 @@ else
   if [ ${dbg} = 1 ]; then
     printf "${cmd}\n" >> ${scrpt}
   else
-    printf "${cmd}\n"; eval "${cmd}"
+    printf "${cmd}\n"; ${cmd}
   fi
 fi
 
@@ -609,24 +609,24 @@ printf "ungrib exited with code ${error}.\n"
 logdir=ungrib_log_${BKG_DATA}.${now}
 mkdir ${logdir}
 cmd="mv ungrib.log ${logdir}"
-printf "${cmd}\n"; eval "${cmd}"
+printf "${cmd}\n"; ${cmd}
 
 cmd="mv namelist.wps ${logdir}"
-printf "${cmd}\n"; eval "${cmd}"
+printf "${cmd}\n"; ${cmd}
 
 # Remove links to the WPS run files
 for filename in ${wps_files[@]}; do
   cmd="rm -f `basename ${filename}`"
-  printf "${cmd}\n"; eval "${cmd}"
+  printf "${cmd}\n"; ${cmd}
 done
 
 # remove links to grib files
 cmd="rm -f GRIBFILE.*"
-printf "${cmd}\n"; eval "${cmd}"
+printf "${cmd}\n"; ${cmd}
 
 # remove link to vtable
 cmd="rm -f Vtable"
-printf "${cmd}\n"; eval "${cmd}"
+printf "${cmd}\n"; ${cmd}
 
 # check run error code
 if [ ${error} -ne 0 ]; then
@@ -647,9 +647,9 @@ done
 # NOTE: namelist.wps should account for the "PRES" file prefixes in fg_names
 if [ ${IF_ECMWF_ML} = ${YES} ]; then
   cmd="ln -sf ${CFG_SHRD}/variable_tables/ecmwf_coeffs ."
-  printf "${cmd}\n"; eval "${cmd}"
+  printf "${cmd}\n"; ${cmd}
   cmd="./util/calc_ecmwf_p.exe"
-  printf "${cmd}\n"; eval "${cmd}"
+  printf "${cmd}\n"; ${cmd}
   # Check for ECMWF pressure coefficients 
   for fcst in ${fcst_seq[@]}; do
     filename=PRES:`date +%Y-%m-%d_%H -d "${strt_dt} ${fcst} hours"`

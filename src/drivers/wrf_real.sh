@@ -120,7 +120,7 @@ if [ ! -x ${CNST} ]; then
 else
   # Read constants into the current shell
   cmd=". ${CNST}"
-  printf "${cmd}\n"; eval "${cmd}"
+  printf "${cmd}\n"; ${cmd}
 fi
 
 if [ ! -x ${MOD_ENV} ]; then
@@ -131,7 +131,7 @@ if [ ! -x ${MOD_ENV} ]; then
 else
   # Read model environment into the current shell
   cmd=". ${MOD_ENV}"
-  printf "${cmd}\n"; eval "${cmd}"
+  printf "${cmd}\n"; ${cmd}
 fi
 
 if [[ ${IF_DBG_SCRPT} = ${YES} ]]; then 
@@ -370,9 +370,9 @@ printf "MPI run command is ${par_run}.\n"
 work_dir=${CYC_HME}/wrf_real/ens_${memid}
 cmd="mkdir -p ${work_dir}; cd ${work_dir}"
 if [ ${dbg} = 1 ]; then
-  printf "${cmd}\n" >> ${scrpt}; eval "${cmd}"
+  printf "${cmd}\n" >> ${scrpt}; ${cmd}
 else
-  printf "${cmd}\n"; eval "${cmd}"
+  printf "${cmd}\n"; ${cmd}
 fi
 
 # Check that the real executable exists and runs
@@ -386,38 +386,38 @@ fi
 wrf_files=(${WRF_ROOT}/run/*)
 for filename in ${wrf_files[@]}; do
   cmd="rm -f `basename ${filename}`"
-  printf "${cmd}\n"; eval "${cmd}"
+  printf "${cmd}\n"; ${cmd}
 
   cmd="ln -sf ${filename} ."
   if [ ${dbg} = 1 ]; then
     printf "${cmd}\n" >> ${scrpt}
   else
-    printf "${cmd}\n"; eval "${cmd}"
+    printf "${cmd}\n"; ${cmd}
   fi
 done
 
 # Remove pre-existing metgrid files
 cmd="rm -f met_em.*"
 if [ ${dbg} = 1 ]; then
-  printf "${cmd}\n" >> ${scrpt}; eval "${cmd}"
+  printf "${cmd}\n" >> ${scrpt}; ${cmd}
 else
-  printf "${cmd}\n"; eval "${cmd}"
+  printf "${cmd}\n"; ${cmd}
 fi
 
 # Remove IC/BC in the directory if old data present
 cmd="rm -f wrfinput_*; rm -f wrfbdy_d01; rm -f wrflowinp_*"
 if [ ${dbg} = 1 ]; then
-  printf "${cmd}\n" >> ${scrpt}; eval "${cmd}"
+  printf "${cmd}\n" >> ${scrpt}; ${cmd}
 else
-  printf "${cmd}\n"; eval "${cmd}"
+  printf "${cmd}\n"; ${cmd}
 fi
 
 # Remove any previous namelists
 cmd="rm -f namelist.input"
 if [ ${dbg} = 1 ]; then
-  printf "${cmd}\n" >> ${scrpt}; eval "${cmd}"
+  printf "${cmd}\n" >> ${scrpt}; ${cmd}
 else
-  printf "${cmd}\n"; eval "${cmd}"
+  printf "${cmd}\n"; ${cmd}
 fi
 
 # Check to make sure the real input files (e.g. met_em.d01.*)
@@ -435,7 +435,7 @@ for dmn in ${dmns[@]}; do
       if [ ${dbg} = 1 ]; then
         printf "${cmd}\n" >> ${scrpt}
       else
-        printf "${cmd}\n"; eval "${cmd}"
+        printf "${cmd}\n"; ${cmd}
       fi
     fi
   done
@@ -448,9 +448,9 @@ if [ -f rsl.out.0000 ]; then
   mkdir ${logdir}
   printf "Moving pre-existing rsl files to ${logdir}.\n"
   cmd="mv rsl.out.* ${logdir}"
-  printf "${cmd}\n"; eval "${cmd}"
+  printf "${cmd}\n"; ${cmd}
   cmd="mv rsl.error.* ${logdir}"
-  printf "${cmd}\n"; eval "${cmd}"
+  printf "${cmd}\n"; ${cmd}
 else
   printf "No pre-existing rsl files were found.\n"
 fi
@@ -470,7 +470,7 @@ else
   if [ ${dbg} = 1 ]; then
     printf "${cmd}\n" >> ${scrpt}
   else
-    printf "${cmd}\n"; eval "${cmd}"
+    printf "${cmd}\n"; ${cmd}
   fi
 fi
 
@@ -580,22 +580,22 @@ printf "real exited with code ${error}.\n"
 logdir=rsl.real.${now}
 mkdir ${logdir}
 cmd="mv rsl.out.* ${logdir}"
-printf "${cmd}\n"; eval "${cmd}"
+printf "${cmd}\n"; ${cmd}
 
 cmd="mv rsl.error.* ${logdir}"
-printf "${cmd}\n"; eval "${cmd}"
+printf "${cmd}\n"; ${cmd}
 
 cmd="mv namelist.* ${logdir}"
-printf "${cmd}\n"; eval "${cmd}"
+printf "${cmd}\n"; ${cmd}
 
 # Remove the real input files (e.g. met_em.d01.*)
 cmd="rm -f ./met_em.*"
-printf "${cmd}\n"; eval "${cmd}"
+printf "${cmd}\n"; ${cmd}
 
 # Remove links to the WRF run files
 for filename in ${wrf_files[@]}; do
     cmd="rm -f `basename ${filename}`"
-    printf "${cmd}\n"; eval "${cmd}"
+    printf "${cmd}\n"; ${cmd}
 done
 
 # check run error code
