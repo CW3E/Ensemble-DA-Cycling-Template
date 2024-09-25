@@ -53,6 +53,7 @@ Thumbs.db
 *.swp
 *.swo
 .viminfo
+.vim
 
 # no output from nohup #
 ########################
