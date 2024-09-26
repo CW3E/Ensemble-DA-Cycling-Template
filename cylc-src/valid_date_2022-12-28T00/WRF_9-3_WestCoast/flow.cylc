@@ -27,10 +27,10 @@
 {% set CYC_INC = 'PT24H' %}
 
 {################################################################################}
-{# Ensemble SETTINGS #}
+{# ENSEMBLE SETTINGS #}
 {################################################################################}
-{# Define the ensemble size #}
-{% set ENS_MAX = 1 %}
+{# Define the ensemble size, indices start at zero #}
+{% set ENS_SIZE = 1 %}
 
 {# GFS and GEFS currently supported #}
 {% set ENS_BKG_DATA = 'GEFS' %}
@@ -116,7 +116,7 @@
     final cycle point = {{CYC_STOP}}
     [[graph]]
         {{CYC_INC}} = """
-        {% for mem in range(0,ENS_MAX) %}
+        {% for mem in range(0,ENS_SIZE) %}
             {% set idx = mem | pad(2, '0') %}
             ungrib_ens_{{idx}}  => wrf_metgrid_ens_{{idx}}
             wrf_metgrid_ens_{{idx}} => wrf_real_ens_{{idx}}
@@ -153,7 +153,7 @@
         [[[environment]]]
             WRF_ROOT = {{environ['WRF_ROOT']}}
 
-    {% for mem in range(0,ENS_MAX) %}
+    {% for mem in range(0,ENS_SIZE) %}
         {% set idx = mem | pad(2, '0') %}
         [[ungrib_ens_{{idx}}]]
             inherit = WPS
