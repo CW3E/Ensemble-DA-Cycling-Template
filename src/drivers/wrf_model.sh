@@ -120,7 +120,7 @@ if [ ! -x ${CNST} ]; then
 else
   # Read constants into the current shell
   cmd=". ${CNST}"
-  printf "${cmd}\n"; ${cmd}
+  printf "${cmd}\n"; eval "${cmd}"
 fi
 
 if [ ! -x ${MOD_ENV} ]; then
@@ -131,7 +131,7 @@ if [ ! -x ${MOD_ENV} ]; then
 else
   # Read model environment into the current shell
   cmd=". ${MOD_ENV}"
-  printf "${cmd}\n"; ${cmd}
+  printf "${cmd}\n"; eval "${cmd}"
 fi
 
 if [[ ${IF_DBG_SCRPT} = ${YES} ]]; then 
@@ -476,9 +476,9 @@ fi
 
 cmd="mkdir -p ${work_dir}; cd ${work_dir}"
 if [ ${dbg} = 1 ]; then
-  printf "${cmd}\n" >> ${scrpt}; ${cmd}
+  printf "${cmd}\n" >> ${scrpt}; eval "${cmd}"
 else
-  printf "${cmd}\n"; ${cmd}
+  printf "${cmd}\n"; eval "${cmd}"
 fi
 
 # Check that the wrf executable exists and runs
@@ -492,11 +492,11 @@ fi
 wrf_files=(${WRF_ROOT}/run/*)
 for filename in ${wrf_files[@]}; do
   cmd="rm -f `basename ${filename}`"
-  printf "${cmd}\n"; ${cmd}
+  printf "${cmd}\n"; eval "${cmd}"
 
   cmd="ln -sf ${filename} ."
   if [ ${dbg} = 0 ]; then
-    printf "${cmd}\n"; ${cmd}
+    printf "${cmd}\n"; eval "${cmd}"
   else
     printf "${cmd}\n" >> ${scrpt}
   fi
@@ -505,25 +505,25 @@ done
 # Remove IC/BC in the directory if old data present
 cmd="rm -f wrfinput_*; rm -f wrfbdy_d01"
 if [ ${dbg} = 1 ]; then
-  printf "${cmd}\n" >> ${scrpt}; ${cmd}
+  printf "${cmd}\n" >> ${scrpt}; eval "${cmd}"
 else
-  printf "${cmd}\n"; ${cmd}
+  printf "${cmd}\n"; eval "${cmd}"
 fi
 
 # Remove any previous namelists
 cmd="rm -f namelist.input"
 if [ ${dbg} = 1 ]; then
-  printf "${cmd}\n" >> ${scrpt}; ${cmd}
+  printf "${cmd}\n" >> ${scrpt}; eval "${cmd}"
 else
-  printf "${cmd}\n"; ${cmd}
+  printf "${cmd}\n"; eval "${cmd}"
 fi
 
 # Remove any old WRF outputs in the directory from failed runs
 cmd="rm -f wrfout_*; rm -f wrfrst_*; rm -f auxhist*"
 if [ ${dbg} = 1 ]; then
-  printf "${cmd}\n" >> ${scrpt}; ${cmd}
+  printf "${cmd}\n" >> ${scrpt}; eval "${cmd}"
 else
-  printf "${cmd}\n"; ${cmd}
+  printf "${cmd}\n"; eval "${cmd}"
 fi
 
 # Link WRF initial conditions
@@ -542,7 +542,7 @@ for dmn in ${dmns[@]}; do
       fi
       cmd="ln -sfr ${wrfbdy} wrfbdy_d01"
       if [ ${dbg} = 0 ]; then
-        printf "${cmd}\n"; ${cmd}
+        printf "${cmd}\n"; eval "${cmd}"
       else
         printf "${cmd}\n" >> ${scrpt}
       fi
@@ -569,7 +569,7 @@ for dmn in ${dmns[@]}; do
     if [ ${dbg} = 1 ]; then
       printf "${cmd}\n" >> ${scrpt}
     else
-      printf "${cmd}\n"; ${cmd}
+      printf "${cmd}\n"; eval "${cmd}"
     fi
 
   elif [[ ${WRF_IC} = ${RESTART} ]]; then
@@ -584,7 +584,7 @@ for dmn in ${dmns[@]}; do
     if [ ${dbg} = 1 ]; then
       printf "${cmd}\n" >> ${scrpt}
     else
-      printf "${cmd}\n"; ${cmd}
+      printf "${cmd}\n"; eval "${cmd}"
     fi
 
     if [[ ${dmn} = 01 ]]; then
@@ -600,7 +600,7 @@ for dmn in ${dmns[@]}; do
       if [ ${dbg} = 1 ]; then
         printf "${cmd}\n" >> ${scrpt}
       else
-        printf "${cmd}\n"; ${cmd}
+        printf "${cmd}\n"; eval "${cmd}"
       fi
     fi
 
@@ -619,7 +619,7 @@ for dmn in ${dmns[@]}; do
       if [ ${dbg} = 1 ]; then
         printf "${cmd}\n" >> ${scrpt}
       else
-        printf "${cmd}\n"; ${cmd}
+        printf "${cmd}\n"; eval "${cmd}"
       fi
 
     fi
@@ -633,7 +633,7 @@ for dmn in ${dmns[@]}; do
     if [ ${dbg} = 1 ]; then
       printf "${cmd}\n" >> ${scrpt}
     else
-      printf "${cmd}\n"; ${cmd}
+      printf "${cmd}\n"; eval "${cmd}"
     fi
   fi
 
@@ -650,7 +650,7 @@ for dmn in ${dmns[@]}; do
     if [ ${dbg} = 1 ]; then
       printf "${cmd}\n" >> ${scrpt}
     else
-      printf "${cmd}\n"; ${cmd}
+      printf "${cmd}\n"; eval "${cmd}"
     fi
   fi
 done
@@ -662,9 +662,9 @@ if [ -f rsl.out.0000 ]; then
   mkdir ${logdir}
   printf "Moving pre-existing rsl files to ${logdir}.\n"
   cmd="mv rsl.out.* ${logdir}"
-  printf "${cmd}\n"; ${cmd}
+  printf "${cmd}\n"; eval "${cmd}"
   cmd="mv rsl.error.* ${logdir}"
-  printf "${cmd}\n"; ${cmd}
+  printf "${cmd}\n"; eval "${cmd}"
 else
   printf "No pre-existing rsl files were found.\n"
 fi
@@ -682,7 +682,7 @@ if [ ! -r ${filename} ]; then
 else
   cmd="cp -L ${filename} ./namelist.input"
   if [ ${dbg} = 0 ]; then
-    printf "${cmd}\n"; ${cmd}
+    printf "${cmd}\n"; eval "${cmd}"
   else
     printf "${cmd}\n" >> ${scrpt}
   fi
@@ -787,7 +787,7 @@ printf "IF_SST_UPDT = ${IF_SST_UPDT}\n"
 printf "IF_FEEDBACK = ${IF_FEEDBACK}\n"
 printf "\n"
 
-cmd="${par_run} ${wrf_exe}"
+cmd="${par_run} ${wrf_exe}; error=\$?"
 
 if [ ${dbg} = 1 ]; then
   printf "${cmd}\n" >> ${scrpt}
@@ -798,38 +798,36 @@ fi
 
 now=`date +%Y-%m-%d_%H_%M_%S`
 printf "wrf started at ${now}.\n"
-printf "${cmd}\n"; ${cmd}
+printf "${cmd}\n"; eval "${cmd}"
 
 ##################################################################################
 # Run time error check
 ##################################################################################
-
-error="$?"
 printf "wrf exited with code ${error}.\n"
 
 # Save a copy of the RSL files
 logdir=rsl.wrf.${now}
 mkdir ${logdir}
 cmd="mv rsl.out.* ${logdir}"
-printf "${cmd}\n"; ${cmd}
+printf "${cmd}\n"; eval "${cmd}"
 cmd="mv rsl.error.* ${logdir}"
-printf "${cmd}\n"; ${cmd}
+printf "${cmd}\n"; eval "${cmd}"
 cmd="mv namelist.* ${logdir}"
-printf "${cmd}\n"; ${cmd}
+printf "${cmd}\n"; eval "${cmd}"
 
 # Remove links to the WRF run files
 for filename in ${wrf_files[@]}; do
-    cmd="rm -f `basename ${filename}`"
-    printf "${cmd}\n"; ${cmd}
+  cmd="rm -f `basename ${filename}`"
+  printf "${cmd}\n"; eval "${cmd}"
 done
 
 # remove links to input / boundary condition data
 cmd="rm -f wrfinput_*; rm -f wrfbdy_*; rm -f wrflowinp_*"
-printf "${cmd}\n"; ${cmd}
+printf "${cmd}\n"; eval "${cmd}"
 
 # remove Thompson MP dat files generated by executable
 cmd="rm -f *.dat"
-printf "${cmd}\n"; ${cmd}
+printf "${cmd}\n"; eval "${cmd}"
 
 # check run error code
 if [ ${error} -ne 0 ]; then
@@ -852,7 +850,7 @@ if [ ${CYC_INC} -gt 0 ]; then
   dt_str=`date +%Y%m%d%H -d "${cyc_dt} ${CYC_INC} hours"`
   new_bkg=${dt_str}/bkg/ens_${memid}
   cmd="mkdir -p ${CYC_HME}/../${new_bkg}"
-  printf "${cmd}\n"; ${cmd}
+  printf "${cmd}\n"; eval "${cmd}"
 fi
 
 # Check for all wrfout files on HIST_INT and link files to
@@ -868,13 +866,13 @@ for dmn in ${dmns[@]}; do
       error=1
     elif [ ${CYC_INC} -gt 0 ]; then
       cmd="ln -sfr wrfout_d${dmn}_${dt_str} ${CYC_HME}/../${new_bkg}"
-      printf "${cmd}\n"; ${cmd}
+      printf "${cmd}\n"; eval "${cmd}"
 
       # if performing a restart run, link the outputs back to the original
       # run directory for sake of easy post-processing
       if [[ ${WRF_IC} = ${RESTART} ]]; then
         cmd="ln -sfr wrfout_d${dmn}_${dt_str} ${wrf_in_dir}"
-        printf "${cmd}\n"; ${cmd}
+        printf "${cmd}\n"; eval "${cmd}"
       fi
     fi
   done
@@ -890,13 +888,13 @@ for dmn in ${dmns[@]}; do
         error=1
       elif [ ${CYC_INC} -gt 0 ]; then
         cmd="ln -sfr wrfrst_d${dmn}_${dt_str} ${CYC_HME}/../${new_bkg}"
-        printf "${cmd}\n"; ${cmd}
+        printf "${cmd}\n"; eval "${cmd}"
 
         # if performing a restart run, link the outputs back to the original
         # run directory for sake of easy post-processing
         if [[ ${WRF_IC} = ${RESTART} ]]; then
           cmd="ln -sfr wrfrst_d${dmn}_${dt_str} ${wrf_in_dir}"
-          printf "${cmd}\n"; ${cmd}
+          printf "${cmd}\n"; eval "${cmd}"
         fi
       fi
       if [ ${error} = 1 ]; then
