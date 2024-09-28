@@ -137,10 +137,9 @@
         """
 [runtime]
     [[root]]
+        platform = {{environ['SCHED']}}
         [[[environment]]]
             CNST = {{environ['DRIVERS']}}/MODEL_CONSTANTS.sh
-            MOD_ENV = {{environ['MOD_ENV']}}
-            CFG_SHRD = {{environ['CFG_SHRD']}}
             EXP_NME = {{EXP_NME}}
             EXP_VRF = $(isodatetime {{EXP_VRF}} --f '%Y%m%d%H')
             CYC_DT = $(isodatetime ${CYLC_TASK_CYCLE_POINT} --f '%Y%m%d%H')
@@ -149,30 +148,20 @@
             IF_DYN_LEN = {{IF_DYN_LEN}}
             IF_SST_UPDT = {{IF_SST_UPDT}}
             IF_RGNL = {{IF_RGNL}}
-            MPIRUN = {{environ['MPIRUN']}}
             IF_DBG_SCRPT = {{IF_DBG}}
-            SCHED = {{environ['SCHED']}}
-
-    [[WPS]]
-        [[[environment]]]
-            WPS_ROOT = {{environ['WPS_ROOT']}}
 
     [[MPAS]]
         [[[environment]]]
-            MPAS_ROOT = {{environ['MPAS_ROOT']}}
             MSH_NME = {{MSH_NME}}
 
     {% for mem in range(0,ENS_SIZE) %}
         {% set idx = mem | pad(2, '0') %}
         [[ungrib_ens_{{idx}}]]
-            inherit = WPS
-            platform = {{environ['SCHED']}}
             execution time limit = {{GRIB_WC}}
             script = {{environ['DRIVERS']}}/ungrib.sh
             execution retry delays = 3*PT5M
             [[[environment]]]
                 MEMID = {{idx}}
-                GRIB_ROOT = {{environ['GRIB_ROOT']}}
                 BKG_STRT_DT = $CYC_DT
                 IF_SST_UPDT = {{IF_SST_UPDT}}
                 BKG_DATA = {{ENS_BKG_DATA}}
@@ -198,7 +187,6 @@
 
         [[mpas_ic_ens_{{idx}}]]
             inherit = MPAS
-            platform = {{environ['SCHED']}}
             execution time limit = {{INIT_WC}}
             script = {{environ['DRIVERS']}}/mpas_ic.sh
             execution retry delays = 3*PT5M
@@ -230,7 +218,6 @@
 
         [[mpas_sfc_ens_{{idx}}]]
             inherit = MPAS
-            platform = {{environ['SCHED']}}
             execution time limit = {{INIT_WC}}
             script = {{environ['DRIVERS']}}/mpas_sfc.sh
             execution retry delays = 3*PT5M
@@ -263,7 +250,6 @@
 
         [[mpas_model_ens_{{idx}}]]
             inherit = MPAS
-            platform = {{environ['SCHED']}}
             execution time limit = {{MPAS_WC}}
             script = {{environ['DRIVERS']}}/mpas_model.sh
             execution retry delays = 3*PT5M
