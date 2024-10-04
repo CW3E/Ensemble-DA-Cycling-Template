@@ -8,10 +8,13 @@
 *.so
 *.pyc
 
-# No conda / miniconda files #
+# No conda / miniconda / Python lib files #
 ###################
 .conda
 .conda/*
+.ipython
+.ipython/*
+.pdbhistory
 
 # Packages #
 ############

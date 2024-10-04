@@ -60,6 +60,15 @@ export WPS_ROOT="${SOFT_ROOT}/${MOD_STACK}/WPS-4.5"
 # Root directory of MPAS clean build
 export MPAS_ROOT="${SOFT_ROOT}/${MOD_STACK}/MPAS-Model-8.0.1"
 
+# GSI software stack name
+export GSI_STACK="NOAA_HPC_STACK"
+
+# GSI stack configuration file
+export GSI_ENV="${HOME}/settings/sites/expanse-cwp168/${GSI_STACK}.sh"
+
+# Path to GSI executable
+export GSI_EXE="${SOFT_ROOT}/${GSI_STACK}/GSI/build/bin/gsi.x"
+
 # Root directory of simulation forcing data
 export DATA_ROOT="/expanse/nfs/cw3e/cwp168/DATA"
 
