@@ -30,22 +30,24 @@
 {# CYCLING SETTINGS #}
 {################################################################################}
 {# First initial time for first forecast (no DA) YYYY-MM-DDTHH #}
-{% set CLD_STRT = '2022-12-19T18' %}
-
-{# First initial time for standard DA cycle YYYY-MM-DDTHH #}
-{% set CYC_STRT = '2022-12-20T00' %}
+{# DA will begin on the next cycle determined by CYC_INC below #}
+{% set CYC_STRT = '2022-12-19T18' %}
 
 {# Last initial time for a forecast YYYY-MM-DDTHH #}
 {% set CYC_STOP = '2022-12-28T00' %}
 
-{# Interval between cycle start times PTXXH #}
-{% set CYC_INC = 'PT6H' %}
+{# Interval between cycle start times INT hours value #}
+{% set CYC_INC = 6 %}
 
-{# Number of short-range cycles before first extended forecast (INT) #}
-{% set WRM_UP = '12' %}
+{# Length of warmup period of full DA cycling before extended forecasts #}
+{# Period begins after first forecast and excludes the final cylc point #}
+{% set WRM_UP = 'P1D' %}
 
-{# Fixed length forecast length within every cycle in HH, usually equal to CYC_INT #}
-{% set FCST_HRS = '06' %}
+{# Fixed forecast length within every cycle INT hours >= CYC_INC #}
+{% set FCST_HRS = 6 %}
+
+{# List of zero hour to initialize extended forecasts (usually T00 / T12) #}
+{% set EXT_ZHRS = [ 'T00' ] %}
 
 {# First cycle to initialize extended forecast for verifcation at valid date #}
 {% set VRF_STRT = '2022-12-23T00' %}
@@ -178,38 +180,65 @@
 {################################################################################}
 {# CYLC SETTINGS #}
 {################################################################################}
+{# Generating cycle hours from CYC_INC #}
+{% set CYC_HRS = [] %}
+{% for hr in range(0, 24, CYC_INC) %}
+  {% set zhr = hr | pad(2, '0') %}
+  {% set zhr = ['T', zhr ] | join('') %}
+  {% do CYC_HRS.append(zhr) %}
+{% endfor %}
+
+
 [scheduler]
     UTC mode = True
     allow implicit tasks = True
 [scheduling]
-    initial cycle point = {{CLD_STRT}}
+    initial cycle point = {{CYC_STRT}}
     final cycle point = {{CYC_STOP}}
     [[graph]]
-        R1 = """
+        R1/^ = """
         ungrib_ens_00_cld  => wrf_metgrid_ens_00_cld
         wrf_metgrid_ens_00_cld => wrf_real_ens_00_cld
         wrf_real_ens_00_cld => wrf_model_ens_00_cld
         """
 
-        {{CYC_INC}}!{{CLD_STRT}}/{{VRF_STRT}} = """
-        wrf_real_ens_00_cld[-{{CYC_INC}}] |
-        wrf_real_ens_00_cyc[-{{CYC_INC}}] |
-        wrf_real_ens_00_for[-{{CYC_INC}}] => ungrib_ens_00_cyc
+        R/PT{{CYC_INC}}H/^+{{WRM_UP}} ! ^ = """
+        wrf_real_ens_00_cld[-PT{{CYC_INC}}H] |
+        wrf_real_ens_00_cyc[-PT{{CYC_INC}}H] => ungrib_ens_00_cyc
         ungrib_ens_00_cyc  => wrf_metgrid_ens_00_cyc
         wrf_metgrid_ens_00_cyc => wrf_real_ens_00_cyc
-        (wrf_model_ens_00_cyc[-{{CYC_INC}}] & wrf_real_ens_00_cyc) |
-        (wrf_model_ens_00_cld[-{{CYC_INC}}] & wrf_real_ens_00_cld)=> wrfda_lowbc
+        (wrf_model_ens_00_cyc[-PT{{CYC_INC}}H] & wrf_real_ens_00_cyc) |
+        (wrf_model_ens_00_cld[-PT{{CYC_INC}}H] & wrf_real_ens_00_cyc)=> wrfda_lowbc
         wrfda_lowbc => gsi_analysis
         gsi_analysis => wrfda_latbc
         wrfda_latbc => wrf_model_ens_00_cyc
         """
 
-        {{VRF_STRT}}/{{CYC_INC}} = """
-        wrf_real_ens_00_cyc[-{{CYC_INC}}] => ungrib_ens_00_cyc
-        ungrib_ens_00_cyc  => wrf_metgrid_ens_00_cyc
-        wrf_metgrid_ens_00_cyc => wrf_real_ens_00_cyc
-        wrf_model_ens_00_cyc[-{{CYC_INC}}] & wrf_real_ens_00_cyc => wrfda_lowbc
-        wrfda_lowbc => gsi_analysis
-        gsi_analysis => wrfda_latbc
-        wrfda_latbc => wrf_model_ens_00_cyc
-        """
+        {% for zhr in CYC_HRS %}
+            {% if zhr in EXT_ZHRS %}
+                R/^+{{WRM_UP}}+PT{{CYC_INC}}H+P{{zhr}}H/P1D = """
+                wrf_real_ens_00_for[-PT{{CYC_INC}}H] |
+                wrf_real_ens_00_cyc[-PT{{CYC_INC}}H] => ungrib_ens_00_for
+                ungrib_ens_00_for  => wrf_metgrid_ens_00_for
+                wrf_metgrid_ens_00_for => wrf_real_ens_00_for
+                (wrf_model_ens_00_cyc[-PT{{CYC_INC}}H] & wrf_real_ens_00_for) |
+                (wrf_model_ens_00_for[-PT{{CYC_INC}}H] & wrf_real_ens_00_for)=> wrfda_lowbc
+                wrfda_lowbc => gsi_analysis
+                gsi_analysis => wrfda_latbc
+                wrfda_latbc => wrf_model_ens_00_for
+                wrf_model_ens_00_for => wrf_model_ens_00_rstrt
+                """
+            {% else %}
+                R/^+{{WRM_UP}}+PT{{CYC_INC}}H+P{{zhr}}H/P1D = """
+                wrf_real_ens_00_for[-PT{{CYC_INC}}H] |
+                wrf_real_ens_00_cyc[-PT{{CYC_INC}}H] => ungrib_ens_00_cyc
+                ungrib_ens_00_cyc  => wrf_metgrid_ens_00_cyc
+                wrf_metgrid_ens_00_cyc => wrf_real_ens_00_cyc
+                (wrf_model_ens_00_cyc[-PT{{CYC_INC}}H] & wrf_real_ens_00_cyc) |
+                (wrf_model_ens_00_for[-PT{{CYC_INC}}H] & wrf_real_ens_00_cyc)=> wrfda_lowbc
+                wrfda_lowbc => gsi_analysis
+                gsi_analysis => wrfda_latbc
+                wrfda_latbc => wrf_model_ens_00_cyc
+                """
+            {% endif %}
+        {% endfor %}
