@@ -61,9 +61,12 @@ export SLURM=[Ss][Ll][Uu][Rr][Mm]
 export PBS=[Pp][Bb][Ss]
 
 # Defines YYYYMMDDHH iso regular expression
-export ISO_RE=^[0-9]{10}$
+export ISO_RE='^[0-9]{10}$'
 
 # Defines regular expression for arbitrary integers
-export INT_RE=^[0-9]+$
+export INT_RE='^[0-9]+$'
+
+# Defines regular expression for positive (left-padded) decimals
+export DEC_RE='^[0-9]+\.[0-9]*$'
 
 ##########################################################################

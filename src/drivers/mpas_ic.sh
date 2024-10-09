@@ -130,7 +130,7 @@ if [ -z ${EXP_NME} ]; then
 else
   IFS="/" read -ra exp_nme <<< ${EXP_NME}
   if [ ${#exp_nme[@]} -ne 2 ]; then
-    printf "ERROR: \${EXP_NME} variable:\n    ${EXP_NME}\n"
+    printf "ERROR: \${EXP_NME} variable:\n ${EXP_NME}\n"
     printf "should define case study / config short name directory nesting.\n"
     exit 1
   fi

@@ -78,7 +78,7 @@
 
 {# Static ensemble perturbations stored here organized by lag length #}
 {% set lag = ['lag', LAG] | join('_') %}
-{% set ENS_ROOT = [environ['ENS_ROOT'], lag] | join('/') %}
+{% set ENS_DIR = [environ['ENS_ROOT'], lag] | join('/') %}
 
 {# Max domain for ensemble simulation #}
 {% set WRF_ENS_DOM= '01' %}
@@ -424,16 +424,15 @@
         execution retry delays = 3*PT5M
         script = {{environ['DRIVERS']}}/gsi_3denvar.sh
         [[[environment]]]
-            IF_OBSERVER = 'No'
             IF_HYBRID = {{IF_HYBRID}}
             WRF_CTR_DOM = {{CTR_CYC_DOM}}
             WRF_ENS_DOM = {{CTR_CYC_DOM}}
             ENS_SIZE = {{ENS_SIZE}}
             BETA = {{BETA}}
-            S_ENS_H = {{HLOC}}
-            S_ENS_V = {{VLOC}}
+            HLOC = {{HLOC}}
+            VLOC = {{VLOC}}
             MAX_BC_LOOP = {{MAX_BC_LOOP}}
-            ENS_ROOT = {{ENS_ROOT}}/$CYC_DT
+            ENS_DIR = {{ENS_DIR}}/$CYC_DT
         [[[directives]]]
             {% if environ['SCHED'] == 'slurm' %}
                 {% if environ['SYS_TYPE' ] == 'penguin' %}

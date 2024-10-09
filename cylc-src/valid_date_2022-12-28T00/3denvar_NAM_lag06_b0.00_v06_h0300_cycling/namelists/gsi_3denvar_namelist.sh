@@ -1,30 +1,30 @@
 cat <<EOF > gsiparm.anl
 
  &SETUP
-   miter=${nummiter},niter(1)=50,niter(2)=50,
+   miter=2,niter(1)=50,niter(2)=50,
    write_diag(1)=.true.,write_diag(2)=.false.,write_diag(3)=.true.,
    gencode=78,qoption=2,
    factqmin=0.0,factqmax=0.0,
    iguess=-1,
-   oneobtest=${if_oneobtest},retrieval=.false.,
+   oneobtest=.false.,retrieval=.false.,
    nhr_assimilation=2,l_foto=.false.,
    use_pbl=.false.,verbose=.true.,
-   lread_obs_save=${if_read_obs_save},lread_obs_skip=${if_read_obs_skip},
+   lread_obs_save=.false.,lread_obs_skip=.false.,
    newpc4pred=.true.,adp_anglebc=.true.,angord=4,
    passive_bc=.true.,use_edges=.false.,emiss_bc=.true.,
    diag_precon=.true.,step_start=1.e-3,
-   l4densvar=${if4d},nhr_obsbin=1,min_offset=60,
-   use_gfs_nemsio=${if_gfs_nemsio},
+   l4densvar=.false.,nhr_obsbin=1,min_offset=60,
+   use_gfs_nemsio=.false.,
  /
  &GRIDOPTS
    JCAP=62,JCAP_B=62,NLAT=60,NLON=60,nsig=60,regional=.true.,
-   wrf_nmm_regional=${bk_core_nmm},wrf_mass_regional=${bk_core_arw},
-   nems_nmmb_regional=${bk_core_nmmb},nmmb_reference_grid='H',diagnostic_reg=.false.,
-   filled_grid=.false.,half_grid=.true.,netcdf=${bk_if_netcdf},
+   wrf_nmm_regional=.false.,wrf_mass_regional=.true.,
+   nems_nmmb_regional=.false.,nmmb_reference_grid='H',diagnostic_reg=.false.,
+   filled_grid=.false.,half_grid=.true.,netcdf=.true.,
  /
  &BKGERR
-   vs=${vs_op}
-   hzscl=${hzscl_op}
+   vs=1.0,
+   hzscl=0.373,0.746,1.50,
    bw=0.,fstat=.true.,
  /
  &ANBKGERR
@@ -134,10 +134,10 @@ OBS_INPUT::
    uv_hyb_ens=.true.,
    aniso_a_en=.false.,generate_ens=.false.,
    n_ens=${nummem},
-   beta_s0=${BETA},s_ens_h=${S_ENS_H},s_ens_v=${S_ENS_V},
+   beta_s0=${BETA},s_ens_h=${HLOC},s_ens_v=${VLOC},
    regional_ensemble_option=3,
    pseudo_hybens = .false.,
-   grid_ratio_ens =${grid_ratio},
+   grid_ratio_ens =1,
    l_ens_in_diff_time=.true.,
    ensemble_path='',
  /
@@ -149,7 +149,7 @@ OBS_INPUT::
  /
  &SINGLEOB_TEST
    maginnov=1.0,magoberr=0.8,oneob_type='t',
-   oblat=38.,oblon=279.,obpres=500.,obdattim=${ANL_TIME},
+   oblat=38.,oblon=279.,obpres=500.,obdattim=${CYC_DT},
    obhourset=0.,
  /
 EOF

@@ -5,15 +5,6 @@
 # This driver script utilizes WRFDA to update lower and lateral boundary
 # conditions in conjunction with GSI updating the initial conditions.
 #
-# The purpose of this fork is to work in a Rocoto-based
-# Observation-Analysis-Forecast cycle with GSI for data denial
-# experiments. Naming conventions in this script have been smoothed
-# to match a companion major fork of the standard gsi.ksh
-# driver script provided in the GSI tutorials.
-#
-# One should write machine specific options for the WRFDA environment
-# in a WRF_constants.sh script to be sourced in the below.
-#
 ##################################################################################
 # License Statement:
 ##################################################################################
@@ -50,12 +41,18 @@
 # OBLIGATIONS TO PROVIDE MAINTENANCE, SUPPORT, UPDATES, ENHANCEMENTS, OR
 # MODIFICATIONS.
 # 
-#
 ##################################################################################
 # Preamble
 ##################################################################################
-# uncomment to run verbose for debugging / testing
-#set -x
+# CNST         = Full path to BASH constants used in driver scripts
+# MOD_ENV      = Full path to environment used to compile and run WPS / WRF / MPAS
+# IF_DBG_SCRPT = Switch YES or else, this is NOT A REQUIRED ARGUMENT. Set variable
+#                IF_DBG_SCRPT=Yes within the configuration to initiate debugging,
+#                script will default to normal run behavior otherwise
+# SCHED        = IF_DBG_SCRPT=Yes, SCHED=SLURM or SCHED=PBS will auto-generate
+#                a job submission header in the debugging script to run manually
+#
+##################################################################################
 
 if [ ! -x ${CNST} ]; then
   printf "ERROR: constants file\n ${CNST}\n does not exist or is not executable.\n"
@@ -66,24 +63,94 @@ else
   printf "${cmd}\n"; eval "${cmd}"
 fi
 
+if [ ! -x ${MOD_ENV} ]; then
+  msg="ERROR: model environment file\n ${MOD_ENV}\n does not exist"
+  msg+=" or is not executable.\n"
+  printf "${msg}"
+  exit 1
+else
+  # Read model environment into the current shell
+  cmd=". ${MOD_ENV}"
+  printf "${cmd}\n"; eval "${cmd}"
+fi
+
+if [[ ${IF_DBG_SCRPT} = ${YES} ]]; then 
+  dbg=1
+  scrpt=$(mktemp /tmp/run_dbg.XXXXXXX.sh)
+  printf "Driver runs in debug mode.\n"
+  printf "Producing a script and work directory for manual submission.\n"
+
+  if [[ ${SCHED} = ${SLURM} ]]; then
+    # source slurm header from environment directory
+    cat `dirname ${MOD_ENV}`/slurm_header.sh >> ${scrpt}
+  elif [[ ${SCHED} = ${PBS} ]]; then
+    # source pbs header from environment directory
+    cat `dirname ${MOD_ENV}`/pbs_header.sh >> ${scrpt}
+  fi
+
+  # Read constants and print into run script
+  while read line; do
+    IFS=" " read -ra parsed <<< ${line}
+    char=${parsed[0]}
+    if [[ ! ${char} =~ \# ]]; then
+      cmd=""
+      for char in ${parsed[@]}; do
+        cmd="${cmd}${char} "
+      done
+      printf "${cmd}\n" >> ${scrpt}
+    fi
+  done < ${MOD_ENV}
+else
+  dbg=0
+fi
+
 ##################################################################################
 # Make checks for WRFDA settings
 ##################################################################################
-# Options below are defined in control flow xml
+# Options below are defined in workflow
 #
+# EXP_NME     = Case study / config short name directory structure
 # CYC_DT      = Analysis time YYYYMMDDHH
 # BOUNDARY    = 'LOWER' if updating lower boundary conditions 
 #               'LATERAL' if updating lateral boundary conditions
 # WRF_CTR_DOM = Max domain index of control forecast to update BOUNDARY=LOWER
 # IF_ENS_UPDT = Skip lower / lateral BC updates if 'No'
-# N_ENS       = Max ensemble index to apply update IF_ENS_UPDATE='Yes'
-# ENS_ROOT    = Forecast ensemble located at ${ENS_ROOT}/ens_${memid}/wrfout* 
+# ENS_SIZE    = Total ensemble size to loop updates IF_ENS_UPDATE='Yes'
+# ENS_DIR     = Forecast ensemble located at ${ENS_DIR}/ens_${memid}/wrfout* 
 # WRF_ENS_DOM = Max domain index of ensemble perturbations
 #
 ##################################################################################
 
+if [ -z ${EXP_NME} ]; then
+  printf "ERROR: Case study / config short name \${EXP_NME} is not defined.\n"
+  exit 1
+else
+  IFS="/" read -ra exp_nme <<< ${EXP_NME}
+  if [ ${#exp_nme[@]} -ne 2 ]; then
+    printf "ERROR: \${EXP_NME} variable:\n ${EXP_NME}\n"
+    printf "should define case study / config short name directory nesting.\n"
+    exit 1
+  fi
+  cse_nme=${exp_nme[0]}
+  cfg_nme=${exp_nme[1]}
+  # configuration name is separated on '.' to denote sub-config, leading part
+  # is used for the mpas static file naming
+  IFS="." read -ra tmp_nme <<< ${cfg_nme}
+  stc_nme=${tmp_nme[0]}
+  printf "Setting up configuration:\n    ${stc_nme}\n"
+  if [ ${#tmp_nme[@]} -eq 2 ]; then
+    printf "sub-configuration:\n    ${tmp_nme[1]}\n"
+  fi
+  printf "for:\n    ${cse_nme}\n case study.\n"
+  cfg_dir=${HOME}/cylc-src/${EXP_NME}
+  if [ ! -d ${cfg_dir} ]; then
+    printf "ERROR: simulation settings directory\n ${cfg_dir}\n does not exist.\n"
+    exit 1
+  fi
+fi
+
 # Convert CYC_DT from 'YYYYMMDDHH' format to cyc_dt iso format
-if [ ${#CYC_DT} -ne 10 ]; then
+if [[ ${CYC_DT} =~ ${ISO_RE} ]]; then
   printf "ERROR: \${CYC_DT}, ${CYC_DT}, is not in 'YYYYMMDDHH' format.\n"
   exit 1
 else
@@ -93,8 +160,13 @@ else
 fi
 
 if [[ ${BOUNDARY} = ${LOWER} ]]; then
-  if [ ${#WRF_CTR_DOM} -ne 2 ]; then
-    printf "ERROR: \${WRF_CTR_DOM}, ${WRF_CTR_DOM} is not in DD format.\n"
+  if [[ ! ${WRF_CTR_DOM} =~ ${INT_RE} ]]; then
+    msg="ERROR: \${WRF_CTR_DOM},\n ${WRF_CTR_DOM}\n is not an integer, it"
+    msg+=" must equal the max domain to update lower boundary conditions.\n"
+    printf "${msg}"
+    exit 1
+  elif [ ${#WRF_CTR_DOM} -ne 2 ]; then
+    printf "ERROR: \${WRF_CTR_DOM}, ${WRF_CTR_DOM}, is not in DD format.\n"
     exit 1
   fi
   msg="Updating lower boundary conditions for WRF control domains "
@@ -113,22 +185,27 @@ if [[ ${IF_ENS_UPDT} = ${NO} ]]; then
   # skip the boundary updates for the ensemble, perform on control alone
   ens_max=0
 elif [[ ${IF_ENS_UPDT} = ${YES} ]]; then
-  if [ ! ${N_ENS} ]; then
-    printf "ERROR: \${N_ENS} is not defined.\n"
+  if [[ ! ${ENS_SIZE} =~ ${INT_RE} ]]; then
+    printf "ERROR: \${ENS_SIZE}\n ${ENS_SIZE}\n is not an integer.\n"
     exit 1
   fi
-  if [ ! ${ENS_ROOT} ]; then
-    printf "ERROR: \${ENS_ROOT} is not defined.\n"
+  if [ -z ${ENS_DIR} ]; then
+    printf "ERROR: \${ENS_DIR} is not defined.\n"
     exit 1
-  elif [ ! -d ${ENS_ROOT} ]; then
-    printf "ERROR: \${ENS_ROOT} directory\n ${ENS_ROOT}\n does not exist.\n"
+  elif [[ ! -d ${ENS_DIR} || ! -x ${ENS_DIR} ]]; then
+    msg="ERROR: \${ENS_DIR} directory\n ${ENS_DIR}\n does not exist"
+    msg+=" or is not executable.\n"
+    printf "${msg}"
+    exit 1
+  elif [[ ${BOUNDARY} = LOWER && ! ${WRF_ENS_DOM} ~= ${INT_RE} ]]; then
+    printf "ERROR: \${WRF_ENS_DOM}, ${WRF_ENS_DOM}, is not an integer.\n"
     exit 1
   elif [[ ${BOUNDARY} = LOWER && ${#WRF_ENS_DOM} -ne 2 ]]; then
     printf "ERROR: \${WRF_ENS_DOM}, ${WRF_ENS_DOM}, is not in DD format.\n"
     exit 1
   else
-    # perform over the entire ensemble (ensure base 10 for padded indices)
-    ens_max=`printf $(( 10#${N_ENS} ))`
+    # perform over the entire ensemble
+    ens_max=$(( ${ENS_SIZE} - 1 ))
     msg="Updating lower boundary conditions for WRF perturbation domains "
     msg+="d01 through d${WRF_ENS_DMN}."
     printf "${msg}"
@@ -144,26 +221,17 @@ fi
 # Below variables are defined in control flow variables
 #
 # WRFDA_ROOT = Root directory of a WRFDA build 
-# EXP_CFG   = Root directory containing sub-directories for namelists
-#              vtables, geogrid data, GSI fix files, etc.
-# CYC_HME    = Start time named directory for cycling data containing
-#              bkg, ungrib, metgrid, real, wrf, wrfda_bc, gsi, enkf
+# CYC_HME    = Start date ISO named directory for cycling data
 #
 ##################################################################################
 
-if [ ! ${WRFDA_ROOT} ]; then
+if [ -z ${WRFDA_ROOT} ]; then
   printf "ERROR: \${WRFDA_ROOT} is not defined.\n"
   exit 1
-elif [ ! -d ${WRFDA_ROOT} ]; then
-  printf "ERROR: \${WRFDA_ROOT} directory\n ${WRFDA_ROOT}\n does not exist.\n"
-  exit 1
-fi
-
-if [ ! ${EXP_CFG} ]; then
-  printf "ERROR: \${EXP_CFG} is not defined.\n"
-  exit 1
-elif [ ! -d ${EXP_CFG} ]; then
-  printf "ERROR: \${EXP_CFG} directory\n ${EXP_CFG}\n does not exist.\n"
+elif [[ ! -d ${WRFDA_ROOT} || ! -x ${WRFDA_ROOT} ]]; then
+  msg="ERROR: \${WRFDA_ROOT} directory\n ${WRFDA_ROOT}\n does not exist"
+  msg+=" or is not executable.\n"
+  printf "${msg}"
   exit 1
 fi
 
@@ -180,12 +248,12 @@ fi
 ##################################################################################
 # The following paths are relative to control flow supplied root paths
 #
-# work_dir      = Directory where da_update_bc.exe runs
-# real_dir       = Directory real.exe runs and outputs IC and BC files for cycle
-# ctr_dir        = Directory with control WRF forecast for lower boundary update 
-# ens_dir        = Directory with ensemble WRF forecast for lower boundary update 
-# gsi_dir        = Directory with GSI control analysis for lateral update
-# enkf_dir       = Directory with EnKF analysis for ensemble lateral update
+# work_dir     = Directory where da_update_bc.exe runs
+# real_dir     = Directory real.exe runs and outputs IC and BC files for cycle
+# ctr_dir      = Directory with control WRF forecast for lower boundary update 
+# ens_dir      = Directory with ensemble WRF forecast for lower boundary update 
+# gsi_dir      = Directory with GSI control analysis for lateral update
+# enkf_dir     = Directory with EnKF analysis for ensemble lateral update
 # updt_bc_exe  = Path and name of the update executable
 #
 ##################################################################################
@@ -197,8 +265,10 @@ for memid in `seq -f "%02g" 0 ${ens_max}`; do
   enkf_dir=${CYC_HME}/enkf
   updt_bc_exe=${WRFDA_ROOT}/var/da/da_update_bc.exe
   
-  if [ ! -d ${real_dir} ]; then
-    printf "ERROR: \${real_dir} directory\n ${real_dir}\n does not exist.\n"
+  if [[ ! -d ${real_dir} || ! -x ${real_dir} ]]; then
+    msg="ERROR: \${real_dir} directory\n ${real_dir}\n does not exist"
+    msg=+" or is not executable.\n"
+    printf "${msg}"
     exit 1
   fi
   
@@ -226,14 +296,16 @@ for memid in `seq -f "%02g" 0 ${ens_max}`; do
       bkg_dir=${CYC_HME}/bkg/ens_${memid}
       max_dom=${WRF_CTR_DOM}
     else
-      # perturbation background sourced from ensemble root
-      bkg_dir=${ENS_ROOT}/bkg/ens_${memid}
+      # perturbation background sourced from ensemble dir
+      bkg_dir=${ENS_DIR}/bkg/ens_${memid}
       max_dom=${WRF_ENS_DOM}
     fi
 
     # verify forecast data root
-    if [ ! -d ${bkg_dir} ]; then
-      printf "ERROR: \${bkg_dir} directory\n ${bkg_dir}\n does not exist.\n"
+    if [[ ! -d ${bkg_dir} || ! -x ${bkg_dir} ]]; then
+      msg="ERROR: \${bkg_dir} directory\n ${bkg_dir}\n does not exist"
+      msg+=" or is not executable.\n"
+      printf "${msg}"
       exit 1
     fi
     
@@ -266,7 +338,7 @@ for memid in `seq -f "%02g" 0 ${ens_max}`; do
       #  Build da_update_bc namelist
       ##################################################################################
       # Copy the namelist from the static dir -- THIS WILL BE MODIFIED DO NOT LINK TO IT
-      cmd="cp -L ${EXP_CFG}/namelists/parame.in ."
+      cmd="cp -L ${cfg_dir}/namelists/parame.in ."
       printf "${cmd}\n"; eval "${cmd}"
   
       # Update the namelist
@@ -288,15 +360,14 @@ for memid in `seq -f "%02g" 0 ${ens_max}`; do
       printf "BOUNDARY = ${BOUNDARY}\n"
       printf "DOMAIN   = ${dmn}\n"
       printf "CYC_DT   = ${cyc_dt}\n"
-      printf "EXP_CFG = ${EXP_CFG}\n"
+      printf "EXP_NME  = ${EXP_NME}\n"
       printf "CYC_HME  = ${CYC_HME}\n"
-      printf "ENS_ROOT = ${ENS_ROOT}\n"
+      printf "ENS_DIR = ${ENS_DIR}\n"
       printf "\n"
       now=`date +%Y-%m-%d_%H_%M_%S`
       printf "da_update_bc.exe started at ${now}.\n"
-      cmd="${updt_bc_exe}"
-      printf "${cmd}\n"
-      ${updt_bc_exe} 
+      cmd="${updt_bc_exe}; error=\$?"
+      printf "${cmd}\n"; eval "${cmd}"
 
       ##################################################################################
       # Run time error check
@@ -308,7 +379,7 @@ for memid in `seq -f "%02g" 0 ${ens_max}`; do
         printf "ERROR:\n ${updt_bc_exe}\n exited with code ${error}.\n"
         exit ${error}
       else
-	printf "${updt_bc_exe} exited with code ${error}.\n"
+        printf "${updt_bc_exe} exited with code ${error}.\n"
       fi
     done
   
@@ -330,18 +401,21 @@ for memid in `seq -f "%02g" 0 ${ens_max}`; do
     printf "${cmd}\n"; eval "${cmd}"
 
     if [ ${memid} = 00 ]; then
-      if [ ! -d ${gsi_dir} ]; then
-        printf "ERROR: \${gsi_dir} directory\n ${gsi_dir}\n does not exist.\n"
+      if [[ ! -d ${gsi_dir} || ! -x ${gsi_dir} ]]; then
+        msg="ERROR: \${gsi_dir} directory\n ${gsi_dir}\n does not exist"
+        msg+=" or is not executable.\n"
+        printf "${msg}"
         exit 1
       else
-        wrfanl=${gsi_dir}/d01/wrfanl_ens_${memid}_${cyc_dt}
+        wrfanl="${gsi_dir}/d01/wrfanl_ens_${memid}_${cyc_dt}"
       fi
     else
-      if [ ! -d ${enkf_dir} ]; then
-        printf "ERROR: \${enkf_dir} directory\n ${enkf_dir}\n does not exist.\n"
+      if [[ ! -d ${enkf_dir} || ! -x ${enkf_dir} ]]; then
+        msg="ERROR: \${enkf_dir} directory\n ${enkf_dir}\n does not exist"
+        msg+=" or is not executable.\n"
+        printf "${msg}"
         exit 1
       else
-        # NOTE: ENKF SCRIPT NEED TO UPDATE OUTPUT NAMING CONVENTIONS
         wrfanl=${enkf_dir}/d01/wrfanl_ens_${memid}_${cyc_dt}
       fi
     fi
@@ -369,7 +443,7 @@ for memid in `seq -f "%02g" 0 ${ens_max}`; do
     #  Build da_update_bc namelist
     ##################################################################################
     # Copy the namelist from the static dir -- THIS WILL BE MODIFIED DO NOT LINK TO IT
-    cmd="cp -L ${EXP_CFG}/namelists/parame.in ."
+    cmd="cp -L ${cfg_dir}/namelists/parame.in ."
     printf "${cmd}\n"; eval "${cmd}"
   
     # Update the namelist for lateral boundary update 
@@ -392,15 +466,14 @@ for memid in `seq -f "%02g" 0 ${ens_max}`; do
     printf "BOUNDARY = ${BOUNDARY}\n"
     printf "DOMAIN   = ${dmn}\n"
     printf "CYC_DT   = ${cyc_dt}\n"
-    printf "EXP_CFG = ${EXP_CFG}\n"
+    printf "EXP_NME  = ${EXP_NME}\n"
     printf "CYC_HME  = ${CYC_HME}\n"
-    printf "ENS_ROOT = ${ENS_ROOT}\n"
+    printf "ENS_DIR  = ${ENS_DIR}\n"
     printf "\n"
     now=`date +%Y-%m-%d_%H_%M_%S`
     printf "da_update_bc.exe started at ${now}.\n"
-    cmd="${updt_bc_exe}"
-    printf "${cmd}\n"
-    ${updt_bc_exe} 
+    cmd="${updt_bc_exe}; error=\$?"
+    printf "${cmd}\n"; eval "${cmd}"
 
     ##################################################################################
     # Run time error check
