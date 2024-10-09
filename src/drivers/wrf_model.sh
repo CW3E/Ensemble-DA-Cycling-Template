@@ -722,9 +722,9 @@ rstrt_int=$(( 60 * 10#${rstrt_int} ))
 
 # Update the restart setting in wrf namelist depending on switch
 if [[ ${WRF_IC} = ${RESTART} ]]; then
-  wrf_restart=".true."
+  if_rstrt=".true."
 else
-  wrf_restart=".false."
+  if_rstrt=".false."
 fi
 
 # Update the wrf namelist (propagates settings to three domains)
@@ -748,7 +748,7 @@ cat namelist.input \
 | sed "s/= AUXINPUT4_INT,/= ${aux_out},/" \
 | sed "s/= AUXHIST2_INT,/= ${out_hist},/" \
 | sed "s/= HIST_INT,/= ${out_hist},/" \
-| sed "s/= RSTRT,/= ${wrf_restart},/" \
+| sed "s/= RSTRT,/= ${if_rstrt},/" \
 | sed "s/= RSTRT_INT,/= ${rstrt_int},/" \
 | sed "s/= IF_FEEDBACK,/= ${feedback},/"\
 | sed "s/= NIO_TPG,/= ${NIO_TPG},/" \

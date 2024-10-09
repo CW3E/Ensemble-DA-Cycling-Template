@@ -71,7 +71,7 @@ fi
 ##################################################################################
 # Options below are defined in control flow xml
 #
-# ANL_DT      = Analysis time YYYYMMDDHH
+# CYC_DT      = Analysis time YYYYMMDDHH
 # BOUNDARY    = 'LOWER' if updating lower boundary conditions 
 #               'LATERAL' if updating lateral boundary conditions
 # WRF_CTR_DOM = Max domain index of control forecast to update BOUNDARY=LOWER
@@ -82,14 +82,14 @@ fi
 #
 ##################################################################################
 
-# Convert ANL_DT from 'YYYYMMDDHH' format to anl_iso iso format
-if [ ${#ANL_DT} -ne 10 ]; then
-  printf "ERROR: \${ANL_DT}, ${ANL_DT}, is not in 'YYYYMMDDHH' format.\n"
+# Convert CYC_DT from 'YYYYMMDDHH' format to cyc_dt iso format
+if [ ${#CYC_DT} -ne 10 ]; then
+  printf "ERROR: \${CYC_DT}, ${CYC_DT}, is not in 'YYYYMMDDHH' format.\n"
   exit 1
 else
-  anl_date=${ANL_DT:0:8}
-  hh=${ANL_DT:8:2}
-  anl_iso=`date +%Y-%m-%d_%H_%M_%S -d "${anl_date} ${hh} hours"`
+  cyc_dt=${CYC_DT:0:8}
+  hh=${CYC_DT:8:2}
+  cyc_dt=`date +%Y-%m-%d_%H_%M_%S -d "${cyc_dt} ${hh} hours"`
 fi
 
 if [[ ${BOUNDARY} = ${LOWER} ]]; then
@@ -241,7 +241,7 @@ for memid in `seq -f "%02g" 0 ${ens_max}`; do
     printf "Copying background and input files.\n"
     for dmn in `seq -f "%02g" 01 ${max_dom}`; do
       # update the lower BC for the output file to pass to GSI
-      wrfout=wrfout_d${dmn}_${anl_iso}
+      wrfout=wrfout_d${dmn}_${cyc_dt}
 
       # wrfinput is always drawn from real step
       wrfinput=wrfinput_d${dmn}
@@ -287,7 +287,7 @@ for memid in `seq -f "%02g" 0 ${ens_max}`; do
       printf "MEM_ID   = ${memid}\n"
       printf "BOUNDARY = ${BOUNDARY}\n"
       printf "DOMAIN   = ${dmn}\n"
-      printf "ANL_DT   = ${anl_iso}\n"
+      printf "CYC_DT   = ${cyc_dt}\n"
       printf "EXP_CFG = ${EXP_CFG}\n"
       printf "CYC_HME  = ${CYC_HME}\n"
       printf "ENS_ROOT = ${ENS_ROOT}\n"
@@ -334,7 +334,7 @@ for memid in `seq -f "%02g" 0 ${ens_max}`; do
         printf "ERROR: \${gsi_dir} directory\n ${gsi_dir}\n does not exist.\n"
         exit 1
       else
-        wrfanl=${gsi_dir}/d01/wrfanl_ens_${memid}_${anl_iso}
+        wrfanl=${gsi_dir}/d01/wrfanl_ens_${memid}_${cyc_dt}
       fi
     else
       if [ ! -d ${enkf_dir} ]; then
@@ -342,12 +342,12 @@ for memid in `seq -f "%02g" 0 ${ens_max}`; do
         exit 1
       else
         # NOTE: ENKF SCRIPT NEED TO UPDATE OUTPUT NAMING CONVENTIONS
-        wrfanl=${enkf_dir}/d01/wrfanl_ens_${memid}_${anl_iso}
+        wrfanl=${enkf_dir}/d01/wrfanl_ens_${memid}_${cyc_dt}
       fi
     fi
 
     wrfbdy=${real_dir}/wrfbdy_d01
-    wrfvar_outname=wrfanl_ens_${memid}_${anl_iso}
+    wrfvar_outname=wrfanl_ens_${memid}_${cyc_dt}
   
     if [ ! -r "${wrfanl}" ]; then
       printf "ERROR: Input file\n ${wrfanl}\n is missing.\n"
@@ -391,7 +391,7 @@ for memid in `seq -f "%02g" 0 ${ens_max}`; do
     printf "MEM_ID   = ${memid}\n"
     printf "BOUNDARY = ${BOUNDARY}\n"
     printf "DOMAIN   = ${dmn}\n"
-    printf "ANL_DT   = ${anl_iso}\n"
+    printf "CYC_DT   = ${cyc_dt}\n"
     printf "EXP_CFG = ${EXP_CFG}\n"
     printf "CYC_HME  = ${CYC_HME}\n"
     printf "ENS_ROOT = ${ENS_ROOT}\n"

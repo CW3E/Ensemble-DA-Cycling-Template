@@ -7,7 +7,7 @@
 #
 #   https://dtcenter.ucar.edu/com-GSI/users/tutorial/online_tutorial/index_v3.7.php
 #
-# The purpose of this fork is to work in a Rocoto-based
+# The purpose of this fork is to work in a Cylc-based
 # Observation-Analysis-Forecast cycle with WRF for data denial experiments.
 # Naming conventions in this script have been smoothed to match a companion major
 # fork of the wrf.ksh WRF driver script of Christopher Harrop.
@@ -55,13 +55,21 @@
 ##################################################################################
 # Preamble
 ##################################################################################
+# CNST         = Full path to BASH constants used in driver scripts
+# MOD_ENV      = Full path to environment used to compile and run WPS / WRF / MPAS
+# IF_DBG_SCRPT = Switch YES or else, this is NOT A REQUIRED ARGUMENT. Set variable
+#                IF_DBG_SCRPT=Yes within the configuration to initiate debugging,
+#                script will default to normal run behavior otherwise
+# SCHED        = IF_DBG_SCRPT=Yes, SCHED=SLURM or SCHED=PBS will auto-generate
+#                a job submission header in the debugging script to run manually
+#
 # Options below are hard-coded based on the type of experiment
 # (i.e., these not expected to change within DA cycles).
 #
-# if_clean   = Yes : delete temporal files in working directory (default)
-#              No  : leave running directory as is (this is for debug only)
-# if_oneob   = Yes : Do single observation test
-# grid_ratio = 1 default, still testing option for dual resolution
+# if_clean     = Yes : delete temporal files in working directory (default)
+#                No  : leave running directory as is (this is for debug only)
+# if_oneob     = Yes : Do single observation test
+# grid_ratio   = 1 default, still testing option for dual resolution
 #
 ##################################################################################
 # uncomment to run verbose for debugging / testing
@@ -97,12 +105,53 @@ else
   printf "${cmd}\n"; eval ${cmd}
 fi
 
+if [ ! -x ${GSI_ENV} ]; then
+  msg="ERROR: GSI environment file\n ${GSI_ENV}\n does not exist"
+  msg+=" or is not executable.\n"
+  printf "${msg}"
+  exit 1
+else
+  # Read GSI environment into the current shell
+  cmd=". ${GSI_ENV}"
+  printf "${cmd}\n"; eval "${cmd}"
+fi
+
+if [[ ${IF_DBG_SCRPT} = ${YES} ]]; then 
+  dbg=1
+  scrpt=$(mktemp /tmp/run_dbg.XXXXXXX.sh)
+  printf "Driver runs in debug mode.\n"
+  printf "Producing a script and work directory for manual submission.\n"
+
+  if [[ ${SCHED} = ${SLURM} ]]; then
+    # source slurm header from environment directory
+    cat `dirname ${MOD_ENV}`/slurm_header.sh >> ${scrpt}
+  elif [[ ${SCHED} = ${PBS} ]]; then
+    # source pbs header from environment directory
+    cat `dirname ${MOD_ENV}`/pbs_header.sh >> ${scrpt}
+  fi
+
+  # Read constants and print into run script
+  while read line; do
+    IFS=" " read -ra parsed <<< ${line}
+    char=${parsed[0]}
+    if [[ ! ${char} =~ \# ]]; then
+      cmd=""
+      for char in ${parsed[@]}; do
+        cmd="${cmd}${char} "
+      done
+      printf "${cmd}\n" >> ${scrpt}
+    fi
+  done < ${MOD_ENV}
+else
+  dbg=0
+fi
+
 ##################################################################################
 # Make checks for DA method settings
 ##################################################################################
 # Options below are defined in control flow xml (case insensitive)
 #
-# ANL_DT      = Analysis time YYYYMMDDHH
+# CYC_DT      = Analysis time YYYYMMDDHH
 # CYC_HME     = Start time named directory for cycling data containing
 # WRF_CTR_DOM = Analyze up to domain index format DD of control solution
 # IF_HYBRID   = Yes : Run GSI with ensemble background covariance
@@ -116,17 +165,17 @@ fi
 #
 ##################################################################################
 
-# Convert ANL_DT from 'YYYYMMDDHH' format to anl_iso Unix date format
-if [ ${#ANL_DT} -ne 10 ]; then
-  printf "ERROR: \${ANL_DT}, ${ANL_DT}, is not in 'YYYYMMDDHH' format.\n"
+# Convert CYC_DT from 'YYYYMMDDHH' format to anl_iso Unix date format
+if [ ${#CYC_DT} -ne 10 ]; then
+  printf "ERROR: \${CYC_DT}, ${CYC_DT}, is not in 'YYYYMMDDHH' format.\n"
   exit 1
 else
   # define anl date components separately
-  anl_date=${ANL_DT:0:8}
-  hh=${ANL_DT:8:2}
+  cyc_dt=${CYC_DT:0:8}
+  hh=${CYC_DT:8:2}
 
-  # Define file path name variable anl_iso from ANL_DT
-  anl_iso=`date +%Y-%m-%d_%H_%M_%S -d "${anl_date} ${hh} hours"`
+  # Define file path name variable anl_iso from CYC_DT
+  anl_iso=`date +%Y-%m-%d_%H_%M_%S -d "${cyc_dt} ${hh} hours"`
 fi
 
 if [ ! ${CYC_HME} ]; then
@@ -244,7 +293,7 @@ fi
 #
 # Below variables are derived from control flow variables for convenience
 #
-# anl_iso   = Defined by the ANL_DT variable, to be used as path
+# anl_iso   = Defined by the CYC_DT variable, to be used as path
 #             name variable in iso format for wrfout
 #
 ##################################################################################
@@ -332,8 +381,8 @@ obs_root=${DATA_ROOT}/obs_data
 fix_root=${EXP_CNFG}/fix
 satlist=${fix_root}/satlist.txt
 gsi_namelist=${EXP_CNFG}/namelists/comgsi_namelist.sh
-prepbufr_tar=${obs_root}/prepbufr.${anl_date}.nr.tar.gz
-prepbufr_dir=${obs_root}/${anl_date}.nr
+prepbufr_tar=${obs_root}/prepbufr.${cyc_dt}.nr.tar.gz
+prepbufr_dir=${obs_root}/${cyc_dt}.nr
 
 if [ ! -d ${obs_root} ]; then
   printf "ERROR: \${obs_root} directory\n ${obs_root}\n does not exist.\n"
@@ -374,7 +423,7 @@ else
   cmd="rmdir ${prepbufr_dir}/*"
   printf "${cmd}\n"; eval ${cmd}
 
-  prepbufr=${prepbufr_dir}/prepbufr.gdas.${anl_date}.t${hh}z.nr
+  prepbufr=${prepbufr_dir}/prepbufr.gdas.${cyc_dt}.t${hh}z.nr
   if [ ! -r ${prepbufr} ]; then
     printf "ERROR: file\n ${prepbufr}\n is not readable.\n"
     exit 1
@@ -446,8 +495,8 @@ for dmn in `seq -f "%02g" 1 ${max_dom}`; do
       cmd="cd ${obs_root}"
       printf "${cmd}\n"; eval ${cmd}
 
-      tar_file=${obs_root}/${srcobsfile[$ii]}.${anl_date}.tar.gz
-      obs_dir=${obs_root}/${anl_date}.${srcobsfile[$ii]}
+      tar_file=${obs_root}/${srcobsfile[$ii]}.${cyc_dt}.tar.gz
+      obs_dir=${obs_root}/${cyc_dt}.${srcobsfile[$ii]}
       mkdir -p ${obs_dir}
       if [ ! -r "${tar_file}" ]; then
         printf "ERROR: file\n ${tar_file}\n not found.\n"
@@ -469,9 +518,9 @@ for dmn in `seq -f "%02g" 1 ${max_dom}`; do
 
         # NOTE: differences in data file types for "satwnd"
         if [ ${srcobsfile[$ii]} = satwnd ]; then
-          obs_file=${obs_dir}/gdas.${srcobsfile[$ii]}.t${hh}z.${anl_date}.txt
+          obs_file=${obs_dir}/gdas.${srcobsfile[$ii]}.t${hh}z.${cyc_dt}.txt
         else
-          obs_file=${obs_dir}/gdas.${srcobsfile[$ii]}.t${hh}z.${anl_date}.bufr
+          obs_file=${obs_dir}/gdas.${srcobsfile[$ii]}.t${hh}z.${cyc_dt}.bufr
         fi
 
         if [ ! -r "${obs_file}" ]; then
@@ -606,16 +655,16 @@ for dmn in `seq -f "%02g" 1 ${max_dom}`; do
     if [ ${bc_loop} = 00 ]; then
       # first bias correction loop uses combined bias correction files from GDAS
       tar_files=()
-      tar_files+=(${obs_root}/abias.${anl_date}.tar.gz)
-      tar_files+=(${obs_root}/abiaspc.${anl_date}.tar.gz)
+      tar_files+=(${obs_root}/abias.${cyc_dt}.tar.gz)
+      tar_files+=(${obs_root}/abiaspc.${cyc_dt}.tar.gz)
 
       bias_dirs=()
-      bias_dirs+=(${obs_root}/${anl_date}.abias)
-      bias_dirs+=(${obs_root}/${anl_date}.abiaspc)
+      bias_dirs+=(${obs_root}/${cyc_dt}.abias)
+      bias_dirs+=(${obs_root}/${cyc_dt}.abiaspc)
 
       bias_files=()
-      bias_files+=(${bias_dirs[0]}/gdas.abias.t${hh}z.${anl_date}.txt)
-      bias_files+=(${bias_dirs[1]}/gdas.abiaspc.t${hh}z.${anl_date}.txt)
+      bias_files+=(${bias_dirs[0]}/gdas.abias.t${hh}z.${cyc_dt}.txt)
+      bias_files+=(${bias_dirs[1]}/gdas.abiaspc.t${hh}z.${cyc_dt}.txt)
 
       bias_in_files=()
       bias_in_files+=(satbias_in)
@@ -768,7 +817,7 @@ for dmn in `seq -f "%02g" 1 ${max_dom}`; do
     ##################################################################################
     # Print run parameters
     printf "\n"
-    printf "ANL_DT      = ${ANL_DT}\n"
+    printf "CYC_DT      = ${CYC_DT}\n"
     printf "BKG         = ${bkg_file}\n"
     printf "IF_HYBRID   = ${IF_HYBRID}\n"
     printf "ENS_ROOT    = ${ENS_ROOT}\n"

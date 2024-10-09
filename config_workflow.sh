@@ -66,6 +66,9 @@ export CFG_SHRD="${HOME}/settings/shared"
 # Root directory of task driver scripts
 export DRIVERS="${HOME}/src/drivers"
 
+# Defines constants / patterns used for driver scripts
+export CNST="${DRIVERS}/CONSTANTS.sh"
+
 ##################################################################################
 # EMBEDDED CYLC CONFIGURATION SETTINGS (DO NOT CHANGE)
 ##################################################################################

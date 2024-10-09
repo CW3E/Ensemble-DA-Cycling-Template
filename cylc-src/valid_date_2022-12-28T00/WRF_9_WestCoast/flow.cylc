@@ -127,7 +127,6 @@
     [[root]]
         platform = {{environ['SCHED']}}
         [[[environment]]]
-            CNST = {{environ['DRIVERS']}}/MODEL_CONSTANTS.sh
             EXP_NME = {{EXP_NME}}
             EXP_VRF = $(isodatetime {{EXP_VRF}} --f '%Y%m%d%H')
             CYC_DT = $(isodatetime ${CYLC_TASK_CYCLE_POINT} --f '%Y%m%d%H')
@@ -239,7 +238,6 @@
                 HIST_INT = {{HIST_INT}}
                 RSTRT_INT = {{RSTRT_INT}}
                 BKG_INT = {{ENS_BKG_INT}}
-                IF_RSTRT = 'No'
                 IF_SST_UPDT = {{IF_SST_UPDT}}
                 CYC_INC = 00
                 DOWN_DOM = {{DOWN_DOM}}
