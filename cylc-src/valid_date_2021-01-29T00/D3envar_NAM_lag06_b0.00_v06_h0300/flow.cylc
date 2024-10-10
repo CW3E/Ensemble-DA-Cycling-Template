@@ -3,7 +3,7 @@
 {# CONTROL FLOW NAME / TUNABLE SETTINGS #}
 {################################################################################}
 {# Define the valid date YYYY-MM-DDTHH for verification #}
-{% set EXP_VRF = '2022-12-28T00' %}
+{% set EXP_VRF = '2021-01-24T00' %}
 
 {# Define the name of case study #}
 {% set CSE_NME = ['valid_date', EXP_VRF] | join('_') %}
@@ -21,7 +21,11 @@
 {% set HLOC = '0300' %}
 
 {# Configuration name including tunable parameters #}
-{% set CFG_NME = ['NAM','lag', LAG,'b', BETA,'v', VLOC, 'h', HLOC] | join('_') %}
+{% set lag = ['lag', LAG] | join('') %}
+{% set beta = ['b', BETA] | join('') %}
+{% set vloc = ['v', VLOC] | join('') %}
+{% set hloc = ['h', HLOC] | join('') %}
+{% set CFG_NME = ['D3envar', 'NAM', lag, beta, vloc, hloc] | join('_') %}
 
 {# Case / configuration structure #}
 {% set EXP_NME = [CSE_NME, CFG_NME] | join('/') %}
@@ -31,32 +35,23 @@
 {################################################################################}
 {# First initial time for first forecast (no DA) YYYY-MM-DDTHH #}
 {# DA will begin on the next cycle determined by CYC_INC below #}
-{% set CYC_STRT = '2022-12-19T18' %}
+{% set CYC_STRT = '2021-01-21T18' %}
 
-{# Last initial time for a forecast YYYY-MM-DDTHH #}
-{% set CYC_STOP = '2022-12-28T00' %}
+{# Last cycle for tasks (performs analysis only on this date) YYYY-MM-DDTHH #}
+{% set CYC_STOP = '2021-01-29T00' %}
 
 {# Interval between cycle start times INT hours value #}
 {% set CYC_INC = 6 %}
 
 {# Length of warmup period of full DA cycling before extended forecasts #}
-{# Period begins after first forecast and excludes the final cylc point #}
-{% set WRM_UP = 'P3D' %}
+{# Warmup begins after first forecast and excludes the final cylc point #}
+{% set WRM_UP = 'P1D' %}
 
 {# Fixed forecast length within every cycle INT hours >= CYC_INC #}
 {% set FCST_HRS = 6 %}
 
 {# List of zero hour to initialize extended forecasts (usually T00 / T12) #}
 {% set EXT_ZHRS = [ 'T00' ] %}
-
-{# First cycle to initialize extended forecast for verifcation at valid date #}
-{% set VRF_STRT = '2022-12-23T00' %}
-
-{# Last cycle to  initialize extended forecast for verification at valid date #}
-{% set VRF_STOP = '2022-12-27T00' %}
-
-{# Interval between cycle start times PTXXH #}
-{% set VRF_INC = 'PT24H' %}
 
 {################################################################################}
 {# WRF SETTINGS #}
@@ -77,8 +72,7 @@
 {% set DOWN_DOM = '02' %}
 
 {# Static ensemble perturbations stored here organized by lag length #}
-{% set lag = ['lag', LAG] | join('_') %}
-{% set ENS_ROOT = [environ['ENS_ROOT'], lag] | join('/') %}
+{% set ENS_DIR = [environ['ENS_ROOT'], lag] | join('/') %}
 
 {# Max domain for ensemble simulation #}
 {% set WRF_ENS_DOM= '01' %}
@@ -116,7 +110,7 @@
 {# ENSEMBLE SETTINGS #}
 {################################################################################}
 {# Define the ensemble size, indices start at zero #}
-{% set ENS_SIZE = 31 %}
+{% set ENS_SIZE = 21 %}
 
 {# Max domain for ensemble simulation #}
 {% set WRF_ENS_DOM = '01' %}
@@ -193,12 +187,14 @@
     initial cycle point = {{CYC_STRT}}
     final cycle point = {{CYC_STOP}}
     [[graph]]
+        {# First forecast, cold start #}
         R1/^ = """
         ungrib_cyc  => wrf_metgrid_cyc
         wrf_metgrid_cyc => wrf_real_cyc
         wrf_real_cyc => wrf_model_cld
         """
 
+        {# Cylcing warmup to steady state #}
         R/PT{{CYC_INC}}H/^+{{WRM_UP}} ! ^ = """
         wrf_real_cyc[-PT{{CYC_INC}}H] => ungrib_cyc
         ungrib_cyc  => wrf_metgrid_cyc
@@ -210,9 +206,11 @@
         wrfda_latbc => wrf_model_cyc
         """
 
+        {# Loop zero hours and define extended forecasts from restart runs on #}
+        {# the specified zero hours in EXT_ZHRS for all cycles except final #}
         {% for zhr in CYC_HRS %}
             {% if zhr in EXT_ZHRS %}
-                R/^+{{WRM_UP}}+PT{{CYC_INC}}H+P{{zhr}}H/P1D = """
+                R/^+{{WRM_UP}}+PT{{CYC_INC}}H+P{{zhr}}H/P1D ! $ = """
                 wrf_real_for[-PT{{CYC_INC}}H] |
                 wrf_real_cyc[-PT{{CYC_INC}}H] => ungrib_for
                 ungrib_for  => wrf_metgrid_for
@@ -225,7 +223,7 @@
                 wrf_model_for => wrf_model_rstrt
                 """
             {% else %}
-                R/^+{{WRM_UP}}+PT{{CYC_INC}}H+P{{zhr}}H/P1D = """
+                R/^+{{WRM_UP}}+PT{{CYC_INC}}H+P{{zhr}}H/P1D ! $ = """
                 wrf_real_for[-PT{{CYC_INC}}H] |
                 wrf_real_cyc[-PT{{CYC_INC}}H] => ungrib_cyc
                 ungrib_cyc  => wrf_metgrid_cyc
@@ -238,6 +236,19 @@
                 """
             {% endif %}
         {% endfor %}
+
+        {# Final cycle perform analysis but no forecast beyond the #}
+        {# verification valid date #}
+        R1/$ = """
+                wrf_real_for[-PT{{CYC_INC}}H] |
+                wrf_real_cyc[-PT{{CYC_INC}}H] => ungrib_for
+                ungrib_for  => wrf_metgrid_for
+                wrf_metgrid_for => wrf_real_for
+                (wrf_model_cyc[-PT{{CYC_INC}}H] & wrf_real_for) |
+                (wrf_model_for[-PT{{CYC_INC}}H] & wrf_real_for)=> wrfda_lowbc
+                wrfda_lowbc => gsi_analysis
+                gsi_analysis => wrfda_latbc
+        """
 
 [runtime]
     [[root]]
@@ -346,13 +357,14 @@
         inherit = REAL, FOR
 
     [[WRF]]
+        inherit = CYC
+        execution time limit = {{WRF_CYC_WC}}
         script = {{environ['DRIVERS']}}/wrf_model.sh
         execution retry delays = 3*PT5M
         [[[environment]]]
             HIST_INT = {{HIST_INT}}
             BKG_INT = {{CTR_BKG_INT}}
             RSTRT_INT = {{RSTRT_INT}}
-            IF_SST_UPDT = {{IF_SST_UPDT}}
             CYC_INC = {{CYC_INC}}
             DOWN_DOM = {{DOWN_DOM}}
             IF_FEEDBACK = {{IF_FEEDBACK}}
@@ -379,20 +391,14 @@
             {% endif %}
 
     [[wrf_model_cyc]]
-        inherit = WRF, CYC
-        execution time limit = {{WRF_CYC_WC}}
         [[[environment]]]
             WRF_IC = 'CYCLING'
 
     [[wrf_model_cld]]
-        inherit = wrf_model_cyc
-        execution time limit = {{WRF_CYC_WC}}
         [[[environment]]]
             WRF_IC = 'REALEXE'
 
     [[wrf_model_for]]
-        inherit = WRF, CYC
-        execution time limit = {{WRF_FOR_WC}}
         [[[environment]]]
             WRF_IC = 'CYCLING'
             MAX_DOM = {{CTR_FOR_DOM}}
@@ -424,16 +430,15 @@
         execution retry delays = 3*PT5M
         script = {{environ['DRIVERS']}}/gsi_3denvar.sh
         [[[environment]]]
-            IF_OBSERVER = 'No'
             IF_HYBRID = {{IF_HYBRID}}
             WRF_CTR_DOM = {{CTR_CYC_DOM}}
             WRF_ENS_DOM = {{CTR_CYC_DOM}}
             ENS_SIZE = {{ENS_SIZE}}
             BETA = {{BETA}}
-            S_ENS_H = {{HLOC}}
-            S_ENS_V = {{VLOC}}
+            HLOC = {{HLOC}}
+            VLOC = {{VLOC}}
             MAX_BC_LOOP = {{MAX_BC_LOOP}}
-            ENS_ROOT = {{ENS_ROOT}}/$CYC_DT
+            ENS_DIR = {{ENS_DIR}}/$CYC_DT
         [[[directives]]]
             {% if environ['SCHED'] == 'slurm' %}
                 {% if environ['SYS_TYPE' ] == 'penguin' %}

@@ -1,6 +1,7 @@
 # cylc ignore is designed to suppress needless copies of static files
 # and namelist templates in the cylc-run installation directory
 static
+namelists
 
 # keep out vim backups if actively editing
 *.swp

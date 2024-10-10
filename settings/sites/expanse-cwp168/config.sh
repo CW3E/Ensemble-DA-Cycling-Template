@@ -82,7 +82,7 @@ export GRIB_ROOT="${DATA_ROOT}/GRIB"
 export OBS_ROOT="${DATA_ROOT}/OBS"
 
 # Root directory of static ensemble simulations used for background error
-export ENS_ROOT="${DATA_ROOT}/ENSEMBLE"
+export ENS_ROOT="${DATA_ROOT}/ENSEMBLES"
 
 # Root directory CRTM coefficients for GSI analysis
 export CRTM_ROOT="${DATA_ROOT}/CRTM_v2.3.0/Big_Endian"
