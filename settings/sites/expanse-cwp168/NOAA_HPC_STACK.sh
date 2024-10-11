@@ -54,14 +54,6 @@ module load cpu/0.17.3b
 module load intel/19.1.3.304/6pv46so
 module load intel-mkl/2020.4.304/vg6aq26
 module load intel-mpi/2019.10.317/ezrfjne
+module load cmake/3.21.4/bpzre3q
 
-export STACK_ROOT="${SOFT_ROOT}/NETCDF_INTEL_INTELMPI"
-export HDF5="${STACK_ROOT}/HDF5"
-export NETCDF="${STACK_ROOT}/NETCDF"
-export PNETCDF="${STACK_ROOT}/PNETCDF"
-export PIO="${STACK_ROOT}/PIO"
-export LD_LIBRARY_PATH="${PIO}/lib:${PNETCDF}/lib:${NETCDF}/lib:${HDF5}/lib:${LD_LIBRARY_PATH}"
-export LD_RUN_PATH="${PIO}/lib:${PNETCDF}/lib:${NETCDF}/lib:${HDF5_PATH}/lib:${LD_RUN_PATH}"
-export PATH="${NETCDF}/bin:${PATH}"
-
-##########################################################################
+###############################################################################
