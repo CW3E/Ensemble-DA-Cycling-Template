@@ -56,4 +56,30 @@ module load intel-mkl/2020.4.304/vg6aq26
 module load intel-mpi/2019.10.317/ezrfjne
 module load cmake/3.21.4/bpzre3q
 
+# Sets up HPC-STACK
+export HPC_OPT="${SOFT_ROOT}/${GSI_STACK}/hpc_stack_modules"
+module use ${HPC_OPT}/modulefiles/core
+module use ${HPC_OPT}/modulefiles/stack
+module use ${HPC_OPT}/modulefiles/compiler/intel/19.1.3.304
+module use ${HPC_OPT}/modulefiles/mpi/intel/19.1.3.304/intel-mpi/2019.10.317
+module load hpc/1.2.0
+module load hpc-intel/19.1.3.304
+module load hpc-intel-mpi/2019.10.317
+module load cmake/3.24.2
+module load bufr/11.6.0
+module load ip/3.3.3
+module load sfcio/1.4.1
+module load sigio/2.3.2
+module load sp/2.3.3
+module load w3nco/2.4.1
+module load bacio/2.4.1
+module load crtm/2.3.0
+module load hdf5/1.10.11
+module load netcdf/4.9.2
+module load w3emc/2.9.2
+module load nemsio/2.5.4
+module load wrf_io/1.2.0
+module load ncio/1.0.0
+module load ncdiag/1.0.0
+
 ###############################################################################
