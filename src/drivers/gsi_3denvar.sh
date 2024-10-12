@@ -149,11 +149,6 @@ else
   cfg_nme=${exp_nme[1]}
   printf "Setting up configuration:\n    ${cfg_nme}\n"
   printf "for:\n    ${cse_nme}\n case study.\n"
-  cfg_dir=${HOME}/cylc-src/${EXP_NME}
-  if [ ! -d ${cfg_dir} ]; then
-    printf "ERROR: simulation settings directory\n ${cfg_dir}\n does not exist.\n"
-    exit 1
-  fi
 fi
 
 # Convert CYC_DT from 'YYYYMMDDHH' format to cyc_iso Unix date format
@@ -233,7 +228,7 @@ if [[ ! ${VLOC} =~ ${INT_RE} ]]; then
   fi
 fi
 
-if [[ ! ${HLOC} =~ ${DEC_RE} ]]; then
+if [[ ! ${HLOC} =~ ${INT_RE} ]]; then
   msg="ERROR: \${HLOC},\n ${HLOC} must be specified to the length of horizontal "
   msg+="localization scale in km.\n"
   printf "${msg}"
@@ -354,9 +349,9 @@ mpiprocs=$(( ${N_NDES} * ${N_PROC} ))
 #                required file, if empty will skip all satellite data.
 #
 ##################################################################################
-fix_root=${cfg_dir}/fix
+fix_root=${CYLC_WORKFLOW_RUN_DIR}/fix
 satlist=${fix_root}/satlist.txt
-gsi_namelist=${cfg_dir}/namelists/gsi_3denvar_namelist.sh
+gsi_namelist=${CYLC_WORKFLOW_RUN_DIR}/namelists/gsi_3denvar_namelist.sh
 prepbufr_tar=${OBS_ROOT}/prepbufr.${cyc_dt}.nr.tar.gz
 prepbufr_dir=${OBS_ROOT}/${cyc_dt}.nr
 

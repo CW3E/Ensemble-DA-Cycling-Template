@@ -3,7 +3,7 @@
 {# CONTROL FLOW NAME / TUNABLE SETTINGS #}
 {################################################################################}
 {# Define the valid date YYYY-MM-DDTHH for verification #}
-{% set EXP_VRF = '2021-01-24T00' %}
+{% set EXP_VRF = '2021-01-29T00' %}
 
 {# Define the name of case study #}
 {% set CSE_NME = ['valid_date', EXP_VRF] | join('_') %}
@@ -155,10 +155,10 @@
 {% set WRF_RSTRT_WC = 'PT12H' %}
 
 {# GSI MEM per CPU argument for SLURM #}
-{% set GSI_MEM = '21G' %}
+{% set GSI_MEM = '249000M' %}
 
 {# Number of nodes for GSI jobs #}
-{% set GSI_NDES = '1' %}
+{% set GSI_NDES = '3' %}
 
 {# GSI node size #}
 {% set GSI_PROC = '124' %}
@@ -196,7 +196,7 @@
 
         {# Cylcing warmup to steady state #}
         R/PT{{CYC_INC}}H/^+{{WRM_UP}} ! ^ = """
-        wrf_real_cyc[-PT{{CYC_INC}}H] => ungrib_cyc
+        wrf_model_cyc[-PT{{CYC_INC}}H]:started=> ungrib_cyc
         ungrib_cyc  => wrf_metgrid_cyc
         wrf_metgrid_cyc => wrf_real_cyc
         (wrf_model_cld[-PT{{CYC_INC}}H] & wrf_real_cyc) |
@@ -211,8 +211,8 @@
         {% for zhr in CYC_HRS %}
             {% if zhr in EXT_ZHRS %}
                 R/^+{{WRM_UP}}+PT{{CYC_INC}}H+P{{zhr}}H/P1D ! $ = """
-                wrf_real_for[-PT{{CYC_INC}}H] |
-                wrf_real_cyc[-PT{{CYC_INC}}H] => ungrib_for
+                wrf_model_for[-PT{{CYC_INC}}H]:started |
+                wrf_model_cyc[-PT{{CYC_INC}}H]:started => ungrib_for
                 ungrib_for  => wrf_metgrid_for
                 wrf_metgrid_for => wrf_real_for
                 (wrf_model_cyc[-PT{{CYC_INC}}H] & wrf_real_for) |
@@ -224,8 +224,8 @@
                 """
             {% else %}
                 R/^+{{WRM_UP}}+PT{{CYC_INC}}H+P{{zhr}}H/P1D ! $ = """
-                wrf_real_for[-PT{{CYC_INC}}H] |
-                wrf_real_cyc[-PT{{CYC_INC}}H] => ungrib_cyc
+                wrf_model_for[-PT{{CYC_INC}}H]:started |
+                wrf_model_cyc[-PT{{CYC_INC}}H]:started => ungrib_cyc
                 ungrib_cyc  => wrf_metgrid_cyc
                 wrf_metgrid_cyc => wrf_real_cyc
                 (wrf_model_cyc[-PT{{CYC_INC}}H] & wrf_real_cyc) |
@@ -240,12 +240,12 @@
         {# Final cycle perform analysis but no forecast beyond the #}
         {# verification valid date #}
         R1/$ = """
-                wrf_real_for[-PT{{CYC_INC}}H] |
-                wrf_real_cyc[-PT{{CYC_INC}}H] => ungrib_for
-                ungrib_for  => wrf_metgrid_for
-                wrf_metgrid_for => wrf_real_for
-                (wrf_model_cyc[-PT{{CYC_INC}}H] & wrf_real_for) |
-                (wrf_model_for[-PT{{CYC_INC}}H] & wrf_real_for)=> wrfda_lowbc
+                wrf_model_for[-PT{{CYC_INC}}H]:started |
+                wrf_model_cyc[-PT{{CYC_INC}}H]:started => ungrib_cyc
+                ungrib_cyc  => wrf_metgrid_cyc
+                wrf_metgrid_cyc => wrf_real_cyc
+                (wrf_model_cyc[-PT{{CYC_INC}}H] & wrf_real_cyc) |
+                (wrf_model_for[-PT{{CYC_INC}}H] & wrf_real_cyc)=> wrfda_lowbc
                 wrfda_lowbc => gsi_analysis
                 gsi_analysis => wrfda_latbc
         """
@@ -259,7 +259,7 @@
             CYC_HME = {{environ['WORK_ROOT']}}/{{EXP_NME}}/$CYC_DT
             STRT_DT = $CYC_DT
             BKG_DATA = {{CTR_BKG_DATA}}
-            MEMID = ens_00
+            MEMID = 00
             IF_SST_UPDT = {{IF_SST_UPDT}}
             IF_DBG_SCRPT = {{IF_DBG}}
 
@@ -303,6 +303,7 @@
 
     [[SRL]]
         execution retry delays = 3*PT5M
+        execution time limit = {{GRIB_WC}}
         [[[directives]]]
             {% if environ['SCHED'] == 'slurm' %}
                 {% if environ['SYS_TYPE' ] == 'penguin' %}
@@ -323,9 +324,9 @@
 
     [[UNGRIB]]
         inherit = SRL
-        execution time limit = {{GRIB_WC}}
         script = {{environ['DRIVERS']}}/ungrib.sh
         [[[environment]]]
+            IF_RGNL = 'Yes'
             BKG_STRT_DT = $CYC_DT
 
     [[ungrib_cyc]]
@@ -391,14 +392,17 @@
             {% endif %}
 
     [[wrf_model_cyc]]
+        inherit = WRF
         [[[environment]]]
             WRF_IC = 'CYCLING'
 
     [[wrf_model_cld]]
+        inherit = WRF
         [[[environment]]]
             WRF_IC = 'REALEXE'
 
     [[wrf_model_for]]
+        inherit = WRF
         [[[environment]]]
             WRF_IC = 'CYCLING'
             MAX_DOM = {{CTR_FOR_DOM}}
@@ -411,8 +415,9 @@
 
     [[WRFDA]]
         inherit = SRL
+        script = {{environ['DRIVERS']}}/wrfda_bc_update.sh
         [[[environment]]]
-            WRF_CTR_DOM = {{CTR_FOR_DOM}}
+            WRF_CTR_DOM = {{CTR_CYC_DOM}}
             IF_ENS_UPDT = 'No'
 
     [[wrfda_lowbc]]
@@ -439,6 +444,8 @@
             VLOC = {{VLOC}}
             MAX_BC_LOOP = {{MAX_BC_LOOP}}
             ENS_DIR = {{ENS_DIR}}/$CYC_DT
+            N_NDES = {{GSI_NDES}}
+            N_PROC = {{GSI_PROC}}
         [[[directives]]]
             {% if environ['SCHED'] == 'slurm' %}
                 {% if environ['SYS_TYPE' ] == 'penguin' %}

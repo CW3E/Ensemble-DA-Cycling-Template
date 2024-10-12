@@ -133,24 +133,12 @@ else
   fi
   cse_nme=${exp_nme[0]}
   cfg_nme=${exp_nme[1]}
-  # configuration name is separated on '.' to denote sub-config, leading part
-  # is used for the mpas static file naming
-  IFS="." read -ra tmp_nme <<< ${cfg_nme}
-  stc_nme=${tmp_nme[0]}
-  printf "Setting up configuration:\n    ${stc_nme}\n"
-  if [ ${#tmp_nme[@]} -eq 2 ]; then
-    printf "sub-configuration:\n    ${tmp_nme[1]}\n"
-  fi
+  printf "Setting up configuration:\n    ${cfg_nme}\n"
   printf "for:\n    ${cse_nme}\n case study.\n"
-  cfg_dir=${HOME}/cylc-src/${EXP_NME}
-  if [ ! -d ${cfg_dir} ]; then
-    printf "ERROR: simulation settings directory\n ${cfg_dir}\n does not exist.\n"
-    exit 1
-  fi
 fi
 
 # Convert CYC_DT from 'YYYYMMDDHH' format to cyc_dt iso format
-if [[ ${CYC_DT} =~ ${ISO_RE} ]]; then
+if [[ ! ${CYC_DT} =~ ${ISO_RE} ]]; then
   printf "ERROR: \${CYC_DT}, ${CYC_DT}, is not in 'YYYYMMDDHH' format.\n"
   exit 1
 else
@@ -197,7 +185,7 @@ elif [[ ${IF_ENS_UPDT} = ${YES} ]]; then
     msg+=" or is not executable.\n"
     printf "${msg}"
     exit 1
-  elif [[ ${BOUNDARY} = LOWER && ! ${WRF_ENS_DOM} ~= ${INT_RE} ]]; then
+  elif [[ ${BOUNDARY} = LOWER && ! ${WRF_ENS_DOM} =~ ${INT_RE} ]]; then
     printf "ERROR: \${WRF_ENS_DOM}, ${WRF_ENS_DOM}, is not an integer.\n"
     exit 1
   elif [[ ${BOUNDARY} = LOWER && ${#WRF_ENS_DOM} -ne 2 ]]; then
@@ -260,14 +248,14 @@ fi
 
 for memid in `seq -f "%02g" 0 ${ens_max}`; do
   work_dir=${CYC_HME}/wrfda_bc
-  real_dir=${CYC_HME}/real/ens_${memid}
+  real_dir=${CYC_HME}/wrf_real/ens_${memid}
   gsi_dir=${CYC_HME}/gsi
   enkf_dir=${CYC_HME}/enkf
   updt_bc_exe=${WRFDA_ROOT}/var/da/da_update_bc.exe
   
   if [[ ! -d ${real_dir} || ! -x ${real_dir} ]]; then
     msg="ERROR: \${real_dir} directory\n ${real_dir}\n does not exist"
-    msg=+" or is not executable.\n"
+    msg+=" or is not executable.\n"
     printf "${msg}"
     exit 1
   fi
@@ -338,7 +326,7 @@ for memid in `seq -f "%02g" 0 ${ens_max}`; do
       #  Build da_update_bc namelist
       ##################################################################################
       # Copy the namelist from the static dir -- THIS WILL BE MODIFIED DO NOT LINK TO IT
-      cmd="cp -L ${cfg_dir}/namelists/parame.in ."
+      cmd="cp -L ${CYLC_WORKFLOW_RUN_DIR}/namelists/parame.in ."
       printf "${cmd}\n"; eval "${cmd}"
   
       # Update the namelist
@@ -443,7 +431,7 @@ for memid in `seq -f "%02g" 0 ${ens_max}`; do
     #  Build da_update_bc namelist
     ##################################################################################
     # Copy the namelist from the static dir -- THIS WILL BE MODIFIED DO NOT LINK TO IT
-    cmd="cp -L ${cfg_dir}/namelists/parame.in ."
+    cmd="cp -L ${CYLC_WORKFLOW_RUN_DIR}/namelists/parame.in ."
     printf "${cmd}\n"; eval "${cmd}"
   
     # Update the namelist for lateral boundary update 

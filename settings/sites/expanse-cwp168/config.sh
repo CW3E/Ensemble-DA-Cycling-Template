@@ -70,7 +70,7 @@ export GSI_STACK="NOAA_HPC_STACK"
 export GSI_ENV="${HOME}/settings/sites/expanse-cwp168/${GSI_STACK}.sh"
 
 # Path to GSI executable
-export GSI_EXE="${SOFT_ROOT}/${GSI_STACK}/GSI/build/bin/gsi.x"
+export GSI_EXE="${SOFT_ROOT}/${GSI_STACK}/GSI/build/src/gsi/gsi.x"
 
 # Root directory of simulation forcing data
 export DATA_ROOT="/expanse/nfs/cw3e/cwp168/DATA"
@@ -85,7 +85,7 @@ export OBS_ROOT="${DATA_ROOT}/OBS"
 export ENS_ROOT="${DATA_ROOT}/ENSEMBLES"
 
 # Root directory CRTM coefficients for GSI analysis
-export CRTM_ROOT="${DATA_ROOT}/CRTM_v2.3.0/Big_Endian"
+export CRTM_ROOT="${DATA_ROOT}/CRTM_ROOT/CRTM_v2.3.0/Big_Endian"
 
 # Root directory of simulation_io
 export WORK_ROOT="/expanse/lustre/scratch/cgrudzien/temp_project/cwp168/SIMULATION_IO"
