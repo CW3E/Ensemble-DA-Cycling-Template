@@ -100,7 +100,7 @@
 {# GSI SETTINGS #}
 {################################################################################}
 {# Uses ensemble-based covariance Yes / No #}
-{% set IF_HYBRID  = 'Yes' %}
+{% set IF_HYBRID  = 'No' %}
 
 {# Max loop index to iterate GSI variational bias correction files #}
 {# NOTE: loop 0 is uses GDAS global files #}
