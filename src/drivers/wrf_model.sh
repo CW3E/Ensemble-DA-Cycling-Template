@@ -322,8 +322,12 @@ elif [ ! ${HIST_INT} -gt 00 ]; then
   exit 1
 else
   printf "The WRF history interval is ${HIST_INT} hours.\n"
-  # define a sequence of all forecast hours with background interval spacing
-  hist_seq=`seq -f "%03g" 0 ${HIST_INT} ${fcst_hrs}`
+  # define a sequence of all forecast hours with hist interval spacing
+  if [[ ${WRF_IC} = ${RESTART} ]]; then
+    hist_seq=`seq -f "%03g" ${HIST_INT} ${HIST_INT} ${fcst_hrs}`
+  else
+    hist_seq=`seq -f "%03g" 0 ${HIST_INT} ${fcst_hrs}`
+  fi
 fi
 
 if [[ ${RSTRT_INT} =~ ${END} ]]; then

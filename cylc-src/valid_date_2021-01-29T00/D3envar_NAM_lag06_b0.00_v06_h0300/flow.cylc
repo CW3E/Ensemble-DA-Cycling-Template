@@ -330,10 +330,10 @@
             BKG_STRT_DT = $CYC_DT
 
     [[ungrib_cyc]]
-        inherit = WPS, UNGRIB, CYC
+        inherit = CYC, UNGRIB, WPS
 
     [[ungrib_for]]
-        inherit = WPS, UNGRIB, FOR
+        inherit = FOR, UNGRIB, WPS
 
     [[METGRID]]
         inherit = WPS
@@ -352,10 +352,10 @@
             NIO_TPG = {{NIO_TPG}}
 
     [[wrf_real_cyc]]
-        inherit = REAL, CYC
+        inherit = CYC, REAL
 
     [[wrf_real_for]]
-        inherit = REAL, FOR
+        inherit = FOR, REAL
 
     [[WRF]]
         inherit = CYC
@@ -403,15 +403,17 @@
 
     [[wrf_model_for]]
         inherit = WRF
+        execution time limit = {{WRF_FOR_WC}}
         [[[environment]]]
             WRF_IC = 'CYCLING'
             MAX_DOM = {{CTR_FOR_DOM}}
 
     [[wrf_model_rstrt]]
-        inherit = WRF, FOR
+        inherit = FOR, WRF
         execution time limit = {{WRF_RSTRT_WC}}
         [[[environment]]]
             WRF_IC = 'RESTART'
+            STRT_DT = $(isodatetime ${CYLC_TASK_CYCLE_POINT} --offset PT{{CYC_INC}}H --f '%Y%m%d%H')
 
     [[WRFDA]]
         inherit = SRL
