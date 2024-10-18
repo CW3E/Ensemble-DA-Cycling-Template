@@ -212,7 +212,9 @@
             {% if zhr in EXT_ZHRS %}
                 R/^+{{WRM_UP}}+PT{{CYC_INC}}H+P{{zhr}}H/P1D ! $ = """
                 wrf_model_for[-PT{{CYC_INC}}H]:started |
-                wrf_model_cyc[-PT{{CYC_INC}}H]:started => ungrib_for
+                wrf_model_for[-PT{{CYC_INC}}H]:succeeded |
+                wrf_model_cyc[-PT{{CYC_INC}}H]:started |
+                wrf_model_cyc[-PT{{CYC_INC}}H]:succeeded => ungrib_cyc
                 ungrib_for  => wrf_metgrid_for
                 wrf_metgrid_for => wrf_real_for
                 (wrf_model_cyc[-PT{{CYC_INC}}H] & wrf_real_for) |
@@ -225,7 +227,9 @@
             {% else %}
                 R/^+{{WRM_UP}}+PT{{CYC_INC}}H+P{{zhr}}H/P1D ! $ = """
                 wrf_model_for[-PT{{CYC_INC}}H]:started |
-                wrf_model_cyc[-PT{{CYC_INC}}H]:started => ungrib_cyc
+                wrf_model_for[-PT{{CYC_INC}}H]:succeeded |
+                wrf_model_cyc[-PT{{CYC_INC}}H]:started |
+                wrf_model_cyc[-PT{{CYC_INC}}H]:succeeded => ungrib_cyc
                 ungrib_cyc  => wrf_metgrid_cyc
                 wrf_metgrid_cyc => wrf_real_cyc
                 (wrf_model_cyc[-PT{{CYC_INC}}H] & wrf_real_cyc) |

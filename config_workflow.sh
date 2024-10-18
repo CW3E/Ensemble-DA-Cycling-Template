@@ -44,6 +44,12 @@
 # MODIFICATIONS.
 # 
 ##################################################################################
+# PREAMBLE (DO NOT CHANGE)
+##################################################################################
+# Sets Xauthority for x11 forwarding before changing HOME variable
+export XAUTHORITY="$HOME/.Xauthority"
+
+##################################################################################
 # SYSTEM-DEPENDENT WORKLFOW SETTINGS (EDIT TO LOCAL SETTINGS)
 ##################################################################################
 # Full path of clone used as BASH HOME for embedded Cylc installation

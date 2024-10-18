@@ -8,13 +8,21 @@
 *.so
 *.pyc
 
-# No conda / miniconda / Python lib files #
-###################
+# No conda / miniconda files #
+##############################
 .conda
 .conda/*
-.ipython
-.ipython/*
+
+# No ipython files
+###################
+.cache/
+.ipython/
 .pdbhistory
+
+# No x11 data #
+###############
+.cache/*
+.local/*
 
 # Packages #
 ############

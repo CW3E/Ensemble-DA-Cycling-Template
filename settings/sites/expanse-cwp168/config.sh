@@ -104,7 +104,7 @@ export SYS_TYPE=""
 export MPIRUN="mpiexec"
 
 # Project billing account
-export PROJECT="cwp168"
+export PROJECT="cwp157"
 
 # Compute queue for standard mpi jobs
 export PART_CMP="cw3e-compute"
