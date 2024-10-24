@@ -125,6 +125,7 @@ fi
 # CYC_HME     = Start time named directory for cycling data containing
 # WRF_CTR_DOM = Analyze up to domain index format DD of control solution
 # IF_HYBRID   = Yes : Run GSI with ensemble background covariance
+# ENS_DIR     = Background ensemble located at ${ENS_DIR}/ens_${ens_n}/wrfout* 
 # ENS_SIZE    = The total ensemble size including control member + perturbations
 # WRF_ENS_DOM = Utilize ensemble perturbations up to domain index DD
 # BETA        = Scaling float in [0,1], 0 - full ensemble, 1 - full static
@@ -181,7 +182,15 @@ fi
 
 if [[ ${IF_HYBRID} = ${YES} ]]; then
   # ensembles are required for hybrid EnVAR
-  if [[ ! ${WRF_ENS_DOM} =~ ${INT_RE} ]]; then
+  if [ -z ${ENS_DIR} ]; then
+    printf "ERROR: \${ENS_DIR} is not defined.\n"
+    exit 1
+  elif [[ ! -d ${ENS_DIR} || ! -x ${ENS_DIR} ]]; then
+    msg="ERROR: \${ENS_DIR} directory\n ${ENS_DIR}\n does not exist or"
+    msg+=" is not executable.\n"
+    printf "${msg}"
+    exit 1
+  elif [[ ! ${WRF_ENS_DOM} =~ ${INT_RE} ]]; then
     printf "ERROR: \${WRF_ENS_DOM} is not in DD format.\n"
     exit 1
   elif [[ ! ${ENS_SIZE} =~ ${INT_RE} ]]; then
@@ -261,7 +270,6 @@ fi
 # CRTM_ROOT = Path of CRTM including byte order
 # EXP_CNFG  = Root directory containing sub-directories for namelists
 #             vtables, geogrid data, GSI fix files, etc.
-# ENS_DIR   = Background ensemble located at ${ENS_DIR}/ens_${ens_n}/wrfout* 
 # MPIRUN    = MPI Command to execute GSI
 # N_NDES    = Total number of nodes
 # N_PROC    = The total number of processes per node
@@ -296,16 +304,6 @@ if [ -z ${OBS_ROOT} ]; then
   exit 1
 elif [[ ! -d ${OBS_ROOT} || ! -x ${OBS_ROOT} ]]; then
   msg="ERROR: \${OBS_ROOT} directory\n ${OBS_ROOT}\n does not exist or"
-  msg+=" is not executable.\n"
-  printf "${msg}"
-  exit 1
-fi
-
-if [ -z ${ENS_DIR} ]; then
-  printf "ERROR: \${ENS_DIR} is not defined.\n"
-  exit 1
-elif [[ ! -d ${ENS_DIR} || ! -x ${ENS_DIR} ]]; then
-  msg="ERROR: \${ENS_DIR} directory\n ${ENS_DIR}\n does not exist or"
   msg+=" is not executable.\n"
   printf "${msg}"
   exit 1
