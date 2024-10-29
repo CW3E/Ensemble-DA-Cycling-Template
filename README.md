@@ -179,7 +179,7 @@ extended forecasts from a DA cylcing experiment for a target event verifcation d
 valid_date_2021-01-29T00/D3envar_NAM_lag06_b0.00_v06_h0300
 ```
 includes tunable parameter settings for hybridization (`b0.00`), vertical (`v06`) and horizontal (`h0300`) localization
-radii and obs / background error settings `NAM`, which can all be changed to new settings.  New configurations should
+radii and obs / background error settings (`NAM`), which can all be changed to new settings.  New configurations should
 have the same directory structure as the examples with names defined to reflect the particular tunable settings.
 
 Finally, for downscaling ensemble forecasts for the background error covariance calculation in EnVAR, there is
@@ -242,13 +242,16 @@ to define the dependency graph between workflow tasks and the switches that conf
 execution.  Parameters defined in the `flow.cylc` file include HPC job scheduler parameters, job cycling settings,
 settings for propagating namelist templates and settings for linking simulation data and executables.
 
-### Namelists, streamlists and static files
+### Namelists, streamlists, static and fix files
 Each experiment configuration directory has a nested sub-directory for namelists and streamlists for MPAS and WRF,
-and a sub-directory for static files that are unique to the experiment configuration:
+a sub-directory for static files that are unique to the experiment configuration and (for DA experiments)
+a GSI fix file directory:
 ```
 ${HOME}/cylc_src/case_study/configuration.sub_configuration/namelist
 ${HOME}/cylc_src/case_study/configuration.sub_configuration/static
+${HOME}/cylc_src/case_study/configuration.sub_configuration/fix
 ```
+
 Namelist and streamlist files within the above namelist directory are templated to propagate Cylc workflow parameters
 for e.g., [ISO date time cycling](https://cylc.github.io/cylc-doc/latest/html/tutorial/scheduling/datetime-cycling.html),
 in order to dynamically set simulation start and run parameters depending on the cycle point. Simulation configurations 
@@ -261,6 +264,51 @@ file for the explicit vertical level heights, with naming convention
 ```
 Workflow scripts will source the `*.ZETA_LIST.txt` file in the static directory for the zeta level definitions at the
 `init_atmosphere` runtime.
+
+[GSI must be able to source each of the following files](https://dtcenter.org/sites/default/files/community-code/gsi/docs/users-guide/html_v3.7/gsi_ch4.html#control-data-usage)
+to define the parameters of its analysis
+  * anavinfo
+  * atms_beamwidth.txt
+  * berror_stats
+  * convinfo.txt
+  * errtable
+  * lightinfo.txt
+  * ozinfo.txt
+  * pcpinfo.txt
+  * satangbias.txt
+  * satinfo.txt
+
+Each one of these files are either defined uniquely or otherwise linked to the corresonding fix files for the North American Mesoscale (NAM)
+and the Rapid Refresh (RAP) fix files respectively, defining alternative settings for the GSI optimization.  Note: the supplied
+RAP fix file `rap_anavinfo_arw_netcdf` is not compatible with the current GSI but is included for reference.
+
+Additionally, the workflow requires the following file
+```
+satlist.txt
+```
+defined in two columns giving the
+  1. Source observation file name to untar;
+  2. GSI observation file name code;
+
+which determines which satellites are to be assimilated in the GSI driver script.  For example, we have the collection
+```
+1bamua    amsuabufr
+1bhrs4    hirs4bufr
+1bmhs     mhsbufr
+atms      atmsbufr
+eshrs3    hirs3bufrears
+esmhs     mhsbufrears
+geoimr    gimgrbufr
+goesfv    gsnd1bufr
+gome      gomebufr
+gpsro     gpsrobufr
+mtiasi    iasibufr
+osbuv8    sbuvbufr
+satwnd    satwndbufr
+ssmisu    ssmirrbufr
+```
+of satellites available for the 2021-01-29T00 event, and lines can be removed to suppress their assimilation.  If
+no satellites are to be assimilated, the `satlist.txt` file is still required but should be empty.
 
 ### Shared mesh and variable table files
 Shared files that are independent of a simulation configurations, such as mesh partitions and ungrib variable
