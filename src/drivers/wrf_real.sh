@@ -188,6 +188,11 @@ if [ -z ${EXP_NME} ]; then
   exit 1
 else
   IFS="/" read -ra exp_nme <<< ${EXP_NME}
+  if [ ${#exp_nme[@]} -ne 2 ]; then
+    printf "ERROR: \${EXP_NME} variable:\n ${EXP_NME}\n"
+    printf "should define case study / config short name directory nesting.\n"
+    exit 1
+  fi
   cse_nme=${exp_nme[0]}
   cfg_nme=${exp_nme[1]}
   printf "Setting up configuration:\n    ${cfg_nme}\n"
@@ -555,7 +560,7 @@ printf "MAX_DOM      = ${MAX_DOM}\n"
 printf "IF_SST_UPDT  = ${IF_SST_UPDT}\n"
 printf "\n"
 
-cmd="${par_run} ${real_exe}"
+cmd="${par_run} ${real_exe}; error=\$?"
 
 if [ ${dbg} = 1 ]; then
   printf "${cmd}\n" >> ${scrpt}
@@ -566,14 +571,11 @@ fi
 
 now=`date +%Y-%m-%d_%H_%M_%S`
 printf "real started at ${now}.\n"
-printf "${cmd}\n"
-${par_run} ${real_exe}
+printf "${cmd}\n"; eval "${cmd}"
 
 ##################################################################################
 # Run time error check
 ##################################################################################
-
-error="$?"
 printf "real exited with code ${error}.\n"
 
 # Save a copy of the RSL files
@@ -594,8 +596,8 @@ printf "${cmd}\n"; eval "${cmd}"
 
 # Remove links to the WRF run files
 for filename in ${wrf_files[@]}; do
-    cmd="rm -f `basename ${filename}`"
-    printf "${cmd}\n"; eval "${cmd}"
+  cmd="rm -f `basename ${filename}`"
+  printf "${cmd}\n"; eval "${cmd}"
 done
 
 # check run error code

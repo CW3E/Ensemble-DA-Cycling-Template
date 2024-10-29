@@ -584,7 +584,7 @@ printf "BKG_STRT_DT = ${BKG_STRT_DT}\n"
 printf "BKG_INT     = ${BKG_INT}\n"
 printf "\n"
 
-cmd="./ungrib.exe"
+cmd="./ungrib.exe; error=\$?"
 
 if [ ${dbg} = 1 ]; then
   printf "${cmd}\n" >> ${scrpt}
@@ -595,14 +595,11 @@ fi
 
 now=`date +%Y-%m-%d_%H_%M_%S`
 printf "ungrib started at ${now}.\n"
-printf "${cmd}\n"
-./ungrib.exe
+printf "${cmd}\n"; eval "${cmd}"
 
 ##################################################################################
 # Run time error check
 ##################################################################################
-
-error="$?"
 printf "ungrib exited with code ${error}.\n"
 
 # save ungrib logs

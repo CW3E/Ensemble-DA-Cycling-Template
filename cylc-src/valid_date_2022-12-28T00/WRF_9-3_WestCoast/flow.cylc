@@ -1,113 +1,113 @@
 #!jinja2
-##################################################################################
-# CONTROL FLOW NAME / TUNABLE SETTINGS
-##################################################################################
-# Define the valid date YYYY-MM-DDTHH for verification
+{################################################################################}
+{# CONTROL FLOW NAME / TUNABLE SETTINGS #}
+{################################################################################}
+{# Define the valid date YYYY-MM-DDTHH for verification #}
 {% set EXP_VRF = '2022-12-28T00' %}
 
-# Define the name of case study
+{# Define the name of case study #}
 {% set CSE_NME = ['valid_date', EXP_VRF] | join('_') %}
 
-# Configuration name including tunable parameters
+{# Configuration name including tunable parameters #}
 {% set CFG_NME = 'WRF_9-3_WestCoast' %}
 
-# Case / configuration structure
+{# Case / configuration structure #}
 {% set EXP_NME = [CSE_NME, CFG_NME] | join('/') %}
 
-##################################################################################
-# CYCLING SETTINGS
-##################################################################################
-# First initial time for a forecast YYYY-MM-DDTHH
+{################################################################################}
+{# CYCLING SETTINGS #}
+{################################################################################}
+{# First initial time for a forecast YYYY-MM-DDTHH #}
 {% set CYC_STRT = '2022-12-27T00' %}
 
-# Last initial time for a forecast YYYY-MM-DDTHH
+{# Last initial time for a forecast YYYY-MM-DDTHH #}
 {% set CYC_STOP = '2022-12-27T00' %}
 
-# Interval between cycle start times PTXXH
-{% set CYC_INC = 'PT24H' %}
+{# Interval between cycle start times hours INT #}
+{% set CYC_INC = 24 %}
 
-##################################################################################
-# Ensemble SETTINGS
-##################################################################################
-# Define the ensemble size
-{% set ENS_MAX = 1 %}
+{################################################################################}
+{# ENSEMBLE SETTINGS #}
+{################################################################################}
+{# Define the ensemble size, indices start at zero #}
+{% set ENS_SIZE = 1 %}
 
-# GFS and GEFS currently supported
+{# GFS and GEFS currently supported #}
 {% set ENS_BKG_DATA = 'GEFS' %}
 
-# Data file frequency for ensemble simulation forcing in HH
+{# Data file frequency for ensemble simulation forcing in HH #}
 {% set ENS_BKG_INT = '03' %}
 
-# Max domain for ensemble simulation
+{# Max domain for ensemble simulation #}
 {% set WRF_ENS_DOM = '02' %}
 
-# First domain index to have ICs downscaled from parent's initial conditions (>01)
+{# First domain index to have ICs downscaled from parent's initial conditions (>01) #}
 {% set DOWN_DOM = '02' %}
 
-##################################################################################
-# WRF SETTINGS
-##################################################################################
-# Output interval for history files in HH, suppressed = 00
+{################################################################################}
+{# WRF SETTINGS #}
+{################################################################################}
+{# Output interval for history files in HH, suppressed = 00 #}
 {% set HIST_INT = '03' %}
 
-# Output interval for restart files in HH, suppressed = 00
-# Automatically set the restart interval to the forecast length = 'END'
+{# Output interval for restart files in HH, suppressed = 00 #}
+{# Automatically set the restart interval to the forecast length = 'END' #}
 {% set RSTRT_INT = 'END' %}
 
-# Forecast lengths are defined to a specified verification valid date
+{# Forecast lengths are defined to a specified verification valid date #}
 {% set IF_DYN_LEN = 'Yes' %}
 
-# This setting defines Yes / No for nested domain 2-way coupling
+{# This setting defines Yes / No for nested domain 2-way coupling #}
 {% set IF_FEEDBACK = 'No' %}
 
-# Lower boundary condition updates from background data
+{# Lower boundary condition updates from background data #}
 {% set IF_SST_UPDT = 'No' %}
 
-# Quilting tasks per group, set NIO_TPG=0 for default TURN OFF QUILTING
+{# Quilting tasks per group, set NIO_TPG=0 for default TURN OFF QUILTING #}
 {% set NIO_TPG = 0 %}
 
-# Quilting number of groups
+{# Quilting number of groups #}
 {% set NIO_GRPS = 4 %}
 
-##################################################################################
-# JOB SETTINGS
-##################################################################################
-# ungrib mem argument
+{################################################################################}
+{# JOB SETTINGS #}
+{################################################################################}
+{# ungrib mem argument #}
 {% set GRIB_MEM = '20000M' %}
 
-# Wallclock limit for ungrib jobs
+{# Wallclock limit for ungrib jobs #}
 {% set GRIB_WC = 'PT30M' %}
 
-# WPS parallel / REAL number of procs-per-node
+{# WPS parallel / REAL number of procs-per-node #}
 {% set WPS_PROC = 64 %}
 
-# WPS mem argument 
+{# WPS mem argument  #}
 {% set WPS_MEM = '249000M' %}
 
-# Number of nodes for WPS parallel / REAL jobs
+{# Number of nodes for WPS parallel / REAL jobs #}
 {% set WPS_NDES = 1 %}
 
-# Wallclock limit for init_atmosphere jobs
+{# Wallclock limit for init_atmosphere jobs #}
 {% set WPS_WC = 'PT30M' %}
 
-# WRF model number of procs-per-node
+{# WRF model number of procs-per-node #}
 {% set WRF_PROC = 128 %}
 
-# WRF model mem argument
+{# WRF model mem argument #}
 {% set WRF_MEM = '249000M' %}
 
-# Number of nodes for WRF model jobs
+{# Number of nodes for WRF model jobs #}
 {% set WRF_NDES = 3 %}
 
-# Wallclock limit for WRF model
+{# Wallclock limit for WRF model #}
 {% set WRF_WC = 'PT4H' %}
 
-# Set workflow to debugging mode for generating batch submit templates
+{# Set workflow to debugging mode for generating batch submit templates #}
 {% set IF_DBG = 'No' %}
 
-##################################################################################
-# CYLC SETTINGS
-##################################################################################
+{################################################################################}
+{# CYLC SETTINGS #}
+{################################################################################}
 [scheduler]
     UTC mode = True
     allow implicit tasks = True
@@ -115,8 +115,8 @@
     initial cycle point = {{CYC_STRT}}
     final cycle point = {{CYC_STOP}}
     [[graph]]
-        {{CYC_INC}} = """
-        {% for mem in range(0,ENS_MAX) %}
+        PT{{CYC_INC}}H = """
+        {% for mem in range(0,ENS_SIZE) %}
             {% set idx = mem | pad(2, '0') %}
             ungrib_ens_{{idx}}  => wrf_metgrid_ens_{{idx}}
             wrf_metgrid_ens_{{idx}} => wrf_real_ens_{{idx}}
@@ -125,10 +125,8 @@
         """
 [runtime]
     [[root]]
+        platform = {{environ['SCHED']}}
         [[[environment]]]
-            CNST = {{environ['DRIVERS']}}/MODEL_CONSTANTS.sh
-            MOD_ENV = {{environ['MOD_ENV']}}
-            CFG_SHRD = {{environ['CFG_SHRD']}}
             EXP_NME = {{EXP_NME}}
             EXP_VRF = $(isodatetime {{EXP_VRF}} --f '%Y%m%d%H')
             CYC_DT = $(isodatetime ${CYLC_TASK_CYCLE_POINT} --f '%Y%m%d%H')
@@ -139,31 +137,22 @@
             IF_SST_UPDT = {{IF_SST_UPDT}}
             IF_RGNL = 'Yes'
             MAX_DOM = {{WRF_ENS_DOM}}
-            MPIRUN = {{environ['MPIRUN']}}
             IF_DBG_SCRPT = {{IF_DBG}}
-            SCHED = {{environ['SCHED']}}
 
     [[WPS]]
         [[[environment]]]
-            WPS_ROOT = {{environ['WPS_ROOT']}}
             IF_ECMWF_ML = 'No'
             BKG_INT = {{ENS_BKG_INT}}
 
-    [[WRF]]
-        [[[environment]]]
-            WRF_ROOT = {{environ['WRF_ROOT']}}
-
-    {% for mem in range(0,ENS_MAX) %}
+    {% for mem in range(0,ENS_SIZE) %}
         {% set idx = mem | pad(2, '0') %}
         [[ungrib_ens_{{idx}}]]
             inherit = WPS
-            platform = {{environ['SCHED']}}
             execution time limit = {{GRIB_WC}}
             script = {{environ['DRIVERS']}}/ungrib.sh
             execution retry delays = 3*PT5M
             [[[environment]]]
                 MEMID = {{idx}}
-                GRIB_ROOT = {{environ['GRIB_ROOT']}}
                 BKG_STRT_DT = $CYC_DT
                 IF_SST_UPDT = {{IF_SST_UPDT}}
             [[[directives]]]
@@ -186,7 +175,6 @@
 
         [[wrf_metgrid_ens_{{idx}}]]
             inherit = WPS
-            platform = {{environ['SCHED']}}
             execution time limit = {{WPS_WC}}
             script = {{environ['DRIVERS']}}/wrf_metgrid.sh
             execution retry delays = 3*PT5M
@@ -214,7 +202,6 @@
 
         [[wrf_real_ens_{{idx}}]]
             inherit = WPS
-            platform = {{environ['SCHED']}}
             execution time limit = {{WPS_WC}}
             script = {{environ['DRIVERS']}}/wrf_real.sh
             execution retry delays = 3*PT5M
@@ -243,7 +230,6 @@
                 {% endif %}
 
         [[wrf_model_ens_{{idx}}]]
-            platform = {{environ['SCHED']}}
             execution time limit = {{WRF_WC}}
             script = {{environ['DRIVERS']}}/wrf_model.sh
             execution retry delays = 3*PT5M
@@ -252,7 +238,6 @@
                 HIST_INT = {{HIST_INT}}
                 RSTRT_INT = {{RSTRT_INT}}
                 BKG_INT = {{ENS_BKG_INT}}
-                IF_RSTRT = 'No'
                 IF_SST_UPDT = {{IF_SST_UPDT}}
                 CYC_INC = 00
                 DOWN_DOM = {{DOWN_DOM}}

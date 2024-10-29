@@ -196,6 +196,11 @@ if [ -z ${EXP_NME} ]; then
   exit 1
 else
   IFS="/" read -ra exp_nme <<< ${EXP_NME}
+  if [ ${#exp_nme[@]} -ne 2 ]; then
+    printf "ERROR: \${EXP_NME} variable:\n ${EXP_NME}\n"
+    printf "should define case study / config short name directory nesting.\n"
+    exit 1
+  fi
   cse_nme=${exp_nme[0]}
   cfg_nme=${exp_nme[1]}
   printf "Setting up configuration:\n    ${cfg_nme}\n"
@@ -317,8 +322,12 @@ elif [ ! ${HIST_INT} -gt 00 ]; then
   exit 1
 else
   printf "The WRF history interval is ${HIST_INT} hours.\n"
-  # define a sequence of all forecast hours with background interval spacing
-  hist_seq=`seq -f "%03g" 0 ${HIST_INT} ${fcst_hrs}`
+  # define a sequence of all forecast hours with hist interval spacing
+  if [[ ${WRF_IC} = ${RESTART} ]]; then
+    hist_seq=`seq -f "%03g" ${HIST_INT} ${HIST_INT} ${fcst_hrs}`
+  else
+    hist_seq=`seq -f "%03g" 0 ${HIST_INT} ${fcst_hrs}`
+  fi
 fi
 
 if [[ ${RSTRT_INT} =~ ${END} ]]; then
@@ -722,9 +731,9 @@ rstrt_int=$(( 60 * 10#${rstrt_int} ))
 
 # Update the restart setting in wrf namelist depending on switch
 if [[ ${WRF_IC} = ${RESTART} ]]; then
-  wrf_restart=".true."
+  if_rstrt=".true."
 else
-  wrf_restart=".false."
+  if_rstrt=".false."
 fi
 
 # Update the wrf namelist (propagates settings to three domains)
@@ -748,7 +757,7 @@ cat namelist.input \
 | sed "s/= AUXINPUT4_INT,/= ${aux_out},/" \
 | sed "s/= AUXHIST2_INT,/= ${out_hist},/" \
 | sed "s/= HIST_INT,/= ${out_hist},/" \
-| sed "s/= RSTRT,/= ${wrf_restart},/" \
+| sed "s/= RSTRT,/= ${if_rstrt},/" \
 | sed "s/= RSTRT_INT,/= ${rstrt_int},/" \
 | sed "s/= IF_FEEDBACK,/= ${feedback},/"\
 | sed "s/= NIO_TPG,/= ${NIO_TPG},/" \
@@ -787,7 +796,7 @@ printf "IF_SST_UPDT = ${IF_SST_UPDT}\n"
 printf "IF_FEEDBACK = ${IF_FEEDBACK}\n"
 printf "\n"
 
-cmd="${par_run} ${wrf_exe}"
+cmd="${par_run} ${wrf_exe}; error=\$?"
 
 if [ ${dbg} = 1 ]; then
   printf "${cmd}\n" >> ${scrpt}
@@ -798,14 +807,11 @@ fi
 
 now=`date +%Y-%m-%d_%H_%M_%S`
 printf "wrf started at ${now}.\n"
-printf "${cmd}\n"
-${par_run} ${wrf_exe}
+printf "${cmd}\n"; eval "${cmd}"
 
 ##################################################################################
 # Run time error check
 ##################################################################################
-
-error="$?"
 printf "wrf exited with code ${error}.\n"
 
 # Save a copy of the RSL files
@@ -820,8 +826,8 @@ printf "${cmd}\n"; eval "${cmd}"
 
 # Remove links to the WRF run files
 for filename in ${wrf_files[@]}; do
-    cmd="rm -f `basename ${filename}`"
-    printf "${cmd}\n"; eval "${cmd}"
+  cmd="rm -f `basename ${filename}`"
+  printf "${cmd}\n"; eval "${cmd}"
 done
 
 # remove links to input / boundary condition data

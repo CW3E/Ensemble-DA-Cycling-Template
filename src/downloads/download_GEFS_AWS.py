@@ -72,25 +72,34 @@ from datetime import timedelta
 # SET GLOBAL PARAMETERS 
 ##################################################################################
 # starting date and zero hour of data iso format
-STRT_DT = '2022-12-23T00:00:00'
+STRT_DT = '2021-01-26T00:00:00'
 
 # final date and zero hour of data iso format
-STOP_DT = '2022-12-27T00:00:00'
+STOP_DT = '2021-01-28T18:00:00'
 
 # number of hours between zero hours for forecast data
-INIT_INT = 24
+INIT_INT = 6
 
 # min forecast hour
 FCST_MIN = 0
 
 # max forecast hour
-FCST_MAX = 120
+FCST_MAX = 12
 
 # interval of forecast data outputs after zero hour
 FCST_INT = 3
 
 # root directory where date stamped sub-directories will collect data downloads
 DATA_ROOT = '/expanse/nfs/cw3e/cwp168/DATA/GRIB/GEFS'
+
+# Download ensemble control member
+IF_CTRL = False
+
+# Download ensemble perturbations
+IF_PERT = True
+
+# Download all files or exlcude patterns of existing files True / False
+IF_CLOB = True
 
 ##################################################################################
 # UTILITY METHODS
@@ -155,6 +164,11 @@ for date in dates:
     down_dir = DATA_ROOT + '/' + date.strftime('%Y%m%d') + '/'
     os.system('mkdir -p ' + down_dir)
 
+    # Check for existing files to include in the exclude list
+    exc_list = sorted(glob.glob(down_dir + '*.f???'))
+    for i_l in range(len(exc_list)):
+        exc_list[i_l] = exc_list[i_l].split('/')[-1]
+
     for fcst in fcsts:
         # the following are the two and three digit padding versions of the hours
         HH  = fcst.zfill(2)
@@ -170,7 +184,17 @@ for date in dates:
               '--exclude \'*wave*\'' + ' ' +\
               '--exclude \'*geavg*\'' + ' ' +\
               '--exclude \'*gespr*\'' + ' ' +\
-              '--exclude \'*0p25*\''
+              '--exclude \'*0p25*\' '
+
+        if not IF_CLOB:
+            for fname in exc_list:
+                cmd += '--exclude \'*' + fname + '\' '
+       
+        if not IF_CTRL:
+            cmd += '--exclude \'*gec*\' '
+
+        if not IF_PERT: 
+            cmd += '--exclude \'*gep*\' '
 
         print(INDT * 2 + 'Running command:\n')
         print(INDT * 3 + cmd + '\n')
@@ -183,27 +207,23 @@ for date in dates:
     print(find_cmd)
     os.system(find_cmd)
               
-    f = open('./file_list.txt', 'r')
-
-    print(INDT * 2 + 'Unpacking nested directory structure into ' + down_dir)
-    for line in f:
-        cmd = 'mv ' + line[:-1] + ' ' + down_dir
-        os.system(cmd)
-
-    # cleanup empty directories and file list
-    f.close()
+    with open('./file_list.txt', 'r') as f:
+        print(INDT * 2 + 'Unpacking nested directory structure into ' + down_dir)
+        for line in f:
+            cmd = 'mv ' + line[:-1] + ' ' + down_dir
+            os.system(cmd)
 
     find_cmd = 'find ' + down_dir + ' -type d > dir_list.txt'
     print(find_cmd)
     os.system(find_cmd)
 
-    f = open('./dir_list.txt', 'r')
-    print(INDT * 2 + 'Removing empty nested directories')
-    line_list = f.readlines()
-    line_list = line_list[-1:0:-1]
+    with open('./dir_list.txt', 'r') as f:
+        print(INDT * 2 + 'Removing empty nested directories')
+        line_list = f.readlines()
+        line_list = line_list[-1:0:-1]
 
-    for line in line_list:
-        os.system('rmdir ' + line)
+        for line in line_list:
+            os.system('rmdir ' + line)
 
     os.system('rm file_list.txt')
     os.system('rm dir_list.txt')

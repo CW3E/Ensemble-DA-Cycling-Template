@@ -44,8 +44,6 @@
 # 
 #
 ##########################################################################
-source ${HOME}/settings/environments/CONSTANTS.sh
-
 ulimit -s unlimited
 
 # Defines expanse environment with intel / intelmpi

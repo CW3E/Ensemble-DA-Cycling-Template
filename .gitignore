@@ -9,9 +9,25 @@
 *.pyc
 
 # No conda / miniconda files #
-###################
+##############################
 .conda
 .conda/*
+
+# No cylc hidden files #
+########################
+.cylc/
+
+# No ipython files
+###################
+.cache/
+.ipython/
+.pdbhistory
+.jupyter/
+
+# No x11 data #
+###############
+.cache/*
+.local/*
 
 # Packages #
 ############
@@ -53,6 +69,7 @@ Thumbs.db
 *.swp
 *.swo
 .viminfo
+.vim
 
 # no output from nohup #
 ########################

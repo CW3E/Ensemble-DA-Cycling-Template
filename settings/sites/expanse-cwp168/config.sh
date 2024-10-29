@@ -54,11 +54,23 @@ export MOD_ENV="${HOME}/settings/sites/expanse-cwp168/${MOD_STACK}.sh"
 # Root directory of WRF clean build
 export WRF_ROOT="${SOFT_ROOT}/${MOD_STACK}/WRF-4.5.1"
 
+# Root directory of WRFDA clean build
+export WRFDA_ROOT="${SOFT_ROOT}/${MOD_STACK}/WRFDA-4.5.1"
+
 # Root directory of WPS clean build
 export WPS_ROOT="${SOFT_ROOT}/${MOD_STACK}/WPS-4.5"
 
 # Root directory of MPAS clean build
-export MPAS_ROOT="${SOFT_ROOT}/${MOD_STACK}/MPAS-Model-8.0.1"
+export MPAS_ROOT="${SOFT_ROOT}/${MOD_STACK}/MPAS-Model-8.2.1"
+
+# GSI software stack name
+export GSI_STACK="NOAA_HPC_STACK"
+
+# GSI stack configuration file
+export GSI_ENV="${HOME}/settings/sites/expanse-cwp168/${GSI_STACK}.sh"
+
+# Path to GSI executable
+export GSI_EXE="${SOFT_ROOT}/${GSI_STACK}/GSI/build/src/gsi/gsi.x"
 
 # Root directory of simulation forcing data
 export DATA_ROOT="/expanse/nfs/cw3e/cwp168/DATA"
@@ -68,6 +80,12 @@ export GRIB_ROOT="${DATA_ROOT}/GRIB"
 
 # Root directory of observations
 export OBS_ROOT="${DATA_ROOT}/OBS"
+
+# Root directory of static ensemble simulations used for background error
+export ENS_ROOT="${DATA_ROOT}/ENSEMBLES"
+
+# Root directory CRTM coefficients for GSI analysis
+export CRTM_ROOT="${DATA_ROOT}/CRTM_ROOT/CRTM_v2.3.0/Big_Endian"
 
 # Root directory of simulation_io
 export WORK_ROOT="/expanse/lustre/scratch/cgrudzien/temp_project/cwp168/SIMULATION_IO"
@@ -86,7 +104,7 @@ export SYS_TYPE=""
 export MPIRUN="mpiexec"
 
 # Project billing account
-export PROJECT="cwp168"
+export PROJECT="cwp157"
 
 # Compute queue for standard mpi jobs
 export PART_CMP="cw3e-compute"

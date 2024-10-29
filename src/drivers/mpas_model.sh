@@ -141,6 +141,11 @@ if [ -z ${EXP_NME} ]; then
   exit 1
 else
   IFS="/" read -ra exp_nme <<< ${EXP_NME}
+  if [ ${#exp_nme[@]} -ne 2 ]; then
+    printf "ERROR: \${EXP_NME} variable:\n ${EXP_NME}\n"
+    printf "should define case study / config short name directory nesting.\n"
+    exit 1
+  fi
   cse_nme=${exp_nme[0]}
   cfg_nme=${exp_nme[1]}
   printf "Setting up configuration:\n    ${cfg_nme}\n"
@@ -803,7 +808,7 @@ printf "STOP_DT = ${stop_iso}\n"
 printf "BKG_INT = ${BKG_INT}\n"
 printf "\n"
 
-cmd="${par_run} ${atmos_exe}"
+cmd="${par_run} ${atmos_exe}; error=\$?"
 
 if [ ${dbg} = 1 ]; then
   printf "${cmd}\n" >> ${scrpt}
@@ -814,14 +819,11 @@ fi
 
 now=`date +%Y-%m-%d_%H_%M_%S`
 printf "atmosphere_model started at ${now}.\n"
-printf "${cmd}\n"
-${par_run} ${atmos_exe}
+printf "${cmd}\n"; eval "${cmd}"
 
 ##################################################################################
 # Run time error check
 ##################################################################################
-
-error="$?"
 printf "atmosphere_model exited with code ${error}.\n"
 
 # save mpas_model logs

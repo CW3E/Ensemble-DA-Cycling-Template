@@ -7,7 +7,7 @@
 #
 #   https://dtcenter.ucar.edu/com-GSI/users/tutorial/online_tutorial/index_v3.7.php
 #
-# The purpose of this fork is to work in a Rocoto-based
+# The purpose of this fork is to work in a Cylc-based
 # Observation-Analysis-Forecast cycle with WRF for data denial experiments.
 # Naming conventions in this script have been smoothed to match a companion major
 # fork of the wrf.ksh WRF driver script of Christopher Harrop.
@@ -50,42 +50,19 @@
 # HEREUNDER IS ON AN “AS IS” BASIS, AND THE UNIVERSITY OF CALIFORNIA HAS NO
 # OBLIGATIONS TO PROVIDE MAINTENANCE, SUPPORT, UPDATES, ENHANCEMENTS, OR
 # MODIFICATIONS.
-# 
 #
 ##################################################################################
 # Preamble
 ##################################################################################
-# Options below are hard-coded based on the type of experiment
-# (i.e., these not expected to change within DA cycles).
-#
-# if_clean   = Yes : delete temporal files in working directory (default)
-#              No  : leave running directory as is (this is for debug only)
-# if_oneob   = Yes : Do single observation test
-# grid_ratio = 1 default, still testing option for dual resolution
+# CNST         = Full path to BASH constants used in driver scripts
+# GSI_ENV      = Full path to environment config file used to compile and run GSI
+# IF_DBG_SCRPT = Switch YES or else, this is NOT A REQUIRED ARGUMENT. Set variable
+#                IF_DBG_SCRPT=Yes within the configuration to initiate debugging,
+#                script will default to normal run behavior otherwise
+# SCHED        = IF_DBG_SCRPT=Yes, SCHED=SLURM or SCHED=PBS will auto-generate
+#                a job submission header in the debugging script to run manually
 #
 ##################################################################################
-# uncomment to run verbose for debugging / testing
-#set -x
-
-# designed for 3D-envar only
-if4d=".false."
-nummiter=2
-if_read_obs_save=".false."
-if_read_obs_skip=".false."
-
-# Background error set for WRF-ARW by default
-bk_core_arw=".true."
-bk_core_nmm=".false."
-bk_core_nmmb=".false."
-bk_if_netcdf=".true."
-if_gfs_nemsio=".false."
-
-# workflow debug settings
-if_clean=Yes
-if_oneob=No
-
-# In testing, not determined if can be used effectively
-grid_ratio=1
 
 # Read constants into the current shell
 if [ ! -x ${CNST} ]; then
@@ -94,7 +71,48 @@ if [ ! -x ${CNST} ]; then
 else
   # Read constants into the current shell
   cmd=". ${CNST}"
-  printf "${cmd}\n"; eval ${cmd}
+  printf "${cmd}\n"; eval "${cmd}"
+fi
+
+if [ ! -x ${GSI_ENV} ]; then
+  msg="ERROR: GSI environment file\n ${GSI_ENV}\n does not exist"
+  msg+=" or is not executable.\n"
+  printf "${msg}"
+  exit 1
+else
+  # Read GSI environment into the current shell
+  cmd=". ${GSI_ENV}"
+  printf "${cmd}\n"; eval "${cmd}"
+fi
+
+if [[ ${IF_DBG_SCRPT} = ${YES} ]]; then 
+  dbg=1
+  scrpt=$(mktemp /tmp/run_dbg.XXXXXXX.sh)
+  printf "Driver runs in debug mode.\n"
+  printf "Producing a script and work directory for manual submission.\n"
+
+  if [[ ${SCHED} = ${SLURM} ]]; then
+    # source slurm header from environment directory
+    cat `dirname ${MOD_ENV}`/slurm_header.sh >> ${scrpt}
+  elif [[ ${SCHED} = ${PBS} ]]; then
+    # source pbs header from environment directory
+    cat `dirname ${MOD_ENV}`/pbs_header.sh >> ${scrpt}
+  fi
+
+  # Read constants and print into run script
+  while read line; do
+    IFS=" " read -ra parsed <<< ${line}
+    char=${parsed[0]}
+    if [[ ! ${char} =~ \# ]]; then
+      cmd=""
+      for char in ${parsed[@]}; do
+        cmd="${cmd}${char} "
+      done
+      printf "${cmd}\n" >> ${scrpt}
+    fi
+  done < ${MOD_ENV}
+else
+  dbg=0
 fi
 
 ##################################################################################
@@ -102,44 +120,61 @@ fi
 ##################################################################################
 # Options below are defined in control flow xml (case insensitive)
 #
-# ANL_DT      = Analysis time YYYYMMDDHH
+# EXP_NME     = Case study / config short name directory structure
+# CYC_DT      = Analysis time YYYYMMDDHH
 # CYC_HME     = Start time named directory for cycling data containing
 # WRF_CTR_DOM = Analyze up to domain index format DD of control solution
 # IF_HYBRID   = Yes : Run GSI with ensemble background covariance
-# N_ENS       = Max ensemble pertubation index
+# ENS_DIR     = Background ensemble located at ${ENS_DIR}/ens_${ens_n}/wrfout* 
+# ENS_SIZE    = The total ensemble size including control member + perturbations
 # WRF_ENS_DOM = Utilize ensemble perturbations up to domain index DD
 # BETA        = Scaling float in [0,1], 0 - full ensemble, 1 - full static
-# S_ENS_H     = Homogeneous isotropic horizontal ensemble localization scale (km) 
-# S_ENS_V     = Vertical localization scale (grid units)
+# HLOC        = Homogeneous isotropic horizontal ensemble localization scale (km) 
+# VLOC        = Vertical localization scale (grid units)
 # MAX_BC_LOOP = Maximum number of times to iteratively generate variational bias
 #               correction files, loop zero starts with GDAS defaults
 #
 ##################################################################################
 
-# Convert ANL_DT from 'YYYYMMDDHH' format to anl_iso Unix date format
-if [ ${#ANL_DT} -ne 10 ]; then
-  printf "ERROR: \${ANL_DT}, ${ANL_DT}, is not in 'YYYYMMDDHH' format.\n"
+if [ -z ${EXP_NME} ]; then
+  printf "ERROR: Case study / config short name \${EXP_NME} is not defined.\n"
+  exit 1
+else
+  IFS="/" read -ra exp_nme <<< ${EXP_NME}
+  if [ ${#exp_nme[@]} -ne 2 ]; then
+    printf "ERROR: \${EXP_NME} variable:\n ${EXP_NME}\n"
+    printf "should define case study / config short name directory nesting.\n"
+    exit 1
+  fi
+  cse_nme=${exp_nme[0]}
+  cfg_nme=${exp_nme[1]}
+  printf "Setting up configuration:\n    ${cfg_nme}\n"
+  printf "for:\n    ${cse_nme}\n case study.\n"
+fi
+
+# Convert CYC_DT from 'YYYYMMDDHH' format to cyc_iso Unix date format
+if [[ ! ${CYC_DT} =~ ${ISO_RE} ]]; then
+  printf "ERROR: \${CYC_DT}, ${CYC_DT}, is not in 'YYYYMMDDHH' format.\n"
   exit 1
 else
   # define anl date components separately
-  anl_date=${ANL_DT:0:8}
-  hh=${ANL_DT:8:2}
+  cyc_dt=${CYC_DT:0:8}
+  hh=${CYC_DT:8:2}
 
-  # Define file path name variable anl_iso from ANL_DT
-  anl_iso=`date +%Y-%m-%d_%H_%M_%S -d "${anl_date} ${hh} hours"`
+  # Define file path name variable cyc_iso from CYC_DT
+  cyc_iso=`date +%Y-%m-%d_%H_%M_%S -d "${cyc_dt} ${hh} hours"`
 fi
 
-if [ ! ${CYC_HME} ]; then
+if [ -z ${CYC_HME} ]; then
   printf "ERROR: \${CYC_HME} is not defined.\n"
   exit 1
-elif [ ! -d "${CYC_HME}" ]; then
+elif [ ! -d ${CYC_HME} ]; then
   printf "ERROR: \${CYC_HME} directory\n ${CYC_HME}\n does not exist.\n"
   exit 1
 fi
 
-
-if [ ${#WRF_CTR_DOM} -ne 2 ]; then
-  printf "ERROR: \${WRF_CTR_DOM}\n ${WRF_CTR_DOM}\n is not in DD format.\n"
+if [[ ! ${WRF_CTR_DOM} =~ ${INT_RE} ]]; then
+  printf "ERROR: \${WRF_CTR_DOM}\n ${WRF_CTR_DOM}\n is not an integer.\n"
   exit 1
 else
   max_dom=${WRF_CTR_DOM}
@@ -147,29 +182,40 @@ fi
 
 if [[ ${IF_HYBRID} = ${YES} ]]; then
   # ensembles are required for hybrid EnVAR
-  if [ ${#WRF_ENS_DOM} -ne 2 ]; then
-    printf "ERROR: \${WRF_ENS_DOM} is not in DD format.\n"
+  if [ -z ${ENS_DIR} ]; then
+    printf "ERROR: \${ENS_DIR} is not defined.\n"
     exit 1
-  elif [ ! ${N_ENS} ]; then
-    msg="ERROR: \${N_ENS} must be specified to the number "
-    msg+="of ensemble perturbations.\n"
+  elif [[ ! -d ${ENS_DIR} || ! -x ${ENS_DIR} ]]; then
+    msg="ERROR: \${ENS_DIR} directory\n ${ENS_DIR}\n does not exist or"
+    msg+=" is not executable.\n"
     printf "${msg}"
     exit 1
-  elif [ ${N_ENS} -lt 2 ]; then
-    printf "ERROR: ensemble size \${N_ENS} + 1 must be three or greater.\n"
+  elif [[ ! ${WRF_ENS_DOM} =~ ${INT_RE} ]]; then
+    printf "ERROR: \${WRF_ENS_DOM} is not in DD format.\n"
     exit 1
-  elif [ ! ${BETA} ]; then
-    msg="ERROR: \${BETA} must be specified to the weight "
-    msg+="between ensemble and static covariance.\n"
+  elif [[ ! ${ENS_SIZE} =~ ${INT_RE} ]]; then
+    msg="ERROR: \${ENS_SIZE},\n ${ENS_SIZE}\n is not an integer, this must"
+    msg+=" be specified to the total ensemble size.\n"
+    printf "${msg}"
+    exit 1
+  elif [ ${ENS_SIZE} -lt 3 ]; then
+    printf "ERROR: ensemble size \${ENS_SIZE} must be three or greater.\n"
+    exit 1
+  elif [[ ! ${BETA} =~ ${DEC_RE} ]]; then
+    msg="ERROR: \${BETA},\n ${BETA}\n is not a positive decimal, it must"
+    msg+=" be specified to the weight given to the static covariance.\n"
     printf "${msg}"
     exit 1
   elif [[ $(echo "${BETA} < 0" | bc -l ) -eq 1 || $(echo "${BETA} > 1" | bc -l ) -eq 1 ]]; then
     printf "ERROR:\n ${BETA}\n must be between 0 and 1.\n"
     exit 1
   else
-    printf "GSI performs hybrid ensemble variational DA with ensemble size ${N_ENS}.\n"
+    printf "GSI performs hybrid ensemble variational DA with ensemble size ${ENS_SIZE}.\n"
     printf "Background covariance weight ${BETA}.\n"
     ifhyb=".true."
+    n_perts=$(( ${ENS_SIZE} - 1 ))
+    # create a sequence of member ids
+    mem_list=`seq -f "%02g" 1 ${n_perts}`
   fi
 elif [[ ${IF_HYBRID} = ${NO} ]]; then
   printf "GSI performs variational DA without ensemble.\n"
@@ -179,50 +225,39 @@ else
   exit 1
 fi
 
-# create a sequence of member ids
-mem_list=`seq -f "%02g" 1 ${N_ENS}`
-
-if [ ! ${S_ENS_V} ]; then
-  msg="ERROR: \${S_ENS_V} must be specified to the length of vertical "
-  msg+="localization scale in grid units.\n"
+if [[ ! ${VLOC} =~ ${INT_RE} ]]; then
+  msg="ERROR: \${VLOC},\n ${VLOC}\n is not an integer, it must be"
+  msg+=" specified to the length of vertical localization scale in"
+  msg+=" vertical levels.\n"
   printf "${msg}"
   exit 1
-  if [ ${S_ENS_V} -lt 0 ]; then
-    printf "ERROR:\n ${S_ENS_V}\n must be greater than 0.\n"
+  if [ ${VLOC} -lt 0 ]; then
+    printf "ERROR:\n ${VLOC}\n must be greater than 0.\n"
     exit 1
   fi
 fi
 
-if [ ! ${S_ENS_H} ]; then
-  msg="ERROR: \${S_ENS_H} must be specified to the length of horizontal "
+if [[ ! ${HLOC} =~ ${INT_RE} ]]; then
+  msg="ERROR: \${HLOC},\n ${HLOC} must be specified to the length of horizontal "
   msg+="localization scale in km.\n"
   printf "${msg}"
   exit 1
-  if [ ${S_ENS_H} -lt 0 ]; then
-    printf "ERROR: ${S_ENS_H} must be greater than 0.\n"
+  if [ ${HLOC} -lt 0 ]; then
+    printf "ERROR: ${HLOC} must be greater than 0.\n"
     exit 1
   fi
 fi
 
-if [ ${#MAX_BC_LOOP} -ne 2 ]; then
-  msg="ERROR: \${MAX_BC_LOOP} must be specified to the number of "
-  msg+="variational bias correction iterations in format LL.\n"
+if [[ ! ${MAX_BC_LOOP} =~ ${INT_RE} ]]; then
+  msg="ERROR: \${MAX_BC_LOOP},\n ${MAX_BC_LOOP}\n is not an integer, it"
+  msg+=" must be specified to the number of variational bias correction"
+  msg+=" coefficient iterations.\n"
   printf "${msg}"
   exit 1
 elif [ ${MAX_BC_LOOP} -lt 0 ]; then
   msg="ERROR: the number of iterations of variational bias "
   msg+="correction must be non-negative.\n"
   printf "${msg}"
-  exit 1
-fi
-
-if [[ ${if_oneob} = ${YES} ]]; then
-  printf "GSI performs single observation test.\n"
-  if_oneobtest=".true."
-elif [[ ${if_oneob} = ${NO} ]]; then
-  if_oneobtest=".false."
-else
-  printf "ERROR: \${if_oneob} must equal 'Yes' or 'No' (case insensitive).\n"
   exit 1
 fi
 
@@ -235,21 +270,18 @@ fi
 # CRTM_ROOT = Path of CRTM including byte order
 # EXP_CNFG  = Root directory containing sub-directories for namelists
 #             vtables, geogrid data, GSI fix files, etc.
-# DATA_ROOT = Directory for all forcing data files, including grib files,
-#             obs files, etc.
-# ENS_ROOT  = Background ensemble located at ${ENS_ROOT}/ens_${ens_n}/wrfout* 
 # MPIRUN    = MPI Command to execute GSI
 # N_NDES    = Total number of nodes
 # N_PROC    = The total number of processes per node
 #
 # Below variables are derived from control flow variables for convenience
 #
-# anl_iso   = Defined by the ANL_DT variable, to be used as path
+# cyc_iso   = Defined by the CYC_DT variable, to be used as path
 #             name variable in iso format for wrfout
 #
 ##################################################################################
 
-if [ ! ${GSI_EXE} ]; then
+if [ -z ${GSI_EXE} ]; then
   printf "ERROR: \${GSI_EXE} is not defined.\n"
   exit 1
 elif [ ! -x ${GSI_EXE} ]; then
@@ -257,59 +289,47 @@ elif [ ! -x ${GSI_EXE} ]; then
   exit 1
 fi
 
-if [ ! ${CRTM_ROOT} ]; then
+if [ -z ${CRTM_ROOT} ]; then
   printf "ERROR: \${CRTM_ROOT} is not defined.\n"
   exit 1
-elif [ ! -d ${CRTM_ROOT} ]; then
-  printf "ERROR: CRTM_ROOT directory\n ${CRTM_ROOT}\n does not exist.\n"
-  exit 1
-fi
-
-if [ ! ${EXP_CNFG} ]; then
-  printf "ERROR: \${EXP_CNFG} is not defined.\n"
-  exit 1
-elif [ ! -d ${EXP_CNFG} ]; then
-  printf "ERROR: \${EXP_CNFG} directory\n ${EXP_CNFG}\n does not exist.\n"
-  exit 1
-fi
-
-if [ ! ${DATA_ROOT} ]; then
-  printf "ERROR: \${DATA_ROOT} is not defined.\n"
-  exit 1
-elif [ ! -d ${DATA_ROOT} ]; then
-  printf "ERROR: \${DATA_ROOT} directory\n ${DATA_ROOT}\n does not exist.\n"
-  exit 1
-fi
-
-if [ ! ${ENS_ROOT} ]; then
-  printf "ERROR: \${ENS_ROOT} is not defined.\n"
-  exit 1
-elif [ ! -d ${ENS_ROOT} ]; then
-  printf "ERROR: \${ENS_ROOT} directory\n ${ENS_ROOT}\n does not exist.\n"
-  exit 1
-fi
-
-if [ ! ${MPIRUN} ]; then
-  printf "ERROR: \${MPIRUN} is not defined.\n"
-  exit 1
-fi
-
-if [ ! ${N_NDES} ]; then
-  printf "ERROR: \${N_NDES} is not defined.\n"
-  exit 1
-elif [ ${N_NDES} -le 0 ]; then
-  msg="ERROR: The variable \${N_NDES} must be set to the number"
-  msg+=" of nodes to run GSI.\n"
+elif [[ ! -d ${CRTM_ROOT} || ! -x ${CRTM_ROOT} ]]; then
+  msg="ERROR: CRTM_ROOT directory\n ${CRTM_ROOT}\n does not exist or"
+  msg+=" is not executable.\n"
   printf "${msg}"
   exit 1
 fi
 
-if [ ! ${N_PROC} ]; then
-  printf "ERROR: \${N_PROC} is not defined.\n"
+if [ -z ${OBS_ROOT} ]; then
+  printf "ERROR: \${OBS_ROOT} is not defined.\n"
+  exit 1
+elif [[ ! -d ${OBS_ROOT} || ! -x ${OBS_ROOT} ]]; then
+  msg="ERROR: \${OBS_ROOT} directory\n ${OBS_ROOT}\n does not exist or"
+  msg+=" is not executable.\n"
+  printf "${msg}"
+  exit 1
+fi
+
+if [ -z ${MPIRUN} ]; then
+  printf "ERROR: \${MPIRUN} is not defined.\n"
+  exit 1
+fi
+
+if [[ ! ${N_NDES} =~ ${INT_RE} ]]; then
+  printf "ERROR: \${N_NDES}, ${N_NDES}, is not an integer.\n"
+  exit 1
+elif [ ${N_NDES} -le 0 ]; then
+  msg="ERROR: The variable \${N_NDES} must be set to the number"
+  msg+=" of nodes to run GSI > 0.\n"
+  printf "${msg}"
+  exit 1
+fi
+
+if [[ ! ${N_PROC} =~ ${INT_RE} ]]; then
+  printf "ERROR: \${N_PROC}, ${N_PROC}, is not an integer.\n"
   exit 1
 elif [ ${N_PROC} -le 0 ]; then
-  msg="ERROR: The variable \${N_PROC} must be set to the "
-  msg+="number of processes-per-node to run GSI > 0.\n"
+  msg="ERROR: The variable \${N_PROC} must be set to the number"
+  msg+=" of processes-per-node to run GSI > 0.\n"
   printf "${msg}"
   exit 1
 fi
@@ -319,7 +339,6 @@ mpiprocs=$(( ${N_NDES} * ${N_PROC} ))
 ##################################################################################
 # The following paths are relative to the control flow supplied root paths
 #
-# obs_root     = Path of observations files
 # fix_root     = Path of fix files
 # gsi_namelist = Path and name of the gsi namelist constructor script
 # prepbufr_tar = Path of PreBUFR conventional obs tar archive
@@ -328,20 +347,16 @@ mpiprocs=$(( ${N_NDES} * ${N_PROC} ))
 #                required file, if empty will skip all satellite data.
 #
 ##################################################################################
-obs_root=${DATA_ROOT}/obs_data
-fix_root=${EXP_CNFG}/fix
+fix_root=${CYLC_WORKFLOW_RUN_DIR}/fix
 satlist=${fix_root}/satlist.txt
-gsi_namelist=${EXP_CNFG}/namelists/comgsi_namelist.sh
-prepbufr_tar=${obs_root}/prepbufr.${anl_date}.nr.tar.gz
-prepbufr_dir=${obs_root}/${anl_date}.nr
+gsi_namelist=${CYLC_WORKFLOW_RUN_DIR}/namelists/gsi_3denvar_namelist.sh
+prepbufr_tar=${OBS_ROOT}/prepbufr.${cyc_dt}.nr.tar.gz
+prepbufr_dir=${OBS_ROOT}/${cyc_dt}.nr
 
-if [ ! -d ${obs_root} ]; then
-  printf "ERROR: \${obs_root} directory\n ${obs_root}\n does not exist.\n"
-  exit 1
-fi
-
-if [ ! -d ${fix_root} ]; then
-  printf "ERROR: fix file directory\n ${fix_root}\n does not exist.\n"
+if [[ ! -d ${fix_root} || ! -x ${fix_root} ]]; then
+  msg="ERROR: fix file directory\n ${fix_root}\n does not exist"
+  msg+=" or is not executable.\n"
+  printf "${msg}"
   exit 1
 fi
 
@@ -363,18 +378,18 @@ else
   # define prepbufr directory
   mkdir -p ${prepbufr_dir}
   cmd="tar -xvf ${prepbufr_tar} -C ${prepbufr_dir}"
-  printf "${cmd}\n"; eval ${cmd}
+  printf "${cmd}\n"; eval "${cmd}"
 
   # unpack nested directory structure
   prepbufr_nest=(`find ${prepbufr_dir} -type f`)
   for file in ${prepbufr_nest[@]}; do
     cmd="mv ${file} ${prepbufr_dir}"
-    printf "${cmd}\n"; eval ${cmd}
+    printf "${cmd}\n"; eval "${cmd}"
   done
   cmd="rmdir ${prepbufr_dir}/*"
-  printf "${cmd}\n"; eval ${cmd}
+  printf "${cmd}\n"; eval "${cmd}"
 
-  prepbufr=${prepbufr_dir}/prepbufr.gdas.${anl_date}.t${hh}z.nr
+  prepbufr=${prepbufr_dir}/prepbufr.gdas.${cyc_dt}.t${hh}z.nr
   if [ ! -r ${prepbufr} ]; then
     printf "ERROR: file\n ${prepbufr}\n is not readable.\n"
     exit 1
@@ -396,7 +411,7 @@ for dmn in `seq -f "%02g" 1 ${max_dom}`; do
   if [ -d "${dmndir}" ]; then
     printf "Existing GSI work root\n ${dmndir}\n removing old data for new run.\n"
     cmd="rm -rf ${dmndir}"
-    printf "${cmd}\n"; eval ${cmd}
+    printf "${cmd}\n"; eval "${cmd}"
   fi
   mkdir -p ${dmndir}
 
@@ -410,7 +425,7 @@ for dmn in `seq -f "%02g" 1 ${max_dom}`; do
       workdir=${dmndir}/bc_loop_${bc_loop}
       mkdir ${workdir}
       cmd="cd ${workdir}"
-      printf "${cmd}\n"; eval ${cmd}
+      printf "${cmd}\n"; eval "${cmd}"
 
     else
       workdir=${dmndir}
@@ -422,7 +437,7 @@ for dmn in `seq -f "%02g" 1 ${max_dom}`; do
 
     # Link to the prepbufr conventional data
     cmd="ln -s ${prepbufr} prepbufr"
-    printf "${cmd}\n"; eval ${cmd}
+    printf "${cmd}\n"; eval "${cmd}"
 
     # Link to satellite data -- note satlist is assumed two column with prefix
     # for GDAS and GSI conventions in first and second column respectively
@@ -443,11 +458,11 @@ for dmn in `seq -f "%02g" 1 ${max_dom}`; do
 
     # loop over obs types
     for (( ii=0; ii < ${#srcobsfile[@]}; ii++ )); do 
-      cmd="cd ${obs_root}"
-      printf "${cmd}\n"; eval ${cmd}
+      cmd="cd ${OBS_ROOT}"
+      printf "${cmd}\n"; eval "${cmd}"
 
-      tar_file=${obs_root}/${srcobsfile[$ii]}.${anl_date}.tar.gz
-      obs_dir=${obs_root}/${anl_date}.${srcobsfile[$ii]}
+      tar_file=${OBS_ROOT}/${srcobsfile[$ii]}.${cyc_dt}.tar.gz
+      obs_dir=${OBS_ROOT}/${cyc_dt}.${srcobsfile[$ii]}
       mkdir -p ${obs_dir}
       if [ ! -r "${tar_file}" ]; then
         printf "ERROR: file\n ${tar_file}\n not found.\n"
@@ -455,23 +470,23 @@ for dmn in `seq -f "%02g" 1 ${max_dom}`; do
       else
         # untar to specified directory
         cmd="tar -xvf ${tar_file} -C ${obs_dir}"
-        printf "${cmd}\n"; eval ${cmd}
+        printf "${cmd}\n"; eval "${cmd}"
 
         # unpack nested directory structure, if exists
         obs_nest=(`find ${obs_dir} -type f`)
         for file in ${obs_nest[@]}; do
           cmd="mv ${file} ${obs_dir}"
-          printf "${cmd}\n"; eval ${cmd}
+          printf "${cmd}\n"; eval "${cmd}"
         done
 
         cmd="rmdir ${obs_dir}/*"
-        printf "${cmd}\n"; eval ${cmd}
+        printf "${cmd}\n"; eval "${cmd}"
 
         # NOTE: differences in data file types for "satwnd"
         if [ ${srcobsfile[$ii]} = satwnd ]; then
-          obs_file=${obs_dir}/gdas.${srcobsfile[$ii]}.t${hh}z.${anl_date}.txt
+          obs_file=${obs_dir}/gdas.${srcobsfile[$ii]}.t${hh}z.${cyc_dt}.txt
         else
-          obs_file=${obs_dir}/gdas.${srcobsfile[$ii]}.t${hh}z.${anl_date}.bufr
+          obs_file=${obs_dir}/gdas.${srcobsfile[$ii]}.t${hh}z.${cyc_dt}.bufr
         fi
 
         if [ ! -r "${obs_file}" ]; then
@@ -480,14 +495,13 @@ for dmn in `seq -f "%02g" 1 ${max_dom}`; do
         else
            printf "Link source obs file\n ${obs_file}\n"
            cmd="cd ${workdir}"
-           printf "${cmd}\n"; eval ${cmd}
+           printf "${cmd}\n"; eval "${cmd}"
            cmd="ln -sf ${obs_file} ./${gsiobsfile[$ii]}"
-           printf "${cmd}\n"; eval ${cmd}
+           printf "${cmd}\n"; eval "${cmd}"
         fi
       fi
       cd ${workdir}
     done
-
 
     #############################################################################
     # Set fix files in the order below:
@@ -550,7 +564,7 @@ for dmn in `seq -f "%02g" 1 ${max_dom}`; do
         exit 1
       else
         cmd="cp -L ${srcfixfile[$ii]} ./${gsifixfile[$ii]}"
-        printf "${cmd}\n"; eval ${cmd}
+        printf "${cmd}\n"; eval "${cmd}"
       fi
     done
 
@@ -577,7 +591,7 @@ for dmn in `seq -f "%02g" 1 ${max_dom}`; do
         exit 1
       else
         cmd="ln -s ${coeff_file} ."
-        printf "${cmd}\n"; eval ${cmd}
+        printf "${cmd}\n"; eval "${cmd}"
       fi
     done
 
@@ -591,31 +605,24 @@ for dmn in `seq -f "%02g" 1 ${max_dom}`; do
          printf "ERROR: CRTM coefficient file\n ${coeff_file}\n not readable.\n"
        else
          cmd="ln -s ${coeff_file} ."
-         printf "${cmd}\n"; eval ${cmd}
+         printf "${cmd}\n"; eval "${cmd}"
        fi
      done
     done
 
-    if [[ ${if_oneob} = ${YES} ]]; then
-      # Only need this file for single obs test
-      bufrtable=${fix_root}/prepobs_prep.bufrtable
-      cmd="cp -L ${bufrtable} ./prepobs_prep.bufrtable"
-      printf "${cmd}\n"; eval ${cmd}
-    fi
-
     if [ ${bc_loop} = 00 ]; then
       # first bias correction loop uses combined bias correction files from GDAS
       tar_files=()
-      tar_files+=(${obs_root}/abias.${anl_date}.tar.gz)
-      tar_files+=(${obs_root}/abiaspc.${anl_date}.tar.gz)
+      tar_files+=(${OBS_ROOT}/abias.${cyc_dt}.tar.gz)
+      tar_files+=(${OBS_ROOT}/abiaspc.${cyc_dt}.tar.gz)
 
       bias_dirs=()
-      bias_dirs+=(${obs_root}/${anl_date}.abias)
-      bias_dirs+=(${obs_root}/${anl_date}.abiaspc)
+      bias_dirs+=(${OBS_ROOT}/${cyc_dt}.abias)
+      bias_dirs+=(${OBS_ROOT}/${cyc_dt}.abiaspc)
 
       bias_files=()
-      bias_files+=(${bias_dirs[0]}/gdas.abias.t${hh}z.${anl_date}.txt)
-      bias_files+=(${bias_dirs[1]}/gdas.abiaspc.t${hh}z.${anl_date}.txt)
+      bias_files+=(${bias_dirs[0]}/gdas.abias.t${hh}z.${cyc_dt}.txt)
+      bias_files+=(${bias_dirs[1]}/gdas.abiaspc.t${hh}z.${cyc_dt}.txt)
 
       bias_in_files=()
       bias_in_files+=(satbias_in)
@@ -633,17 +640,17 @@ for dmn in `seq -f "%02g" 1 ${max_dom}`; do
           # untar to specified directory
           mkdir -p ${bias_dir}
           cmd="tar -xvf ${tar_file} -C ${bias_dir}"
-          printf "${cmd}\n"; eval ${cmd}
+          printf "${cmd}\n"; eval "${cmd}"
         
           # unpack nested directory structure
           bias_nest=(`find ${bias_dir} -type f`)
           for file in ${bias_nest[@]}; do
             cmd="mv ${file} ${bias_dir}"
-            printf "${cmd}\n"; eval ${cmd}
+            printf "${cmd}\n"; eval "${cmd}"
           done
 
           cmd="rmdir ${bias_dir}/*"
-          printf "${cmd}\n"; eval ${cmd}
+          printf "${cmd}\n"; eval "${cmd}"
         
           if [ ! -r ${bias_file} ]; then
            printf "GDAS bias correction file not readable at\n ${bias_file}\n"
@@ -654,7 +661,7 @@ for dmn in `seq -f "%02g" 1 ${max_dom}`; do
             printf "${msg}"
                   
             cmd="ln -sf ${bias_file} ./${bias_in_files[$ii]}"
-            printf "${cmd}\n"; eval ${cmd}
+            printf "${cmd}\n"; eval "${cmd}"
           fi
         fi
       done
@@ -682,7 +689,7 @@ for dmn in `seq -f "%02g" 1 ${max_dom}`; do
 	        printf "${msg}"
 
           cmd="ln -sf ${bias_file} ./${bias_in_files[$ii]}"
-	        printf "${cmd}\n"; eval ${cmd}
+	        printf "${cmd}\n"; eval "${cmd}"
         fi
       done
     fi
@@ -696,7 +703,7 @@ for dmn in `seq -f "%02g" 1 ${max_dom}`; do
     #
     ##################################################################################
     bkg_dir=${CYC_HME}/wrfda_bc/lower_bdy_updt/ens_00
-    bkg_file=${bkg_dir}/wrfout_d${dmn}_${anl_iso}
+    bkg_file=${bkg_dir}/wrfout_d${dmn}_${cyc_iso}
 
     if [ ! -r ${bkg_file} ]; then
       printf "ERROR: background file\n ${bkg_file}\n does not exist.\n"
@@ -705,7 +712,7 @@ for dmn in `seq -f "%02g" 1 ${max_dom}`; do
       printf "Copy background file to working directory.\n"
       # Copy over background field -- THIS IS MODIFIED BY GSI DO NOT LINK TO IT
       cmd="cp -L ${bkg_file} wrf_inout"
-      printf "${cmd}\n"; eval ${cmd}
+      printf "${cmd}\n"; eval "${cmd}"
     fi
 
     ##################################################################################
@@ -717,29 +724,29 @@ for dmn in `seq -f "%02g" 1 ${max_dom}`; do
         # copy WRF ensemble members
         printf " Copy ensemble perturbations to working directory.\n"
         for memid in ${mem_list[@]}; do
-          ens_file=${ENS_ROOT}/bkg/ens_${memid}/wrfout_d${dmn}_${anl_iso}
+          ens_file=${ENS_DIR}/bkg/ens_${memid}/wrfout_d${dmn}_${cyc_iso}
           if [ !-r ${ens_file} ]; then
             printf "ERROR: ensemble file\n ${ens_file}\n does not exist.\n"
             exit 1
           else
             cmd="ln -sfr ${ens_file} ./wrf_ens_${memid}"
-            printf "${cmd}\n"; eval ${cmd}
+            printf "${cmd}\n"; eval "${cmd}"
           fi
         done
         
         cmd="ls ./wrf_ens_* > filelist02"
-        printf "${cmd}\n"; eval ${cmd}
+        printf "${cmd}\n"; eval "${cmd}"
 
       else
         # run simple 3D-VAR without an ensemble 
         printf "WARNING:\n"
-        printf "Dual resolution ensemble perturbations and control are not an option yet.\n"
+        printf "Dual resolution ensemble perturbations and control are not an option.\n"
         printf "Running nested domain d${dmn} as simple 3D-VAR update.\n"
         ifhyb=".false."
       fi
 
       # define namelist ensemble size
-      nummem=${N_ENS}
+      nummem=${n_perts}
     fi
 
     ##################################################################################
@@ -747,13 +754,10 @@ for dmn in `seq -f "%02g" 1 ${max_dom}`; do
     ##################################################################################
     printf "Build the namelist with parameters for NAM-ARW.\n"
 
-    # default parameers taken from NAM
-    vs_op='1.0,'
-    hzscl_op='0.373,0.746,1.50,'
-
-    # Build the GSI namelist on-the-fly
+    # default static background error localization parameters taken from NAM
+    # ensemble component localization is propagated by the workflow settings
     cmd=". ${gsi_namelist}"
-    printf "${cmd}\n"; eval ${cmd}
+    printf "${cmd}\n"; eval "${cmd}"
 
     # modify the anavinfo vertical levels based on wrf_inout for WRF ARW and NMM
     bklevels=`ncdump -h wrf_inout | grep "bottom_top =" | awk '{print $3}' `
@@ -768,19 +772,18 @@ for dmn in `seq -f "%02g" 1 ${max_dom}`; do
     ##################################################################################
     # Print run parameters
     printf "\n"
-    printf "ANL_DT      = ${ANL_DT}\n"
-    printf "BKG         = ${bkg_file}\n"
-    printf "IF_HYBRID   = ${IF_HYBRID}\n"
-    printf "ENS_ROOT    = ${ENS_ROOT}\n"
-    printf "BETA        = ${BETA}\n"
-    printf "S_ENS_V     = ${S_ENS_V}\n"
-    printf "S_ENS_H     = ${S_ENS_H}\n"
+    printf "CYC_DT    = ${CYC_DT}\n"
+    printf "BKG       = ${bkg_file}\n"
+    printf "IF_HYBRID = ${IF_HYBRID}\n"
+    printf "ENS_DIR   = ${ENS_DIR}\n"
+    printf "BETA      = ${BETA}\n"
+    printf "VLOC      = ${VLOC}\n"
+    printf "HLOC      = ${HLOC}\n"
     printf "\n"
     now=`date +%Y-%m-%d_%H_%M_%S`
     printf "gsi analysis started at ${now} on domain d${dmn}.\n"
-    cmd="${MPIRUN} -n ${mpiprocs} ${GSI_EXE} > stdout.anl.${anl_iso} 2>&1"
-    printf "${cmd}\n"
-    ${MPIRUN} -n ${mpiprocs} ${GSI_EXE} > stdout.anl.${anl_iso} 2>&1
+    cmd="${MPIRUN} -n ${mpiprocs} ${GSI_EXE} > stdout.anl.${cyc_iso} 2>&1; error=\$?"
+    printf "${cmd}\n"; eval "${cmd}"
 
     ##################################################################################
     # Run time error check
@@ -795,8 +798,8 @@ for dmn in `seq -f "%02g" 1 ${max_dom}`; do
     fi
 
     # Copy the output to cycling naming convention
-    cmd="mv wrf_inout wrfanl_ens_00_${anl_iso}"
-    printf "${cmd}\n"; eval ${cmd}
+    cmd="mv wrf_inout wrfanl_ens_00_${cyc_iso}"
+    printf "${cmd}\n"; eval "${cmd}"
 
     ##################################################################################
     # Loop over first and last outer loops to generate innovation
@@ -839,7 +842,7 @@ for dmn in `seq -f "%02g" 1 ${max_dom}`; do
       for type in ${listall}; do
          count=`ls pe*${type}_${loop}* | wc -l`
          if [[ ${count} -gt 0 ]]; then
-            cat pe*${type}_${loop}* > diag_${type}_${string}.${anl_iso}
+            cat pe*${type}_${loop}* > diag_${type}_${string}.${cyc_iso}
          fi
       done
     done

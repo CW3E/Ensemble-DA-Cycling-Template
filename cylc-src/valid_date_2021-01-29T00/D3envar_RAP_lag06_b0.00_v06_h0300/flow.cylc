@@ -1,0 +1,475 @@
+#!jinja2
+{################################################################################}
+{# CONTROL FLOW NAME / TUNABLE SETTINGS #}
+{################################################################################}
+{# Define the valid date YYYY-MM-DDTHH for verification #}
+{% set EXP_VRF = '2021-01-29T00' %}
+
+{# Define the name of case study #}
+{% set CSE_NME = ['valid_date', EXP_VRF] | join('_') %}
+
+{# Define the lag of the ensemble simulation start time here in HH #}
+{% set LAG = '06' %}
+
+{# Define tuneable beta value for ensemble / static background hybridization here #}
+{% set BETA = '0.00' %}
+
+{# Define tuneable beta value for ensemble vertical localization scale here #}
+{% set VLOC = '06' %}
+
+{# Define tuneable value for ensemble horizontal localization scale here #}
+{% set HLOC = '0300' %}
+
+{# Configuration name including tunable parameters #}
+{% set lag = ['lag', LAG] | join('') %}
+{% set beta = ['b', BETA] | join('') %}
+{% set vloc = ['v', VLOC] | join('') %}
+{% set hloc = ['h', HLOC] | join('') %}
+{% set CFG_NME = ['D3envar', 'RAP', lag, beta, vloc, hloc] | join('_') %}
+
+{# Case / configuration structure #}
+{% set EXP_NME = [CSE_NME, CFG_NME] | join('/') %}
+
+{################################################################################}
+{# CYCLING SETTINGS #}
+{################################################################################}
+{# First initial time for first forecast (no DA) YYYY-MM-DDTHH #}
+{# DA will begin on the next cycle determined by CYC_INC below #}
+{% set CYC_STRT = '2021-01-21T18' %}
+
+{# Last cycle for tasks (performs analysis only on this date) YYYY-MM-DDTHH #}
+{% set CYC_STOP = '2021-01-29T00' %}
+
+{# Interval between cycle start times INT hours value #}
+{% set CYC_INC = 6 %}
+
+{# Length of warmup period of full DA cycling before extended forecasts #}
+{# Warmup begins after first forecast and excludes the final cylc point #}
+{% set WRM_UP = 'P1D' %}
+
+{# Fixed forecast length within every cycle INT hours >= CYC_INC #}
+{% set FCST_HRS = 6 %}
+
+{# List of zero hour to initialize extended forecasts (usually T00 / T12) #}
+{% set EXT_ZHRS = [ 'T00' ] %}
+
+{################################################################################}
+{# WRF SETTINGS #}
+{################################################################################}
+{# GFS and GEFS currently supported for 3D-(En)VAR #}
+{% set CTR_BKG_DATA= 'GEFS' %}
+
+{# Data file frequency for control simulation forcing in HH #}
+{% set CTR_BKG_INT= '03' %}
+
+{# Max domain for control cycling simulation #}
+{% set CTR_CYC_DOM= '01' %}
+
+{# Max domain for control extended forecast simulation #}
+{% set CTR_FOR_DOM= '02' %}
+
+{# First domain index to have ICs downscaled from parent's initial conditions (>01) #}
+{% set DOWN_DOM = '02' %}
+
+{# Static ensemble perturbations stored here organized by lag length #}
+{% set ENS_DIR = [environ['ENS_ROOT'], lag] | join('/') %}
+
+{# Max domain for ensemble simulation #}
+{% set WRF_ENS_DOM= '01' %}
+
+{# Output interval for history files in HH, suppressed = 00 #}
+{% set HIST_INT = '03' %}
+
+{# Output interval for restart files in HH, suppressed = 00 #}
+{# Automatically set the restart interval to the forecast length = 'END' #}
+{% set RSTRT_INT = 'END' %}
+
+{# This setting defines Yes / No for nested domain 2-way coupling #}
+{% set IF_FEEDBACK = 'No' %}
+
+{# Lower boundary condition updates from background data #}
+{% set IF_SST_UPDT = 'No' %}
+
+{# Quilting tasks per group, set NIO_TPG=0 for default TURN OFF QUILTING #}
+{% set NIO_TPG = 0 %}
+
+{# Quilting number of groups #}
+{% set NIO_GRPS = 4 %}
+
+{################################################################################}
+{# GSI SETTINGS #}
+{################################################################################}
+{# Uses ensemble-based covariance Yes / No #}
+{% set IF_HYBRID  = 'Yes' %}
+
+{# Max loop index to iterate GSI variational bias correction files #}
+{# NOTE: loop 0 is uses GDAS global files #}
+{% set MAX_BC_LOOP= '02' %}
+
+{################################################################################}
+{# ENSEMBLE SETTINGS #}
+{################################################################################}
+{# Define the ensemble size including control and perts #}
+{% set ENS_SIZE = 31 %}
+
+{# Max domain for ensemble simulation #}
+{% set WRF_ENS_DOM = '01' %}
+
+{################################################################################}
+{# JOB SETTINGS #}
+{################################################################################}
+{# ungrib mem argument #}
+{% set GRIB_MEM = '20000M' %}
+
+{# Wallclock limit for ungrib jobs #}
+{% set GRIB_WC = 'PT30M' %}
+
+{# WPS parallel / REAL number of procs-per-node #}
+{% set WPS_PROC = 64 %}
+
+{# WPS mem argument  #}
+{% set WPS_MEM = '249000M' %}
+
+{# Number of nodes for WPS parallel / REAL jobs #}
+{% set WPS_NDES = 1 %}
+
+{# Wallclock limit for init_atmosphere jobs #}
+{% set WPS_WC = 'PT30M' %}
+
+{# WRF model number of procs-per-node #}
+{% set WRF_PROC = 128 %}
+
+{# WRF model mem argument #}
+{% set WRF_MEM = '249000M' %}
+
+{# Number of nodes for WRF model jobs #}
+{% set WRF_NDES = 3 %}
+
+{# Wallclock limit for WRF regular cycles #}
+{% set WRF_CYC_WC = 'PT4H' %}
+
+{# Wallclock limit for WRF forecast downscale cycles #}
+{% set WRF_FOR_WC = 'PT4H' %}
+
+{# Wallclock limit multiplier for dynamic length extended forecasts #}
+{% set WRF_RSTRT_WC = 'PT16H' %}
+
+{# GSI MEM per CPU argument for SLURM #}
+{% set GSI_MEM = '249000M' %}
+
+{# Number of nodes for GSI jobs #}
+{% set GSI_NDES = '3' %}
+
+{# GSI node size #}
+{% set GSI_PROC = '124' %}
+
+{# Wallclock limit for GSI jobs #}
+{% set GSI_WC = 'PT6H30M' %}
+
+{# Set workflow to debugging mode for generating batch submit templates #}
+{% set IF_DBG = 'No' %}
+
+{################################################################################}
+{# CYLC SETTINGS #}
+{################################################################################}
+{# Generating cycle hours from CYC_INC #}
+{% set CYC_HRS = [] %}
+{% for hr in range(0, 24, CYC_INC) %}
+  {% set zhr = hr | pad(2, '0') %}
+  {% set zhr = ['T', zhr ] | join('') %}
+  {% do CYC_HRS.append(zhr) %}
+{% endfor %}
+
+[scheduler]
+    UTC mode = True
+    allow implicit tasks = True
+[scheduling]
+    initial cycle point = {{CYC_STRT}}
+    final cycle point = {{CYC_STOP}}
+    runahead limit = P9
+    [[graph]]
+        {# First forecast, cold start #}
+        R1/^ = """
+        ungrib_cyc  => wrf_metgrid_cyc
+        wrf_metgrid_cyc => wrf_real_cyc
+        wrf_real_cyc => wrf_model_cld
+        """
+
+        {# Cylcing warmup to steady state #}
+        R/PT{{CYC_INC}}H/^+{{WRM_UP}} ! ^ = """
+        wrf_model_cld[-PT{{CYC_INC}}H]:started |
+        wrf_model_cld[-PT{{CYC_INC}}H]:succeeded |
+        wrf_model_cyc[-PT{{CYC_INC}}H]:started |
+        wrf_model_cyc[-PT{{CYC_INC}}H]:succeeded => ungrib_cyc
+        ungrib_cyc  => wrf_metgrid_cyc
+        wrf_metgrid_cyc => wrf_real_cyc
+        (wrf_model_cld[-PT{{CYC_INC}}H] & wrf_real_cyc) |
+        (wrf_model_cyc[-PT{{CYC_INC}}H] & wrf_real_cyc) => wrfda_lowbc
+        wrfda_lowbc => gsi_analysis
+        gsi_analysis => wrfda_latbc
+        wrfda_latbc => wrf_model_cyc
+        """
+
+        {# Loop zero hours and define extended forecasts from restart runs on #}
+        {# the specified zero hours in EXT_ZHRS for all cycles except final #}
+        {% for zhr in CYC_HRS %}
+            {% if zhr in EXT_ZHRS %}
+                R/^+{{WRM_UP}}+PT{{CYC_INC}}H+P{{zhr}}H/P1D ! $ = """
+                wrf_model_for[-PT{{CYC_INC}}H]:started |
+                wrf_model_for[-PT{{CYC_INC}}H]:succeeded |
+                wrf_model_cyc[-PT{{CYC_INC}}H]:started |
+                wrf_model_cyc[-PT{{CYC_INC}}H]:succeeded => ungrib_for
+                ungrib_for  => wrf_metgrid_for
+                wrf_metgrid_for => wrf_real_for
+                (wrf_model_cyc[-PT{{CYC_INC}}H] & wrf_real_for) |
+                (wrf_model_for[-PT{{CYC_INC}}H] & wrf_real_for)=> wrfda_lowbc
+                wrfda_lowbc => gsi_analysis
+                gsi_analysis => wrfda_latbc
+                wrfda_latbc => wrf_model_for
+                wrf_model_for => wrf_model_rstrt
+                """
+            {% else %}
+                R/^+{{WRM_UP}}+PT{{CYC_INC}}H+P{{zhr}}H/P1D ! $ = """
+                wrf_model_for[-PT{{CYC_INC}}H]:started |
+                wrf_model_for[-PT{{CYC_INC}}H]:succeeded |
+                wrf_model_cyc[-PT{{CYC_INC}}H]:started |
+                wrf_model_cyc[-PT{{CYC_INC}}H]:succeeded => ungrib_cyc
+                ungrib_cyc  => wrf_metgrid_cyc
+                wrf_metgrid_cyc => wrf_real_cyc
+                (wrf_model_cyc[-PT{{CYC_INC}}H] & wrf_real_cyc) |
+                (wrf_model_for[-PT{{CYC_INC}}H] & wrf_real_cyc)=> wrfda_lowbc
+                wrfda_lowbc => gsi_analysis
+                gsi_analysis => wrfda_latbc
+                wrfda_latbc => wrf_model_cyc
+                """
+            {% endif %}
+        {% endfor %}
+
+        {# Final cycle perform analysis but no forecast beyond the #}
+        {# verification valid date #}
+        R1/$ = """
+                wrf_model_for[-PT{{CYC_INC}}H]:started |
+                wrf_model_cyc[-PT{{CYC_INC}}H]:started => ungrib_cyc
+                ungrib_cyc  => wrf_metgrid_cyc
+                wrf_metgrid_cyc => wrf_real_cyc
+                (wrf_model_cyc[-PT{{CYC_INC}}H] & wrf_real_cyc) |
+                (wrf_model_for[-PT{{CYC_INC}}H] & wrf_real_cyc)=> wrfda_lowbc
+                wrfda_lowbc => gsi_analysis
+                gsi_analysis => wrfda_latbc
+        """
+
+[runtime]
+    [[root]]
+        platform = {{environ['SCHED']}}
+        [[[environment]]]
+            EXP_NME = {{EXP_NME}}
+            CYC_DT = $(isodatetime ${CYLC_TASK_CYCLE_POINT} --f '%Y%m%d%H')
+            CYC_HME = {{environ['WORK_ROOT']}}/{{EXP_NME}}/$CYC_DT
+            STRT_DT = $CYC_DT
+            BKG_DATA = {{CTR_BKG_DATA}}
+            MEMID = 00
+            IF_SST_UPDT = {{IF_SST_UPDT}}
+            IF_DBG_SCRPT = {{IF_DBG}}
+
+    [[CYC]]
+        [[[environment]]]
+            IF_DYN_LEN = 'No'
+            FCST_HRS = {{FCST_HRS}}
+            MAX_DOM = {{CTR_CYC_DOM}}
+
+    [[FOR]]
+        [[[environment]]]
+            IF_DYN_LEN = 'Yes'
+            EXP_VRF = $(isodatetime {{EXP_VRF}} --f '%Y%m%d%H')
+            MAX_DOM = {{CTR_FOR_DOM}}
+
+    [[WPS]]
+        execution time limit = {{WPS_WC}}
+        execution retry delays = 3*PT5M
+        [[[environment]]]
+            N_NDES = {{WPS_NDES}}
+            N_PROC = {{WPS_PROC}}
+            IF_ECMWF_ML = 'No'
+            BKG_INT = {{CTR_BKG_INT}}
+        [[[directives]]]
+            {% if environ['SCHED'] == 'slurm' %}
+                {% if environ['SYS_TYPE' ] == 'penguin' %}
+                    --partition = general
+                    --qos = {{environ['PART_DBG']}}
+                    --nodes = {{WPS_NDES}}
+                    --ntasks-per-node = {{WPS_PROC}}
+                {% else %}
+                    --partition = {{environ['PART_DBG']}}
+                    --nodes = {{WPS_NDES}}
+                    --ntasks-per-node = {{WPS_PROC}}
+                    --mem = {{WPS_MEM}}
+                {% endif %}
+            {% elif environ['SCHED'] == 'pbs' %}
+                -q = {{environ['PART_DBG']}}
+                -l select={{WPS_NDES}}:mpiprocs={{WPS_PROC}}:ncpus={{WPS_PROC}}
+            {% endif %}
+
+    [[SRL]]
+        execution retry delays = 3*PT5M
+        execution time limit = {{GRIB_WC}}
+        [[[directives]]]
+            {% if environ['SCHED'] == 'slurm' %}
+                {% if environ['SYS_TYPE' ] == 'penguin' %}
+                    --partition = general
+                    --qos = {{environ['PART_SRL']}}
+                    --nodes = 1
+                    --ntasks-per-node = 1
+                {% else %}
+                    --partition = {{environ['PART_SRL']}}
+                    --nodes = 1
+                    --ntasks-per-node = 1
+                    --mem = {{GRIB_MEM}}
+                {% endif %}
+            {% elif environ['SCHED'] == 'pbs' %}
+                -q = {{environ['PART_SRL']}}
+                -l select=1:mpiprocs=1:ncpus=1
+            {% endif %}
+
+    [[UNGRIB]]
+        inherit = SRL
+        script = {{environ['DRIVERS']}}/ungrib.sh
+        [[[environment]]]
+            IF_RGNL = 'Yes'
+            BKG_STRT_DT = $CYC_DT
+
+    [[ungrib_cyc]]
+        inherit = CYC, UNGRIB, WPS
+
+    [[ungrib_for]]
+        inherit = FOR, UNGRIB, WPS
+
+    [[METGRID]]
+        inherit = WPS
+        script = {{environ['DRIVERS']}}/wrf_metgrid.sh
+
+    [[wrf_metgrid_cyc]]
+        inherit = METGRID, CYC
+    [[wrf_metgrid_for]]
+        inherit = METGRID, FOR
+
+    [[REAL]]
+        inherit = WPS
+        script = {{environ['DRIVERS']}}/wrf_real.sh
+        [[[environment]]]
+            NIO_GRPS = {{NIO_GRPS}}
+            NIO_TPG = {{NIO_TPG}}
+
+    [[wrf_real_cyc]]
+        inherit = CYC, REAL
+
+    [[wrf_real_for]]
+        inherit = FOR, REAL
+
+    [[WRF]]
+        inherit = CYC
+        execution time limit = {{WRF_CYC_WC}}
+        script = {{environ['DRIVERS']}}/wrf_model.sh
+        execution retry delays = 3*PT5M
+        [[[environment]]]
+            HIST_INT = {{HIST_INT}}
+            BKG_INT = {{CTR_BKG_INT}}
+            RSTRT_INT = {{RSTRT_INT}}
+            CYC_INC = {{CYC_INC}}
+            DOWN_DOM = {{DOWN_DOM}}
+            IF_FEEDBACK = {{IF_FEEDBACK}}
+            N_NDES = {{WRF_NDES}}
+            N_PROC = {{WRF_PROC}}
+            NIO_GRPS = {{NIO_GRPS}}
+            NIO_TPG = {{NIO_TPG}}
+        [[[directives]]]
+            {% if environ['SCHED'] == 'slurm' %}
+                {% if environ['SYS_TYPE' ] == 'penguin' %}
+                    --partition = general
+                    --qos = {{environ['PART_CMP']}}
+                    --nodes = {{WRF_NDES}}
+                    --ntasks-per-node = {{WRF_PROC}}
+                {% else %}
+                    --partition = {{environ['PART_CMP']}}
+                    --nodes = {{WRF_NDES}}
+                    --ntasks-per-node = {{WRF_PROC}}
+                    --mem = {{WRF_MEM}}
+                {% endif %}
+            {% elif environ['SCHED'] == 'pbs' %}
+                -q = {{environ['PART_CMP']}}
+                -l select={{WRF_NDES}}:mpiprocs={{WRF_PROC}}:ncpus={{WRF_PROC}}
+            {% endif %}
+
+    [[wrf_model_cyc]]
+        inherit = WRF
+        [[[environment]]]
+            WRF_IC = 'CYCLING'
+
+    [[wrf_model_cld]]
+        inherit = WRF
+        [[[environment]]]
+            WRF_IC = 'REALEXE'
+
+    [[wrf_model_for]]
+        inherit = WRF
+        execution time limit = {{WRF_FOR_WC}}
+        [[[environment]]]
+            WRF_IC = 'CYCLING'
+            MAX_DOM = {{CTR_FOR_DOM}}
+
+    [[wrf_model_rstrt]]
+        inherit = FOR, WRF
+        execution time limit = {{WRF_RSTRT_WC}}
+        [[[environment]]]
+            WRF_IC = 'RESTART'
+            STRT_DT = $(isodatetime ${CYLC_TASK_CYCLE_POINT} --offset PT{{CYC_INC}}H --f '%Y%m%d%H')
+
+    [[WRFDA]]
+        inherit = SRL
+        script = {{environ['DRIVERS']}}/wrfda_bc_update.sh
+        [[[environment]]]
+            WRF_CTR_DOM = {{CTR_CYC_DOM}}
+            IF_ENS_UPDT = 'No'
+
+    [[wrfda_lowbc]]
+        inherit = WRFDA
+        [[[environment]]]
+            BOUNDARY = 'LOWER'
+
+    [[wrfda_latbc]]
+        inherit = WRFDA
+        [[[environment]]]
+            BOUNDARY = 'LATERAL'
+
+    [[gsi_analysis]]
+        execution time limit = {{GSI_WC}}
+        execution retry delays = 3*PT5M
+        script = {{environ['DRIVERS']}}/gsi_3denvar.sh
+        [[[environment]]]
+            IF_HYBRID = {{IF_HYBRID}}
+            WRF_CTR_DOM = {{CTR_CYC_DOM}}
+            WRF_ENS_DOM = {{CTR_CYC_DOM}}
+            ENS_SIZE = {{ENS_SIZE}}
+            BETA = {{BETA}}
+            HLOC = {{HLOC}}
+            VLOC = {{VLOC}}
+            MAX_BC_LOOP = {{MAX_BC_LOOP}}
+            ENS_DIR = {{ENS_DIR}}/$CYC_DT
+            N_NDES = {{GSI_NDES}}
+            N_PROC = {{GSI_PROC}}
+        [[[directives]]]
+            {% if environ['SCHED'] == 'slurm' %}
+                {% if environ['SYS_TYPE' ] == 'penguin' %}
+                    --partition = general
+                    --qos = {{environ['PART_CMP']}}
+                    --nodes = {{GSI_NDES}}
+                    --ntasks-per-node = {{GSI_PROC}}
+                {% else %}
+                    --partition = {{environ['PART_CMP']}}
+                    --nodes = {{GSI_NDES}}
+                    --ntasks-per-node = {{GSI_PROC}}
+                    --mem = {{GSI_MEM}}
+                {% endif %}
+            {% elif environ['SCHED'] == 'pbs' %}
+                -q = {{environ['PART_CMP']}}
+                -l select={{GSI_NDES}}:mpiprocs={{GSI_PROC}}:ncpus={{GSI_PROC}}
+            {% endif %}
