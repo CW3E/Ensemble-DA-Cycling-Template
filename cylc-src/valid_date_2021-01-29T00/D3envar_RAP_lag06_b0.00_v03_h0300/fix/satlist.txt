@@ -4,11 +4,8 @@
 atms      atmsbufr
 eshrs3    hirs3bufrears
 esmhs     mhsbufrears
-geoimr    gimgrbufr
-goesfv    gsnd1bufr
 gome      gomebufr
 gpsro     gpsrobufr
 mtiasi    iasibufr
 osbuv8    sbuvbufr
-satwnd    satwndbufr
 ssmisu    ssmirrbufr
