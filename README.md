@@ -2,9 +2,10 @@
 
 ## Description
 This is a [Cylc-driven](https://cylc.github.io/) workflow for [MPAS](https://mpas-dev.github.io/) versus
-[WRF](https://www2.mmm.ucar.edu/wrf/users/) ensemble twin experiments, currently focusing on downscaling
-forecast analysis with additional development pending to integrate [WRF-GSI](https://github.com/NOAA-EMC/GSI/tree/develop)
-and [MPAS-JEDI](https://www.jcsda.org/jedi-mpas) ensemble DA. The purpose of this workflow is to produce
+[WRF](https://www2.mmm.ucar.edu/wrf/users/) ensemble twin experiments, currently focusing on case study
+ensemble forecast analysis with WRF / MPAS, ensemble DA cycling experiments with
+[WRF-GSI](https://github.com/NOAA-EMC/GSI/tree/develop) and with additional development pending to integrate
+[MPAS-JEDI](https://www.jcsda.org/jedi-mpas) ensemble DA. The purpose of this workflow framework is to produce
 offline reforecast analysis for the state-of-the-science MPAS system versus the legacy WRF model. The
 code structure is based around defining case studies and simulation configurations in a way that is
 self-contained and transferrable to facilitate experiment replication.  The repository is also designed to run
@@ -60,7 +61,8 @@ export SOFT_ROOT= # Root directory of software stack executables
 export DATA_ROOT= # Root directory of simulation forcing data
 export GRIB_ROOT= # Root directory of grib data data
 export WORK_ROOT= # Root directory of simulation_io
-export MOD_ENV=   # The full path to a module load / shared library path definition file
+export MOD_ENV=   # The full path to a module load / shared library path definition file for WRF / MPAS
+export GSI_ENV=   # The full path to a module load / shared library path definition file for GSI
 ```
 In the example site configuration
 ```
@@ -71,7 +73,13 @@ this defines the `${MOD_ENV}` variable to be
 export MOD_ENV="${HOME}/settings/sites/expanse-cwp168/${MOD_STACK}.sh"
 ```
 where the `${MOD_STACK}` variable is the name of the software stack used to compile
-the WRF and MPAS model environments.
+the WRF and MPAS model environments.  Respectively, the example defines the `${GSI_ENV}` as
+```
+export GSI_ENV="${HOME}/settings/sites/expanse-cwp168/${GSI_STACK}.sh"
+```
+where ongoing support for GSI is provided by the
+[NOAA HPC Stack](https://github.com/NOAA-EMC/hpc-stack) and the 
+[NOAA EMC GSI Github](https://github.com/NOAA-EMC/GSI/tree/develop).
 
 
 ### Building Cylc
@@ -116,9 +124,20 @@ MPAS / WRF simulation IO will not be performed in the `cylc-run` directory, as t
 the execution of the workflow prior to calling the task driving script.  Task driving scripts will have
 work directories nested in the directory structure at `${WORK_ROOT}` defined in the `config_workflow.sh`.
 
-## Installing MPAS and WRF
-It is assumed that there is a suitable installation of MPAS and / or WRF available on the HPC system.  Paths to the
-executables' compilation directories should be set in the `config_workflow.sh` file.  This repository assumes
+## Installing MPAS, WRF and GSI
+It is assumed that there is a suitable installation of MPAS and / or WRF available on the HPC system. Basic
+build examples for WRF, MPAS and their dependencies from source can be found in the
+[template archive](https://github.com/CW3E/Ensemble-DA-Cycling-Template/tree/main/settings/template_archive/build_examples)
+in this repository.  This repository also includes a 
+[build example for GSI](https://github.com/CW3E/Ensemble-DA-Cycling-Template/blob/main/settings/template_archive/build_examples/make_GSI-HPC-STACK.sh)
+building GSI with the HPC Stack providing the underlying dependencies.  The build is loosely integrated to the repository in that
+it references a site configuration for code deployment with example
+[HPC Stack Environment configuration](https://github.com/CW3E/Ensemble-DA-Cycling-Template/blob/main/settings/sites/expanse-cwp168/config_NOAA_HPC_STACK.sh) 
+and
+[HPC Stack Yaml definition](https://github.com/CW3E/Ensemble-DA-Cycling-Template/blob/main/settings/sites/expanse-cwp168/config_NOAA_HPC_STACK.yaml)
+files for the build on Expanse.
+
+Paths to the executables' compilation directories should be set in the `config_workflow.sh` file.  This repository assumes
 that the executable compilation directories are "clean" builds, in that no simulations have been run within
 these compilation directories.  Safety checks are performed in the workflow, but sourcing compilation directories that
 have also been used as run directories may produce unpredictable results.
@@ -128,12 +147,12 @@ The code is currently designed around executing case studies in which the full e
 as a self-contained directory structure in order to facilitate experiment replication.  Example templates for
 a variety of simulation configurations are archived for a generic Atmospheric River case study in the following.
 
-### Archive of templates
+### Archives of templates
 At the path
 ```
 ${HOME}/cylc-src/valid_date_2022-12-28T00
 ```
-templates are provided for running a case study with the specified valid date of
+templates are provided for running an ensemble forecast case study with the specified valid date of
 `2022-12-28T00` at which to end the forecast verification.  Forecast initialization date times are
 cycled with the Cylc workflow manager and the forecast length is dynamically defined by the length of
 forecast time to the valid date of `2022-12-28T00`.  Cylc and the source task driving scripts at
@@ -142,6 +161,37 @@ ${HOME}/src/drivers
 ```
 can be configured for a variety of additional types of experiment execution, such as with a fixed forecast length,
 with the configuration options commented in the code.
+
+At the path
+```
+${HOME}/cylc-src/valid_date_2021-01-29T00
+```
+templates are provided additionally for running 3D-VAR and 3D-EnVAR case studies with WRF-GSI data assmilation cycling
+such that:
+  * A first 6 hour cold start forecast is generated at 2021-01-21T18 to 2021-01-22T00;
+  * A first GSI / WRFDA initial / boundary condition update is performed at 2021-01-22T00;
+  * 6-hourly cycling is performed until a final analysis at 2021-01-29T00;
+  * Extended forecasts are generated every 24 hours at 00Z starting from 2021-01-23T00 to 2021-01-28T00 each running until 2021-01-29T00 for event verfication.
+    
+All of the above cycling settings can be revised using the workflow parameters in order to generate
+extended forecasts from a DA cylcing experiment for a target event verifcation date.  The template name
+```
+valid_date_2021-01-29T00/D3envar_NAM_lag06_b0.00_v06_h0300
+```
+includes tunable parameter settings for hybridization (`b0.00`), vertical (`v06`) and horizontal (`h0300`) localization
+radii and obs / background error settings `NAM`, which can all be changed to new settings.  New configurations should
+have the same directory structure as the examples with names defined to reflect the particular tunable settings.
+
+Finally, for downscaling ensemble forecasts for the background error covariance calculation in EnVAR, there is
+one template available to generate ensemble forecasts offline for WRF
+```
+EnsembleBackground/WRF_9_WestCoast_lag06
+```
+including a tunable lag setting.  The lag setting defines how many hours in the past the ensemble forecast is
+initialized beyond the usual 6-hourly cycling zero hour at which the control member is initialized.  For example,
+for an analysis at 2021-01-22T00, the `lag06` workflow generates a 12-hour ensemble forecast initialized at
+2021-01-21T12 lagged by 6 hours relative the control member initialized at 2021-01-21T18.  The lag is a tuneable
+setting that can be used to increase the spread of the ensemble background to tune the analysis.
 
 ### Case study / configuration / sub-configuration 
 Cylc will search for installable workflows at the simulation settings root directory 
