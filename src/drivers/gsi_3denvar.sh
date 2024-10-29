@@ -198,8 +198,8 @@ if [[ ${IF_HYBRID} = ${YES} ]]; then
     msg+=" be specified to the total ensemble size.\n"
     printf "${msg}"
     exit 1
-  elif [ ${ENS_SIZE} -le 2 ]; then
-    printf "ERROR: ensemble size \${ENS_SIZE} + 1 must be three or greater.\n"
+  elif [ ${ENS_SIZE} -lt 3 ]; then
+    printf "ERROR: ensemble size \${ENS_SIZE} must be three or greater.\n"
     exit 1
   elif [[ ! ${BETA} =~ ${DEC_RE} ]]; then
     msg="ERROR: \${BETA},\n ${BETA}\n is not a positive decimal, it must"

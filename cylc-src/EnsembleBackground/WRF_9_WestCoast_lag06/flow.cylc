@@ -22,7 +22,7 @@
 {% set CYC_STRT = '2021-01-18T18' %}
 
 {# Last initial time for a forecast YYYY-MM-DDTHH #}
-{% set CYC_STOP = '2021-01-29T00' %}
+{% set CYC_STOP = '2021-01-28T18' %}
 
 {# Interval between cycle start times hours INT #}
 {% set CYC_INC = 6 %}
@@ -112,7 +112,7 @@
 [scheduling]
     initial cycle point = {{CYC_STRT}}
     final cycle point = {{CYC_STOP}}
-    runahead limit = P3
+    runahead limit = P1
     [[graph]]
         PT{{CYC_INC}}H = """
         {% for mem in range(1,ENS_SIZE) %}
@@ -150,7 +150,7 @@
             inherit = WPS
             execution time limit = {{GRIB_WC}}
             script = {{environ['DRIVERS']}}/ungrib.sh
-            execution retry delays = 3*PT5M
+            execution retry delays = 5*PT5M
             [[[environment]]]
                 MEMID = {{idx}}
                 BKG_STRT_DT = $(isodatetime ${CYLC_TASK_CYCLE_POINT} --offset -PT{{LAG}}H --f '%Y%m%d%H')
@@ -177,7 +177,7 @@
             inherit = WPS
             execution time limit = {{WPS_WC}}
             script = {{environ['DRIVERS']}}/wrf_metgrid.sh
-            execution retry delays = 3*PT5M
+            execution retry delays = 5*PT5M
             [[[environment]]]
                 MEMID = {{idx}}
                 N_NDES = {{WPS_NDES}}
@@ -204,7 +204,7 @@
             inherit = WPS
             execution time limit = {{WPS_WC}}
             script = {{environ['DRIVERS']}}/wrf_real.sh
-            execution retry delays = 3*PT5M
+            execution retry delays = 5*PT5M
             [[[environment]]]
                 MEMID = {{idx}}
                 N_NDES = {{WPS_NDES}}
@@ -232,7 +232,7 @@
         [[wrf_model_ens_{{idx}}]]
             execution time limit = {{WRF_WC}}
             script = {{environ['DRIVERS']}}/wrf_model.sh
-            execution retry delays = 3*PT5M
+            execution retry delays = 5*PT5M
             [[[environment]]]
                 MEMID = {{idx}}
                 HIST_INT = {{HIST_INT}}

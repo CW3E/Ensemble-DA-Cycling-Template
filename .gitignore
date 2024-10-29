@@ -13,11 +13,16 @@
 .conda
 .conda/*
 
+# No cylc hidden files #
+########################
+.cylc/
+
 # No ipython files
 ###################
 .cache/
 .ipython/
 .pdbhistory
+.jupyter/
 
 # No x11 data #
 ###############

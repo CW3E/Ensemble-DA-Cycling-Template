@@ -11,9 +11,6 @@
 {# Define the lag of the ensemble simulation start time here in HH #}
 {% set LAG = '06' %}
 
-{# Define tuneable beta value for ensemble / static background hybridization here #}
-{% set BETA = '0.00' %}
-
 {# Define tuneable beta value for ensemble vertical localization scale here #}
 {% set VLOC = '06' %}
 
@@ -22,10 +19,9 @@
 
 {# Configuration name including tunable parameters #}
 {% set lag = ['lag', LAG] | join('') %}
-{% set beta = ['b', BETA] | join('') %}
 {% set vloc = ['v', VLOC] | join('') %}
 {% set hloc = ['h', HLOC] | join('') %}
-{% set CFG_NME = ['D3envar', 'NAM', lag, beta, vloc, hloc] | join('_') %}
+{% set CFG_NME = ['D3var', 'NAM', lag, vloc, hloc] | join('_') %}
 
 {# Case / configuration structure #}
 {% set EXP_NME = [CSE_NME, CFG_NME] | join('/') %}
@@ -99,9 +95,6 @@
 {################################################################################}
 {# GSI SETTINGS #}
 {################################################################################}
-{# Uses ensemble-based covariance Yes / No #}
-{% set IF_HYBRID  = 'Yes' %}
-
 {# Max loop index to iterate GSI variational bias correction files #}
 {# NOTE: loop 0 is uses GDAS global files #}
 {% set MAX_BC_LOOP= '02' %}
@@ -445,11 +438,11 @@
         execution retry delays = 3*PT5M
         script = {{environ['DRIVERS']}}/gsi_3denvar.sh
         [[[environment]]]
-            IF_HYBRID = {{IF_HYBRID}}
+            IF_HYBRID = 'No'
             WRF_CTR_DOM = {{CTR_CYC_DOM}}
             WRF_ENS_DOM = {{CTR_CYC_DOM}}
             ENS_SIZE = {{ENS_SIZE}}
-            BETA = {{BETA}}
+            BETA = '1.00'
             HLOC = {{HLOC}}
             VLOC = {{VLOC}}
             MAX_BC_LOOP = {{MAX_BC_LOOP}}
