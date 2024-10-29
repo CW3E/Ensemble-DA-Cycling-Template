@@ -126,11 +126,11 @@ work directories nested in the directory structure at `${WORK_ROOT}` defined in 
 
 ## Installing MPAS, WRF and GSI
 It is assumed that there is a suitable installation of MPAS and / or WRF available on the HPC system. Basic
-build examples for WRF, MPAS and their dependencies from source can be found in the
+build examples for WPS, WRF, WRFDA, MPAS and their dependencies from source can be found in the
 [template archive](https://github.com/CW3E/Ensemble-DA-Cycling-Template/tree/main/settings/template_archive/build_examples)
 in this repository.  This repository also includes a 
 [build example for GSI](https://github.com/CW3E/Ensemble-DA-Cycling-Template/blob/main/settings/template_archive/build_examples/make_GSI-HPC-STACK.sh)
-building GSI with the HPC Stack providing the underlying dependencies.  The build is loosely integrated to the repository in that
+compiling GSI versus the HPC Stack, which provides the underlying dependencies.  The build is loosely integrated to the repository in that
 it references a site configuration for code deployment with example
 [HPC Stack Environment configuration](https://github.com/CW3E/Ensemble-DA-Cycling-Template/blob/main/settings/sites/expanse-cwp168/config_NOAA_HPC_STACK.sh) 
 and
@@ -183,7 +183,7 @@ radii and obs / background error settings (`NAM`), which can all be changed to n
 have the same directory structure as the examples with names defined to reflect the particular tunable settings.
 
 Finally, for downscaling ensemble forecasts for the background error covariance calculation in EnVAR, there is
-one template available to generate ensemble forecasts offline for WRF
+a template available to generate ensemble forecasts offline for WRF
 ```
 EnsembleBackground/WRF_9_WestCoast_lag06
 ```
