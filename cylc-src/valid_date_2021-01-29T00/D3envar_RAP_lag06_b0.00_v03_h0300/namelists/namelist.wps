@@ -1,0 +1,39 @@
+&share
+ wrf_core          = 'ARW',
+ max_dom           = MAX_DOM,
+ start_date        = STRT_DT,
+ end_date          = STOP_DT,
+ interval_seconds  = INT_SEC,
+ io_form_geogrid   = 2,
+ debug_level       = 0,
+ nocolons = .true.
+/
+
+&geogrid
+ parent_id         = 1,   1,  
+ parent_grid_ratio = 1,   3,  
+ i_parent_start    = 1,   562,
+ j_parent_start    = 1,   172,
+ e_we              = 828, 730,
+ e_sn              = 570, 760,
+ geog_data_res     = 'default','default',
+ dx                = 0.08,
+ dy                = 0.08,
+ map_proj          = 'lat-lon',
+ ref_lat           = 39.0,
+ ref_lon           = -143.5,
+ pole_lat          = 51.0,
+ pole_lon          = 180.0,
+ stand_lon         = 125.0,
+ geog_data_path    = '/expanse/lustre/projects/ddp181/cgrudzien/JEDI-MPAS-Common-Case/DATA/static_terrestrial/WPS_GEOG'
+/
+
+&ungrib
+ out_format        = 'WPS',
+ prefix            = PREFIX,
+/
+
+&metgrid
+ fg_name           = FG_NAME,
+ io_form_metgrid   = 2,
+/
