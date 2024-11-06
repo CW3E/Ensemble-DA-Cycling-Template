@@ -16,6 +16,9 @@
 # No cylc hidden files #
 ########################
 .cylc/
+.subversion/
+cylc/.lesshst
+cylc/.subversion/
 
 # No ipython files
 ###################

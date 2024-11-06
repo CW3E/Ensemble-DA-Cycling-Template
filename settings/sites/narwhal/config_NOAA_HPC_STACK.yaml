@@ -1,0 +1,214 @@
+cmake:
+  build: YES 
+  bootstrap: YES
+  version: 3.24.2
+
+jpeg:
+  build: NO
+  version: 9.1.0
+
+zlib:
+  build: YES 
+  version: 1.2.11
+
+libpng:
+  build: NO
+  version: 1.6.35
+
+szip:
+  build: NO
+  version: 2.1.1
+
+jasper:
+  build: NO 
+  version: 2.0.25
+
+udunits:
+  build: NO
+  version: 2.2.28
+
+hdf5:
+  build: YES 
+  version: 1.10.11
+  shared: YES
+  enable_szip: NO
+  enable_zlib: YES
+
+pnetcdf:
+  build: YES 
+  version: 1.12.3
+  shared: YES
+
+netcdf:
+  build: YES 
+  shared: YES
+  enable_pnetcdf: NO
+  version_c: 4.9.2
+  version_f: 4.6.1
+  version_cxx: 4.3.1
+
+nccmp:
+  build: NO
+  version: 1.8.7.0
+
+nco:
+  build: NO
+  version: 4.9.3
+
+cdo:
+  build: NO
+  version: 1.9.8
+
+bacio:
+  build: YES
+  version: v2.4.1
+  install_as: 2.4.1
+  is_nceplib: YES
+
+sigio:
+  build: YES
+  version: v2.3.2
+  install_as: 2.3.2
+  is_nceplib: YES
+
+sfcio:
+  build: YES
+  version: v1.4.1
+  install_as: 1.4.1
+  is_nceplib: YES
+
+gfsio:
+  build: YES
+  version: v1.4.1
+  install_as: 1.4.1
+  is_nceplib: YES
+
+w3nco:
+  build: YES
+  version: v2.4.1
+  install_as: 2.4.1
+  is_nceplib: YES
+
+sp:
+  build: YES
+  version: v2.3.3
+  install_as: 2.3.3
+  openmp: ON
+  is_nceplib: YES
+
+ip:
+  build: YES
+  version: v3.3.3
+  install_as: 3.3.3
+  openmp: ON
+  is_nceplib: YES
+
+ip2:
+  build: YES
+  version: v1.1.2
+  install_as: 1.1.2
+  openmp: ON
+  is_nceplib: YES
+
+landsfcutil:
+  build: NO
+  version: v2.4.1
+  install_as: 2.4.1
+  is_nceplib: YES
+
+nemsio:
+  build: YES
+  version: v2.5.4
+  install_as: 2.5.4
+  is_nceplib: YES
+
+nemsiogfs:
+  build: YES
+  version: v2.5.3
+  install_as: 2.5.3
+  is_nceplib: YES
+
+w3emc:
+  build: YES
+  version: v2.9.2
+  install_as: 2.9.2
+  is_nceplib: YES
+
+g2:
+  build: NO 
+  version: v3.4.1
+  install_as: 3.4.1
+  is_nceplib: YES
+
+g2c:
+  build: NO 
+  version: v1.6.2
+  install_as: 1.6.2
+  is_nceplib: YES
+
+g2tmpl:
+  build: NO 
+  version: v1.9.1
+  install_as: 1.9.1
+  is_nceplib: YES
+
+crtm:
+  build: YES
+  version: v2.3.0
+  install_as: 2.3.0
+  is_nceplib: YES
+  install_fix: YES
+
+upp:
+  build: NO
+  version: upp_v10.0.5
+  install_as: 10.0.5
+  openmp: ON
+
+wrf_io:
+  build: YES
+  version: v1.2.0
+  install_as: 1.2.0
+  openmp: ON
+  is_nceplib: YES
+
+bufr:
+  build: YES
+  version: bufr_v11.6.0
+  install_as: 11.6.0
+  python: NO
+  is_nceplib: YES
+
+wgrib2:
+  build: NO
+  version: v2.0.8-cmake-v6
+  install_as: 2.0.8
+  openmp: ON
+  cmake_opts: "-DUSE_SPECTRAL=ON -DUSE_IPOLATES=3 -DUSE_NETCDF4=ON"
+  is_nceplib: YES
+
+prod_util:
+  build: NO
+  version: v1.2.2
+  install_as: 1.2.2
+  is_nceplib: YES
+
+grib_util:
+  build: NO
+  version: v1.2.4
+  install_as: 1.2.4
+  openmp: ON
+  is_nceplib: YES
+
+ncio:
+  build: YES 
+  version: develop
+  install_as: 1.0.0
+  is_nceplib: YES
+
+ncdiag:
+  build: YES
+  version: v1.0.0
+  install_as: 1.0.0
+  is_nceplib: YES
+
