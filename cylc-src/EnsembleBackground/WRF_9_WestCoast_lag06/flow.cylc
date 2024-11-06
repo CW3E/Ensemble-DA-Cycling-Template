@@ -19,10 +19,10 @@
 {# CYCLING SETTINGS #}
 {################################################################################}
 {# First initial time for a forecast YYYY-MM-DDTHH #}
-{% set CYC_STRT = '2021-01-18T18' %}
+{% set CYC_STRT = '2021-01-29T00' %}
 
 {# Last initial time for a forecast YYYY-MM-DDTHH #}
-{% set CYC_STOP = '2021-01-28T18' %}
+{% set CYC_STOP = '2021-02-05T00' %}
 
 {# Interval between cycle start times hours INT #}
 {% set CYC_INC = 6 %}
@@ -113,6 +113,10 @@
     initial cycle point = {{CYC_STRT}}
     final cycle point = {{CYC_STOP}}
     runahead limit = P1
+    [[queues]]
+        [[[preprocessing]]]
+            limit = 8
+            members = WPS
     [[graph]]
         PT{{CYC_INC}}H = """
         {% for mem in range(1,ENS_SIZE) %}
