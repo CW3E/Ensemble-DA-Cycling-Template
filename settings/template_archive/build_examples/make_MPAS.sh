@@ -31,7 +31,7 @@ export LD_RUN_PATH="${PIO}/lib:${PNETCDF}/lib:${NETCDF}/lib:${HDF5_PATH}/lib:${L
 export PATH="${NETCDF}/bin:${PATH}"
 
 # set up for environment for compile
-export MPAS_VER="8.0.1"
+export MPAS_VER="8.2.1"
 export MPAS_DIR="${PREFIX}/MPAS-Model-${MPAS_VER}"
 export TARGET="intel-mpi"
 export CC=mpiicc

@@ -1,0 +1,269 @@
+#!jinja2
+{################################################################################}
+{# CONTROL FLOW NAME / TUNABLE SETTINGS #}
+{################################################################################}
+{# Define the name of case study #}
+{% set CSE_NME = 'EnsembleBackground' %}
+
+{# Hours ensemble forecast initialization is lagged from 6-hour cycling #}
+{% set LAG = '06' %}
+{% set lag = ['lag', LAG] | join('') %}
+
+{# Configuration name including tunable parameters #}
+{% set CFG_NME = ['WRF_Guam_d01', lag ] | join('_') %}
+
+{# Case / configuration structure #}
+{% set EXP_NME = [CSE_NME, CFG_NME] | join('/') %}
+
+{################################################################################}
+{# CYCLING SETTINGS #}
+{################################################################################}
+{# First initial time for a forecast YYYY-MM-DDTHH #}
+{% set CYC_STRT = '2021-01-18T18' %}
+
+{# Last initial time for a forecast YYYY-MM-DDTHH #}
+{% set CYC_STOP = '2021-01-18T18' %}
+
+{# Interval between cycle start times hours INT #}
+{% set CYC_INC = 6 %}
+
+{################################################################################}
+{# ENSEMBLE SETTINGS #}
+{################################################################################}
+{# Define the ensemble size, indices start at zero #}
+{% set ENS_SIZE = 2 %}
+
+{# GFS and GEFS currently supported #}
+{% set ENS_BKG_DATA = 'GEFS' %}
+
+{# Data file frequency for ensemble simulation forcing in HH #}
+{% set ENS_BKG_INT = '03' %}
+
+{# Max domain for ensemble simulation #}
+{% set WRF_ENS_DOM = '01' %}
+
+{# First domain index to have ICs downscaled from parent's initial conditions (>01) #}
+{% set DOWN_DOM = '02' %}
+
+{################################################################################}
+{# WRF SETTINGS #}
+{################################################################################}
+{# Output interval for history files in HH, suppressed = 00 #}
+{% set HIST_INT = '03' %}
+
+{# Output interval for restart files in HH, suppressed = 00 #}
+{# Automatically set the restart interval to the forecast length = 'END' #}
+{% set RSTRT_INT = 'END' %}
+
+{# This setting defines Yes / No for nested domain 2-way coupling #}
+{% set IF_FEEDBACK = 'No' %}
+
+{# Lower boundary condition updates from background data #}
+{% set IF_SST_UPDT = 'No' %}
+
+{# Quilting tasks per group, set NIO_TPG=0 for default TURN OFF QUILTING #}
+{% set NIO_TPG = 0 %}
+
+{# Quilting number of groups #}
+{% set NIO_GRPS = 4 %}
+
+{################################################################################}
+{# JOB SETTINGS #}
+{################################################################################}
+{# ungrib mem argument #}
+{% set GRIB_MEM = '20000M' %}
+
+{# Wallclock limit for ungrib jobs #}
+{% set GRIB_WC = 'PT30M' %}
+
+{# WPS parallel / REAL number of procs-per-node #}
+{% set WPS_PROC = 64 %}
+
+{# WPS mem argument  #}
+{% set WPS_MEM = '249000M' %}
+
+{# Number of nodes for WPS parallel / REAL jobs #}
+{% set WPS_NDES = 1 %}
+
+{# Wallclock limit for init_atmosphere jobs #}
+{% set WPS_WC = 'PT30M' %}
+
+{# WRF model number of procs-per-node #}
+{% set WRF_PROC = 128 %}
+
+{# WRF model mem argument #}
+{% set WRF_MEM = '249000M' %}
+
+{# Number of nodes for WRF model jobs #}
+{% set WRF_NDES = 6 %}
+
+{# Wallclock limit for WRF model #}
+{% set WRF_WC = 'PT4H' %}
+
+{# Set workflow to debugging mode for generating batch submit templates #}
+{% set IF_DBG = 'No' %}
+
+{################################################################################}
+{# CYLC SETTINGS #}
+{################################################################################}
+[scheduler]
+    UTC mode = True
+    allow implicit tasks = True
+[scheduling]
+    initial cycle point = {{CYC_STRT}}
+    final cycle point = {{CYC_STOP}}
+    runahead limit = P1
+    [[graph]]
+        PT{{CYC_INC}}H = """
+        {% for mem in range(1,ENS_SIZE) %}
+            {% set idx = mem | pad(2, '0') %}
+            ungrib_ens_{{idx}}  => wrf_metgrid_ens_{{idx}}
+            wrf_metgrid_ens_{{idx}} => wrf_real_ens_{{idx}}
+            wrf_real_ens_{{idx}} => wrf_model_ens_{{idx}}
+        {% endfor %}
+        """
+[runtime]
+    [[root]]
+        platform = {{environ['SCHED']}}
+        [[[environment]]]
+            EXP_NME = {{EXP_NME}}
+            CYC_DT = $(isodatetime ${CYLC_TASK_CYCLE_POINT} --f '%Y%m%d%H')
+            CYC_HME = {{environ['WORK_ROOT']}}/{{EXP_NME}}/$CYC_DT
+            STRT_DT = $(isodatetime ${CYLC_TASK_CYCLE_POINT} --offset -PT{{LAG}}H --f '%Y%m%d%H')
+            BKG_DATA = {{ENS_BKG_DATA}}
+            IF_DYN_LEN = 'No'
+            {% set lag = LAG | int %}
+            FCST_HRS = {{ lag + CYC_INC }}
+            IF_SST_UPDT = {{IF_SST_UPDT}}
+            IF_RGNL = 'Yes'
+            MAX_DOM = {{WRF_ENS_DOM}}
+            IF_DBG_SCRPT = {{IF_DBG}}
+
+    [[WPS]]
+        [[[environment]]]
+            IF_ECMWF_ML = 'No'
+            BKG_INT = {{ENS_BKG_INT}}
+
+    {% for mem in range(1,ENS_SIZE) %}
+        {% set idx = mem | pad(2, '0') %}
+        [[ungrib_ens_{{idx}}]]
+            inherit = WPS
+            execution time limit = {{GRIB_WC}}
+            script = {{environ['DRIVERS']}}/ungrib.sh
+            execution retry delays = 5*PT5M
+            [[[environment]]]
+                MEMID = {{idx}}
+                BKG_STRT_DT = $(isodatetime ${CYLC_TASK_CYCLE_POINT} --offset -PT{{LAG}}H --f '%Y%m%d%H')
+                IF_SST_UPDT = {{IF_SST_UPDT}}
+            [[[directives]]]
+                {% if environ['SCHED'] == 'slurm' %}
+                    {% if environ['SYS_TYPE' ] == 'penguin' %}
+                        --partition = general
+                        --qos = {{environ['PART_SRL']}}
+                        --nodes = 1
+                        --ntasks-per-node = 1
+                    {% else %}
+                        --partition = {{environ['PART_SRL']}}
+                        --nodes = 1
+                        --ntasks-per-node = 1
+                        --mem = {{GRIB_MEM}}
+                    {% endif %}
+                {% elif environ['SCHED'] == 'pbs' %}
+                    -q = {{environ['PART_SRL']}}
+                    -l select=1:mpiprocs=1:ncpus=1
+                {% endif %}
+
+        [[wrf_metgrid_ens_{{idx}}]]
+            inherit = WPS
+            execution time limit = {{WPS_WC}}
+            script = {{environ['DRIVERS']}}/wrf_metgrid.sh
+            execution retry delays = 5*PT5M
+            [[[environment]]]
+                MEMID = {{idx}}
+                N_NDES = {{WPS_NDES}}
+                N_PROC = {{WPS_PROC}}
+            [[[directives]]]
+                {% if environ['SCHED'] == 'slurm' %}
+                    {% if environ['SYS_TYPE' ] == 'penguin' %}
+                        --partition = general
+                        --qos = {{environ['PART_DBG']}}
+                        --nodes = {{WPS_NDES}}
+                        --ntasks-per-node = {{WPS_PROC}}
+                    {% else %}
+                        --partition = {{environ['PART_DBG']}}
+                        --nodes = {{WPS_NDES}}
+                        --ntasks-per-node = {{WPS_PROC}}
+                        --mem = {{WPS_MEM}}
+                    {% endif %}
+                {% elif environ['SCHED'] == 'pbs' %}
+                    -q = {{environ['PART_DBG']}}
+                    -l select={{WPS_NDES}}:mpiprocs={{WPS_PROC}}:ncpus={{WPS_PROC}}
+                {% endif %}
+
+        [[wrf_real_ens_{{idx}}]]
+            inherit = WPS
+            execution time limit = {{WPS_WC}}
+            script = {{environ['DRIVERS']}}/wrf_real.sh
+            execution retry delays = 5*PT5M
+            [[[environment]]]
+                MEMID = {{idx}}
+                N_NDES = {{WPS_NDES}}
+                N_PROC = {{WPS_PROC}}
+                NIO_GRPS = {{NIO_GRPS}}
+                NIO_TPG = {{NIO_TPG}}
+            [[[directives]]]
+                {% if environ['SCHED'] == 'slurm' %}
+                    {% if environ['SYS_TYPE' ] == 'penguin' %}
+                        --partition = general
+                        --qos = {{environ['PART_DBG']}}
+                        --nodes = {{WPS_NDES}}
+                        --ntasks-per-node = {{WPS_PROC}}
+                    {% else %}
+                        --partition = {{environ['PART_DBG']}}
+                        --nodes = {{WPS_NDES}}
+                        --ntasks-per-node = {{WPS_PROC}}
+                        --mem = {{WPS_MEM}}
+                    {% endif %}
+                {% elif environ['SCHED'] == 'pbs' %}
+                    -q = {{environ['PART_DBG']}}
+                    -l select={{WPS_NDES}}:mpiprocs={{WPS_PROC}}:ncpus={{WPS_PROC}}
+                {% endif %}
+
+        [[wrf_model_ens_{{idx}}]]
+            execution time limit = {{WRF_WC}}
+            script = {{environ['DRIVERS']}}/wrf_model.sh
+            execution retry delays = 5*PT5M
+            [[[environment]]]
+                MEMID = {{idx}}
+                HIST_INT = {{HIST_INT}}
+                RSTRT_INT = {{RSTRT_INT}}
+                BKG_INT = {{ENS_BKG_INT}}
+                IF_SST_UPDT = {{IF_SST_UPDT}}
+                CYC_INC = {{CYC_INC}}
+                DOWN_DOM = {{DOWN_DOM}}
+                WRF_IC = 'REALEXE'
+                IF_FEEDBACK = {{IF_FEEDBACK}}
+                N_NDES = {{WRF_NDES}}
+                N_PROC = {{WRF_PROC}}
+                NIO_GRPS = {{NIO_GRPS}}
+                NIO_TPG = {{NIO_TPG}}
+
+            [[[directives]]]
+                {% if environ['SCHED'] == 'slurm' %}
+                    {% if environ['SYS_TYPE' ] == 'penguin' %}
+                        --partition = general
+                        --qos = {{environ['PART_CMP']}}
+                        --nodes = {{WRF_NDES}}
+                        --ntasks-per-node = {{WRF_PROC}}
+                    {% else %}
+                        --partition = {{environ['PART_CMP']}}
+                        --nodes = {{WRF_NDES}}
+                        --ntasks-per-node = {{WRF_PROC}}
+                        --mem = {{WRF_MEM}}
+                    {% endif %}
+                {% elif environ['SCHED'] == 'pbs' %}
+                    -q = {{environ['PART_CMP']}}
+                    -l select={{WRF_NDES}}:mpiprocs={{WRF_PROC}}:ncpus={{WRF_PROC}}
+                {% endif %}
+
+    {% endfor %}

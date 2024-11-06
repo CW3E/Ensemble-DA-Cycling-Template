@@ -72,10 +72,10 @@ from datetime import timedelta
 # SET GLOBAL PARAMETERS 
 ##################################################################################
 # starting date and zero hour of data iso format
-STRT_DT = '2021-01-26T00:00:00'
+STRT_DT = '2021-01-23T06:00:00'
 
 # final date and zero hour of data iso format
-STOP_DT = '2021-01-28T18:00:00'
+STOP_DT = '2021-01-23T18:00:00'
 
 # number of hours between zero hours for forecast data
 INIT_INT = 6
@@ -84,7 +84,7 @@ INIT_INT = 6
 FCST_MIN = 0
 
 # max forecast hour
-FCST_MAX = 12
+FCST_MAX = 6
 
 # interval of forecast data outputs after zero hour
 FCST_INT = 3
@@ -93,10 +93,10 @@ FCST_INT = 3
 DATA_ROOT = '/expanse/nfs/cw3e/cwp168/DATA/GRIB/GEFS'
 
 # Download ensemble control member
-IF_CTRL = False
+IF_CTRL = True
 
 # Download ensemble perturbations
-IF_PERT = True
+IF_PERT = False
 
 # Download all files or exlcude patterns of existing files True / False
 IF_CLOB = True
