@@ -1,0 +1,39 @@
+&share
+ wrf_core          = 'ARW',
+ max_dom           = MAX_DOM,
+ start_date        = STRT_DT,
+ end_date          = STOP_DT,
+ interval_seconds  = INT_SEC,
+ io_form_geogrid   = 2,
+ debug_level       = 0,
+ nocolons = .true.
+/
+
+&geogrid
+ parent_id         = 1,1,
+ parent_grid_ratio = 1,3,
+ i_parent_start    = 1,360,
+ j_parent_start    = 1,125,
+ e_we              = 661,841,
+ e_sn              = 481,751,
+ geog_data_res     = 'default','default',
+ dx                = 27000,
+ dy                = 27000,
+ map_proj          = 'lambert',
+ ref_lat           = 40.0,
+ ref_lon           = 160,
+ truelat1          = 25,
+ truelat2          = 45,
+ stand_lon         = 180,
+ geog_data_path    = '/expanse/nfs/cw3e/cwp168/DATA/static_terrestrial/WPS_GEOG'
+/
+
+&ungrib
+ out_format        = 'WPS',
+ prefix            = PREFIX,
+/
+
+&metgrid
+ fg_name           = FG_NAME,
+ io_form_metgrid   = 2,
+/
