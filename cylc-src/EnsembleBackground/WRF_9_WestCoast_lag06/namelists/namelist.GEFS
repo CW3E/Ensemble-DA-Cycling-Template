@@ -90,17 +90,17 @@
 /
 
 &physics
- mp_physics                          = 8,    8,    
+ mp_physics                          = 6,    6,    
  ra_lw_physics                       = 4,    4,    
  ra_sw_physics                       = 4,    4,    
  radt                                = 9,    3,   
- sf_sfclay_physics                   = 5,    5,    
+ sf_sfclay_physics                   = 1,    1,    
  sf_surface_physics                  = 4,    4,    
- bl_pbl_physics                      = 5,    5,
+ bl_pbl_physics                      = 1,    1,
  topo_wind                           = 1,    1,      
  bldt                                = 0,    0,    
- cu_physics                          = 3,    0,    
- cudt                                = 3,    0,   
+ cu_physics                          = 6,    6,    
+ cudt                                = 0,    0,   
  shcu_physics                        = 0,    0,
  sst_update                          = IF_SST_UPDT,
  isfflx                              = 1,
@@ -161,7 +161,7 @@
  scalar_adv_opt                      = 1,      1,     
  epssm                               = 0.5,    0.4,
  hybrid_opt                          = 2,
- gwd_opt                             = 0,      0,
+ gwd_opt                             = 1,      1,
 /
 
 &bdy_control
