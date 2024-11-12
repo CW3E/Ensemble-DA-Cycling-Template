@@ -48,7 +48,7 @@
 {% set FCST_HRS = 6 %}
 
 {# Fixed forecast length for extended forecasts initalized at zero hours below #}
-{% set EXT_FCST_HRS = 144 %}
+{% set EXT_FCST_HRS = 168 %}
 
 {# List of zero hour to initialize extended forecasts (usually T00 / T12) #}
 {% set EXT_ZHRS = [ 'T00' ] %}
@@ -57,7 +57,7 @@
 {# WRF SETTINGS #}
 {################################################################################}
 {# GFS and GEFS currently supported for 3D-(En)VAR #}
-{% set CTR_BKG_DATA= 'GEFS' %}
+{% set CTR_BKG_DATA= 'GFS' %}
 
 {# Data file frequency for control simulation forcing in HH #}
 {% set CTR_BKG_INT= '03' %}
@@ -66,7 +66,7 @@
 {% set CTR_CYC_DOM= '01' %}
 
 {# Max domain for control extended forecast simulation #}
-{% set CTR_FOR_DOM= '02' %}
+{% set CTR_FOR_DOM= '01' %}
 
 {# First domain index to have ICs downscaled from parent's initial conditions (>01) #}
 {% set DOWN_DOM = '02' %}
@@ -101,6 +101,9 @@
 {################################################################################}
 {# Uses ensemble-based covariance Yes / No #}
 {% set IF_HYBRID  = 'Yes' %}
+
+{# Requires all ensemble members and obs, breaks on missing data Yes / No #}
+{% set IF_FULL_DATA  = 'No' %}
 
 {# Max loop index to iterate GSI variational bias correction files #}
 {# NOTE: loop 0 is uses GDAS global files #}
@@ -149,7 +152,7 @@
 {% set WRF_CYC_WC = 'PT4H' %}
 
 {# Wallclock limit for WRF forecast downscale cycles #}
-{% set WRF_FOR_WC = 'PT6H' %}
+{% set WRF_FOR_WC = 'PT4H' %}
 
 {# Wallclock limit multiplier for dynamic length extended forecasts #}
 {% set WRF_RSTRT_WC = 'PT16H' %}
@@ -186,7 +189,7 @@
 [scheduling]
     initial cycle point = {{CYC_STRT}}
     final cycle point = {{CYC_STOP}}
-    runahead limit = P9
+    runahead limit = P16
     [[graph]]
         {# First forecast, cold start #}
         R1/^ = """
@@ -280,7 +283,7 @@
     [[FOR]]
         [[[environment]]]
             IF_DYN_LEN = 'No'
-            FCST_HRS = {{FCST_HRS}}
+            FCST_HRS = {{EXT_FCST_HRS}}
             MAX_DOM = {{CTR_FOR_DOM}}
 
     [[WPS]]
@@ -422,6 +425,7 @@
         [[[environment]]]
             WRF_IC = 'RESTART'
             STRT_DT = $(isodatetime ${CYLC_TASK_CYCLE_POINT} --offset PT{{CYC_INC}}H --f '%Y%m%d%H')
+            FCST_HRS = {{EXT_FCST_HRS - FCST_HRS}}
         [[[directives]]]
             {% if environ['SCHED'] == 'slurm' %}
                 {% if environ['SYS_TYPE' ] == 'penguin' %}
@@ -456,6 +460,7 @@
         script = {{environ['DRIVERS']}}/gsi_3denvar.sh
         [[[environment]]]
             IF_HYBRID = {{IF_HYBRID}}
+            IF_FULL_DATA = {{IF_FULL_DATA}}
             WRF_CTR_DOM = {{CTR_CYC_DOM}}
             WRF_ENS_DOM = {{CTR_CYC_DOM}}
             ENS_SIZE = {{ENS_SIZE}}

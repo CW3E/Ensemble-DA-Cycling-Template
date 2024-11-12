@@ -120,19 +120,20 @@ fi
 ##################################################################################
 # Options below are defined in control flow xml (case insensitive)
 #
-# EXP_NME     = Case study / config short name directory structure
-# CYC_DT      = Analysis time YYYYMMDDHH
-# CYC_HME     = Start time named directory for cycling data containing
-# WRF_CTR_DOM = Analyze up to domain index format DD of control solution
-# IF_HYBRID   = Yes : Run GSI with ensemble background covariance
-# ENS_DIR     = Background ensemble located at ${ENS_DIR}/ens_${ens_n}/wrfout* 
-# ENS_SIZE    = The total ensemble size including control member + perturbations
-# WRF_ENS_DOM = Utilize ensemble perturbations up to domain index DD
-# BETA        = Scaling float in [0,1], 0 - full ensemble, 1 - full static
-# HLOC        = Homogeneous isotropic horizontal ensemble localization scale (km) 
-# VLOC        = Vertical localization scale (grid units)
-# MAX_BC_LOOP = Maximum number of times to iteratively generate variational bias
-#               correction files, loop zero starts with GDAS defaults
+# EXP_NME      = Case study / config short name directory structure
+# CYC_DT       = Analysis time YYYYMMDDHH
+# CYC_HME      = Start time named directory for cycling data containing
+# WRF_CTR_DOM  = Analyze up to domain index format DD of control solution
+# IF_HYBRID    = Yes : Run GSI with ensemble background covariance
+# IF_FULL_DATA = Yes : Break run on missing ensemble or obs inputs
+# ENS_DIR      = Background ensemble located at ${ENS_DIR}/ens_${ens_n}/wrfout* 
+# ENS_SIZE     = The total ensemble size including control member + perturbations
+# WRF_ENS_DOM  = Utilize ensemble perturbations up to domain index DD
+# BETA         = Scaling float in [0,1], 0 - full ensemble, 1 - full static
+# HLOC         = Homogeneous isotropic horizontal ensemble localization scale (km) 
+# VLOC         = Vertical localization scale (grid units)
+# MAX_BC_LOOP  = Maximum number of times to iteratively generate variational bias
+#                correction files, loop zero starts with GDAS defaults
 #
 ##################################################################################
 
@@ -225,6 +226,18 @@ else
   exit 1
 fi
 
+if [[ ${IF_FULL_DATA} = ${YES} ]]; then
+  msg="GSI analysis requires all ensemble members and obs, script breaks"
+  msg+=" on missing data.\n"
+  printf "${msg}"
+elif [[ ${IF_FULL_DATA} = ${NO} ]]; then
+  msg="GSI analysis permits missing data, script only warns for missing members"
+  msg+=" and obs.\n"
+  printf "${msg}"
+else
+  printf "ERROR: \${IF_FULL_DATA} must equal 'Yes' or 'No' (case insensitive).\n"
+  exit 1
+fi
 if [[ ! ${VLOC} =~ ${INT_RE} ]]; then
   msg="ERROR: \${VLOC},\n ${VLOC}\n is not an integer, it must be"
   msg+=" specified to the length of vertical localization scale in"
@@ -371,8 +384,12 @@ if [ ! -x ${gsi_namelist} ]; then
 fi
 
 if [ ! -r ${prepbufr_tar} ]; then
-  printf "ERROR: prepbufr tar file\n ${prepbufr_tar}\n is not readable.\n"
-  exit 1
+  if [[ ${IF_FULL_DATA} = ${YES} ]]; then
+    printf "ERROR: prepbufr tar file\n ${prepbufr_tar}\n is not readable.\n"
+    exit 1
+  else
+    printf "WARNING: prepbufr tar file\n ${prepbufr_tar}\n is not readable.\n"
+  fi
 else
   # untar prepbufr data to predefined directory
   # define prepbufr directory
@@ -391,8 +408,12 @@ else
 
   prepbufr=${prepbufr_dir}/prepbufr.gdas.${cyc_dt}.t${hh}z.nr
   if [ ! -r ${prepbufr} ]; then
-    printf "ERROR: file\n ${prepbufr}\n is not readable.\n"
-    exit 1
+    if [[ ${IF_FULL_DATA} = ${YES} ]]; then
+      printf "ERROR: file\n ${prepbufr}\n is not readable.\n"
+      exit 1
+    else
+      printf "WARNING: file\n ${prepbufr}\n is not readable.\n"
+    fi
   fi
 fi
 
@@ -465,8 +486,12 @@ for dmn in `seq -f "%02g" 1 ${max_dom}`; do
       obs_dir=${OBS_ROOT}/${cyc_dt}.${srcobsfile[$ii]}
       mkdir -p ${obs_dir}
       if [ ! -r "${tar_file}" ]; then
-        printf "ERROR: file\n ${tar_file}\n not found.\n"
-        exit 1
+        if [[ ${IF_FULL_DATA} = ${YES} ]]; then
+          printf "ERROR: file\n ${tar_file}\n not found.\n"
+          exit 1
+        else
+          printf "WARNING: file\n ${tar_file}\n not found.\n"
+        fi
       else
         # untar to specified directory
         cmd="tar -xvf ${tar_file} -C ${obs_dir}"
@@ -490,8 +515,12 @@ for dmn in `seq -f "%02g" 1 ${max_dom}`; do
         fi
 
         if [ ! -r "${obs_file}" ]; then
-           printf "ERROR: obs file\n ${srcobsfile[$ii]}\n not found.\n"
-           exit 1
+          if [[ ${IF_FULL_DATA} = ${YES} ]]; then
+            printf "ERROR: obs file\n ${srcobsfile[$ii]}\n not found.\n"
+            exit 1
+          else
+            printf "WARNING: obs file\n ${srcobsfile[$ii]}\n not found.\n"
+          fi
         else
            printf "Link source obs file\n ${obs_file}\n"
            cmd="cd ${workdir}"
@@ -725,9 +754,13 @@ for dmn in `seq -f "%02g" 1 ${max_dom}`; do
         printf " Copy ensemble perturbations to working directory.\n"
         for memid in ${mem_list[@]}; do
           ens_file=${ENS_DIR}/bkg/ens_${memid}/wrfout_d${dmn}_${cyc_iso}
-          if [ !-r ${ens_file} ]; then
-            printf "ERROR: ensemble file\n ${ens_file}\n does not exist.\n"
-            exit 1
+          if [ ! -r ${ens_file} ]; then
+            if [[ ${IF_FULL_DATA} = ${YES} ]]; then
+              printf "ERROR: ensemble file\n ${ens_file}\n does not exist.\n"
+              exit 1
+            else
+              printf "WARNING: ensemble file\n ${ens_file}\n does not exist.\n"
+            fi
           else
             cmd="ln -sfr ${ens_file} ./wrf_ens_${memid}"
             printf "${cmd}\n"; eval "${cmd}"

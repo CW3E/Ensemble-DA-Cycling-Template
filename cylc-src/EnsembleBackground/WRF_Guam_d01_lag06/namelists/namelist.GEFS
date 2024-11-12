@@ -50,7 +50,7 @@
 /
 
 &domains
- time_step                           = 54,
+ time_step                           = 27,
  reasonable_time_step_ratio          = 20.,
  use_adaptive_time_step              = .false.,
  step_to_output_time                 = .true.,

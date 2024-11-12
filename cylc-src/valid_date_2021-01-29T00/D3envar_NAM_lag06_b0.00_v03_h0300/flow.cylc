@@ -102,6 +102,9 @@
 {# Uses ensemble-based covariance Yes / No #}
 {% set IF_HYBRID  = 'Yes' %}
 
+{# Requires all ensemble members and obs, breaks on missing data Yes / No #}
+{% set IF_FULL_DATA  = 'Yes' %}
+
 {# Max loop index to iterate GSI variational bias correction files #}
 {# NOTE: loop 0 is uses GDAS global files #}
 {% set MAX_BC_LOOP= '02' %}
@@ -446,6 +449,7 @@
         script = {{environ['DRIVERS']}}/gsi_3denvar.sh
         [[[environment]]]
             IF_HYBRID = {{IF_HYBRID}}
+            IF_FULL_DATA = {{IF_FULL_DATA}}
             WRF_CTR_DOM = {{CTR_CYC_DOM}}
             WRF_ENS_DOM = {{CTR_CYC_DOM}}
             ENS_SIZE = {{ENS_SIZE}}

@@ -109,6 +109,9 @@ export PROJECT="cwp157"
 # Compute queue for standard mpi jobs
 export PART_CMP="cw3e-compute"
 
+# Compute queue for interactive mpi jobs
+export PART_INT="cw3e-compute"
+
 # Debug queue for small / rapid parallel jobs
 export PART_DBG="cw3e-compute"
 

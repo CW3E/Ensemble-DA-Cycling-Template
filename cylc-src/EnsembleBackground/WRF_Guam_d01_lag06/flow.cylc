@@ -31,7 +31,7 @@
 {# ENSEMBLE SETTINGS #}
 {################################################################################}
 {# Define the ensemble size, indices start at zero #}
-{% set ENS_SIZE = 2 %}
+{% set ENS_SIZE = 31 %}
 
 {# GFS and GEFS currently supported #}
 {% set ENS_BKG_DATA = 'GEFS' %}
@@ -95,10 +95,10 @@
 {% set WRF_MEM = '249000M' %}
 
 {# Number of nodes for WRF model jobs #}
-{% set WRF_NDES = 6 %}
+{% set WRF_NDES = 9 %}
 
 {# Wallclock limit for WRF model #}
-{% set WRF_WC = 'PT4H' %}
+{% set WRF_WC = 'PT1H' %}
 
 {# Set workflow to debugging mode for generating batch submit templates #}
 {% set IF_DBG = 'No' %}
@@ -113,6 +113,10 @@
     initial cycle point = {{CYC_STRT}}
     final cycle point = {{CYC_STOP}}
     runahead limit = P1
+    [[queues]]
+        [[[preprocessing]]]
+            limit = 2
+            members = WRF
     [[graph]]
         PT{{CYC_INC}}H = """
         {% for mem in range(1,ENS_SIZE) %}
@@ -229,10 +233,12 @@
                     -l select={{WPS_NDES}}:mpiprocs={{WPS_PROC}}:ncpus={{WPS_PROC}}
                 {% endif %}
 
+        [[WRF]]
+            execution retry delays = 5*PT5M
         [[wrf_model_ens_{{idx}}]]
+            inherit = WRF
             execution time limit = {{WRF_WC}}
             script = {{environ['DRIVERS']}}/wrf_model.sh
-            execution retry delays = 5*PT5M
             [[[environment]]]
                 MEMID = {{idx}}
                 HIST_INT = {{HIST_INT}}
