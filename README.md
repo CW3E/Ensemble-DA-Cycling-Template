@@ -32,7 +32,7 @@ Ensemble-DA-Cycling-Template/     # Root directory of the repository
 Cylc can be run on an HPC system in a centralized or a distributed fashion.  This build procedure will
 create an embedded Cylc installation with the configuration of Cylc inferred from the `config_workflow.sh`
 at the root of the repository.  One should edit this file as in the following to define the local
-HPC system paramters for the workflow.
+HPC system paramters for the workflow and source this to define the Cylc environment when running the workflow.
 
 ###  Workflow configuration
 In the workflow configuration one should define the full path of clone
